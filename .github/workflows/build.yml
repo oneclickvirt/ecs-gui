@@ -380,17 +380,16 @@ jobs:
             go build -trimpath -ldflags "-checklinkname=0 -s -w" -o "$BUILD_DIR/ecs-gui-bin" .
             
             echo "Packaging macOS app with fyne..."
-            cd "$BUILD_DIR"
-            fyne package -os darwin -name ecs-gui --exe ecs-gui-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
-            cd ..
+            # 在根目录运行 fyne package，指定编译好的二进制文件路径
+            fyne package -os darwin -name ecs-gui --exe "$BUILD_DIR/ecs-gui-bin" --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
-            if [ -d "$BUILD_DIR/ecs-gui.app" ]; then
+            if [ -d "ecs-gui.app" ]; then
               TARFILE="ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
               echo "Creating tar file: $TARFILE"
-              tar -czf "$TARFILE" -C "$BUILD_DIR" ecs-gui.app
+              tar -czf "$TARFILE" ecs-gui.app
               echo "✓ macOS app 构建成功"
-              # 清理构建目录
-              rm -rf "$BUILD_DIR"
+              # 清理构建目录和生成的 app
+              rm -rf "$BUILD_DIR" ecs-gui.app
             else
               echo "✗ macOS app 构建失败"
               exit 1
@@ -412,37 +411,30 @@ jobs:
             fi
             
             echo "Packaging Linux app with fyne..."
-            cd "$BUILD_DIR"
-            fyne package -os linux -name ecs-gui --exe ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
-            cd ..
+            # 在根目录运行 fyne package，指定编译好的二进制文件路径
+            fyne package -os linux -name ecs-gui --exe "$BUILD_DIR/ecs-gui" --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             # 查找生成的 tar.xz 文件
-            if [ -f "$BUILD_DIR/ecs-gui.tar.xz" ]; then
-              mv "$BUILD_DIR/ecs-gui.tar.xz" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.xz
+            if [ -f "ecs-gui.tar.xz" ]; then
+              mv "ecs-gui.tar.xz" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.xz
               echo "✓ Linux tar.xz 构建成功"
               # 清理构建目录
               rm -rf "$BUILD_DIR"
             else
               echo "✗ Linux tar.xz 构建失败"
-              ls -la "$BUILD_DIR/"
+              ls -la .
               exit 1
             fi
           else
-            # Windows 构建 - 使用独立目录
-            BUILD_DIR="build-${{ matrix.name }}"
-            mkdir -p "$BUILD_DIR"
-            
+            # Windows 构建
             echo "Building ${{ matrix.platform }} with fyne package..."
-            cd "$BUILD_DIR"
+            # 在根目录运行 fyne package
             fyne package -os ${{ matrix.platform }} -name ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
-            cd ..
             
             if [ "${{ matrix.platform }}" == "windows" ]; then
-              if [ -f "$BUILD_DIR/ecs-gui.exe" ]; then
-                mv "$BUILD_DIR/ecs-gui.exe" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
+              if [ -f "ecs-gui.exe" ]; then
+                mv "ecs-gui.exe" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
                 echo "✓ Windows exe 构建成功"
-                # 清理构建目录
-                rm -rf "$BUILD_DIR"
               else
                 echo "✗ Windows exe 构建失败"
                 exit 1
