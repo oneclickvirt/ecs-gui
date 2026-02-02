@@ -20,7 +20,7 @@ fyne-cross/
 .fyne-cross/
 
 # Build binaries
-goecs-android
+ecs-gui
 goecs-desktop
 test-build
 

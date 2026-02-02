@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/oneclickvirt/ecs-android/utils"
+	"github.com/oneclickvirt/ecs-gui/utils"
 )
 
 // PrintHead 打印标题头

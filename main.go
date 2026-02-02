@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"fyne.io/fyne/v2/app"
-	"github.com/oneclickvirt/ecs-android/ui"
+	"github.com/oneclickvirt/ecs-gui/ui"
 )
 
 var (
@@ -55,7 +55,7 @@ func runGUIMode() {
 func printHelp() {
 	fmt.Println(`说明：
 用法:
-  goecs-android              启动图形界面
+  ecs-gui                    启动图形界面
 
 选项:
   -version, -v               显示版本信息

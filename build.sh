@@ -165,7 +165,7 @@ build_android() {
     fyne package -os android -appID com.oneclickvirt.goecs -appVersion "$VERSION"
     
     if [ -f *.apk ]; then
-        mv *.apk goecs-android-${VERSION}.apk
+        mv *.apk ecs-gui-android-${VERSION}.apk
         echo "✓ Android APK 构建成功"
     else
         echo "✗ Android APK 构建失败"

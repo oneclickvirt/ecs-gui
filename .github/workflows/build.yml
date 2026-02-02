@@ -3,17 +3,17 @@ name: Build All UI APP
 on:
   push:
     branches:
-      - 'gui'
+      - 'main'
   workflow_dispatch:
 
 jobs:
   prepare:
-    name: Prepare Version
+    name: Prepare Version and Create Release
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
       app_version: ${{ steps.version.outputs.APP_VERSION }}
-      is_release: ${{ steps.version.outputs.IS_RELEASE }}
+      release_tag: ${{ steps.version.outputs.RELEASE_TAG }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,20 +22,39 @@ jobs:
         id: version
         run: |
           BASE_VERSION=$(cat VERSION)
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-            APP_VERSION=${VERSION#v}
-            IS_RELEASE="true"
-          else
-            APP_VERSION="$BASE_VERSION"
-            VERSION=v${BASE_VERSION}
-            IS_RELEASE="false"
+          # 使用当前日期时间生成tag (格式: v20260202-HHMMSS)
+          CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M%S')
+          RELEASE_TAG="v${CURRENT_DATE}"
+          APP_VERSION="${BASE_VERSION}"
+          
+          echo "VERSION=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          echo "Building version: ${RELEASE_TAG}"
+          echo "App version: ${APP_VERSION}"
+      
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="${{ steps.version.outputs.RELEASE_TAG }}"
+          
+          # 检查release是否已存在
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists, deleting it..."
+            gh release delete "$RELEASE_TAG" -y || true
+            git push --delete origin "$RELEASE_TAG" || true
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
-          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-          echo "App version: $APP_VERSION"
+          
+          # 创建新的release
+          echo "Creating release $RELEASE_TAG..."
+          gh release create "$RELEASE_TAG" \
+            --title "Release $RELEASE_TAG" \
+            --notes "Automated build for $RELEASE_TAG" \
+            --draft=false \
+            --prerelease=false
+          
+          echo "Release $RELEASE_TAG created successfully"
 
   build-android:
     name: Build Android APK
@@ -80,14 +99,13 @@ jobs:
       - name: Configure Git for Private Modules
         run: |
           git config --global url."https://${{ secrets.GHT }}@github.com/".insteadOf "https://github.com/"
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
         env:
           GITHUB_TOKEN: ${{ secrets.GHT }}
       
       - name: Download dependencies
         run: go mod download
         env:
-          GOPRIVATE: github.com/oneclickvirt/security
+          GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
         run: go mod verify
@@ -100,14 +118,14 @@ jobs:
       - name: Build Android APK (arm64)
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-          GOPRIVATE: github.com/oneclickvirt/security
+          GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
         run: |
-          fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          fyne package --os android --app-id com.oneclickvirt.ecsgui --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
-            mv *.apk goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+            mv *.apk ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
             echo "ARM64 APK 构建成功"
-            ls -lh goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+            ls -lh ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
           else
             echo "ARM64 APK 构建失败"
             exit 1
@@ -116,16 +134,16 @@ jobs:
       - name: Build Android APK (x86_64)
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-          GOPRIVATE: github.com/oneclickvirt/security
+          GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
         run: |
-          fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          fyne package --os android/amd64 --app-id com.oneclickvirt.ecsgui --app-version "${{ needs.prepare.outputs.app_version }}" --release
           # 查找新生成的 APK（排除已重命名的 arm64 版本）
-          NEW_APK=$(find . -maxdepth 1 -name "*.apk" -not -name "goecs-gui-android-*" -type f | head -n 1)
+          NEW_APK=$(find . -maxdepth 1 -name "*.apk" -not -name "ecs-gui-android-*" -type f | head -n 1)
           if [ -n "$NEW_APK" ]; then
-            mv "$NEW_APK" goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+            mv "$NEW_APK" ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
             echo "x86_64 APK 构建成功"
-            ls -lh goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+            ls -lh ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
           else
             echo "x86_64 APK 构建失败"
             exit 1
@@ -197,7 +215,7 @@ jobs:
           echo "使用 apksigner: $APKSIGNER"
           
           # 对所有 APK 文件进行签名
-          for apk in goecs-gui-android-*.apk; do
+          for apk in ecs-gui-android-*.apk; do
             if [ -f "$apk" ]; then
               echo "正在签名: $apk"
               SIGNED_APK="${apk%.apk}_signed.apk"
@@ -230,31 +248,17 @@ jobs:
       
       - name: List build artifacts
         run: |
-          ls -lh goecs-gui-android-*.apk
-          du -sh goecs-gui-android-*.apk
-      
-      - name: Get release
-        id: get_release
-        shell: bash
-        run: |
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
-            exit 1
-          else
-            RELEASE_TAG="$LATEST_RELEASE"
-            echo "Found existing release: $RELEASE_TAG"
-          fi
-          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ls -lh ecs-gui-android-*.apk
+          du -sh ecs-gui-android-*.apk
       
       - name: Upload to release
         shell: bash
         run: |
-          for file in goecs-gui-android-*.apk; do
+          RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
+          for file in ecs-gui-android-*.apk; do
             if [ -f "$file" ]; then
-              echo "Uploading $file to release ${{ steps.get_release.outputs.RELEASE_TAG }}"
-              gh release upload "${{ steps.get_release.outputs.RELEASE_TAG }}" "$file" --clobber
+              echo "Uploading $file to release $RELEASE_TAG"
+              gh release upload "$RELEASE_TAG" "$file" --clobber
             fi
           done
         env:
@@ -263,15 +267,15 @@ jobs:
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
-          path: goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+          name: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
+          path: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
           retention-days: 90
       
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
-          path: goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+          name: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
+          path: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
           retention-days: 90
 
   build-desktop:
@@ -320,7 +324,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
         env:
-          GOPRIVATE: github.com/oneclickvirt/security
+          GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
         run: go mod verify
@@ -347,22 +351,22 @@ jobs:
       
       - name: Build for ${{ matrix.name }}
         env:
-          GOPRIVATE: github.com/oneclickvirt/security
+          GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w -checklinkname=0'"
         shell: bash
         run: |
           # macOS 需要特殊处理：先编译再打包
           if [ "${{ matrix.platform }}" == "darwin" ]; then
             echo "Building macOS binary with ldflags..."
-            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o goecs-bin .
+            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o ecs-gui-bin .
             
             echo "Packaging macOS app with fyne..."
-            fyne package -os darwin -name goecs --exe goecs-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            fyne package -os darwin -name ecs-gui --exe ecs-gui-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
-            if [ -d goecs.app ]; then
-              TARFILE="goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
+            if [ -d ecs-gui.app ]; then
+              TARFILE="ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
               echo "Creating tar file: $TARFILE"
-              tar -czf "$TARFILE" goecs.app
+              tar -czf "$TARFILE" ecs-gui.app
               echo "✓ macOS app 构建成功"
             else
               echo "✗ macOS app 构建失败"
@@ -371,11 +375,11 @@ jobs:
           else
             # Windows 直接使用 fyne package
             echo "Building ${{ matrix.platform }} with fyne package..."
-            fyne package -os ${{ matrix.platform }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            fyne package -os ${{ matrix.platform }} -name ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             if [ "${{ matrix.platform }}" == "windows" ]; then
-              if [ -f goecs.exe ]; then
-                mv goecs.exe goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
+              if [ -f ecs-gui.exe ]; then
+                mv ecs-gui.exe ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
                 echo "✓ Windows exe 构建成功"
               else
                 echo "✗ Windows exe 构建失败"
@@ -393,7 +397,7 @@ jobs:
             exit 0
           fi
           
-          for file in goecs-gui-${{ matrix.name }}-*; do
+          for file in ecs-gui-${{ matrix.name }}-*; do
             if [ -f "$file" ]; then
               echo "压缩前大小: $(du -h "$file")"
               
@@ -403,8 +407,8 @@ jobs:
                 tar -xzf "$file"
                 
                 # 查找并压缩 macOS 可执行文件
-                if [ -d goecs.app/Contents/MacOS ]; then
-                  for binary in goecs.app/Contents/MacOS/*; do
+                if [ -d ecs-gui.app/Contents/MacOS ]; then
+                  for binary in ecs-gui.app/Contents/MacOS/*; do
                     if [ -f "$binary" ] && [ -x "$binary" ]; then
                       echo "正在压缩 macOS 二进制: $binary"
                       upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"
@@ -414,8 +418,8 @@ jobs:
                 
                 # 重新打包
                 rm "$file"
-                tar -czf "$file" goecs.app
-                rm -rf goecs.app
+                tar -czf "$file" ecs-gui.app
+                rm -rf ecs-gui.app
                 echo "压缩后大小: $(du -h "$file")"
               fi
             fi
@@ -424,31 +428,17 @@ jobs:
       - name: List build artifacts
         shell: bash
         run: |
-          ls -lh goecs-gui-${{ matrix.name }}-*
-          du -sh goecs-gui-${{ matrix.name }}-*
-      
-      - name: Get release
-        id: get_release
-        shell: bash
-        run: |
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
-            exit 1
-          else
-            RELEASE_TAG="$LATEST_RELEASE"
-            echo "Found existing release: $RELEASE_TAG"
-          fi
-          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ls -lh ecs-gui-${{ matrix.name }}-*
+          du -sh ecs-gui-${{ matrix.name }}-*
       
       - name: Upload to release
         shell: bash
         run: |
-          for file in goecs-gui-${{ matrix.name }}-*; do
+          RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
+          for file in ecs-gui-${{ matrix.name }}-*; do
             if [ -f "$file" ]; then
-              echo "Uploading $file to release ${{ steps.get_release.outputs.RELEASE_TAG }}"
-              gh release upload "${{ steps.get_release.outputs.RELEASE_TAG }}" "$file" --clobber
+              echo "Uploading $file to release $RELEASE_TAG"
+              gh release upload "$RELEASE_TAG" "$file" --clobber
             fi
           done
         env:

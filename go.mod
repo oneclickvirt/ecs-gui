@@ -1,4 +1,4 @@
-module github.com/oneclickvirt/ecs-android
+module github.com/oneclickvirt/ecs-gui
 
 go 1.25.4
 

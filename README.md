@@ -2,7 +2,7 @@
 
 [![Build All UI APP](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml/badge.svg)](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml)
 
-基于 Fyne 框架的跨平台系统测试工具，支持 Android、macOS、Windows 和 Linux 平台。
+基于融合怪GO版本在Fyne框架上开发的跨平台系统测试工具，支持 Android、macOS、Windows 和 Linux 平台。
 
 ## 支持平台
 
@@ -72,7 +72,7 @@ go install fyne.io/fyne/v2/cmd/fyne@latest
 ### 构建产物说明
 
 - Android: APK 安装包
-  - `goecs-android-*.apk` - 多架构版本
+  - `ecs-gui-android-*.apk` - 多架构版本
 
 - macOS: TAR.GZ 压缩包 (包含 .app 应用程序)
   - `goecs-macos-arm64-*.tar.gz` - Apple Silicon 版本
