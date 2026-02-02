@@ -298,6 +298,16 @@ jobs:
             platform: windows
             arch: amd64
             name: windows-amd64
+          
+          # Linux builds
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            name: linux-arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: amd64
+            name: linux-amd64
     
     steps:
       - name: Checkout code
@@ -311,6 +321,13 @@ jobs:
       
       - name: Install Fyne CLI
         run: go install fyne.io/tools/cmd/fyne@latest
+      
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev
       
       - name: Configure Git for Private Modules
         run: |
@@ -350,34 +367,82 @@ jobs:
         env:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w -checklinkname=0'"
+          GOARCH: ${{ matrix.arch }}
         shell: bash
         run: |
           # macOS 需要特殊处理：先编译再打包
           if [ "${{ matrix.platform }}" == "darwin" ]; then
+            # 使用独立目录避免冲突
+            BUILD_DIR="build-${{ matrix.name }}"
+            mkdir -p "$BUILD_DIR"
+            
             echo "Building macOS binary with ldflags..."
-            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o ecs-gui-bin .
+            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o "$BUILD_DIR/ecs-gui-bin" .
             
             echo "Packaging macOS app with fyne..."
+            cd "$BUILD_DIR"
             fyne package -os darwin -name ecs-gui --exe ecs-gui-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            cd ..
             
-            if [ -d ecs-gui.app ]; then
+            if [ -d "$BUILD_DIR/ecs-gui.app" ]; then
               TARFILE="ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
               echo "Creating tar file: $TARFILE"
-              tar -czf "$TARFILE" ecs-gui.app
+              tar -czf "$TARFILE" -C "$BUILD_DIR" ecs-gui.app
               echo "✓ macOS app 构建成功"
+              # 清理构建目录
+              rm -rf "$BUILD_DIR"
             else
               echo "✗ macOS app 构建失败"
               exit 1
             fi
+          elif [ "${{ matrix.platform }}" == "linux" ]; then
+            # Linux 构建 - 使用独立目录避免冲突
+            BUILD_DIR="build-${{ matrix.name }}"
+            mkdir -p "$BUILD_DIR"
+            
+            echo "Building Linux binary for ${{ matrix.arch }}..."
+            if [ "${{ matrix.arch }}" == "arm64" ]; then
+              # ARM64 交叉编译
+              CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
+                go build -trimpath -ldflags "-checklinkname=0 -s -w" -o "$BUILD_DIR/ecs-gui" .
+            else
+              # AMD64 本地编译
+              CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+                go build -trimpath -ldflags "-checklinkname=0 -s -w" -o "$BUILD_DIR/ecs-gui" .
+            fi
+            
+            echo "Packaging Linux app with fyne..."
+            cd "$BUILD_DIR"
+            fyne package -os linux -name ecs-gui --exe ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            cd ..
+            
+            # 查找生成的 tar.xz 文件
+            if [ -f "$BUILD_DIR/ecs-gui.tar.xz" ]; then
+              mv "$BUILD_DIR/ecs-gui.tar.xz" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.xz
+              echo "✓ Linux tar.xz 构建成功"
+              # 清理构建目录
+              rm -rf "$BUILD_DIR"
+            else
+              echo "✗ Linux tar.xz 构建失败"
+              ls -la "$BUILD_DIR/"
+              exit 1
+            fi
           else
-            # Windows 直接使用 fyne package
+            # Windows 构建 - 使用独立目录
+            BUILD_DIR="build-${{ matrix.name }}"
+            mkdir -p "$BUILD_DIR"
+            
             echo "Building ${{ matrix.platform }} with fyne package..."
+            cd "$BUILD_DIR"
             fyne package -os ${{ matrix.platform }} -name ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            cd ..
             
             if [ "${{ matrix.platform }}" == "windows" ]; then
-              if [ -f ecs-gui.exe ]; then
-                mv ecs-gui.exe ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
+              if [ -f "$BUILD_DIR/ecs-gui.exe" ]; then
+                mv "$BUILD_DIR/ecs-gui.exe" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
                 echo "✓ Windows exe 构建成功"
+                # 清理构建目录
+                rm -rf "$BUILD_DIR"
               else
                 echo "✗ Windows exe 构建失败"
                 exit 1
@@ -401,6 +466,25 @@ jobs:
               if [[ "$file" == *.tar.gz ]]; then
                 # macOS app 需要解压后压缩二进制
                 echo "正在处理 macOS app: $file"
+              elif [[ "$file" == *.tar.xz ]]; then
+                # Linux app 需要解压后压缩二进制
+                echo "正在处理 Linux app: $file"
+                mkdir -p ecs-gui-extracted
+                tar -xJf "$file" -C ecs-gui-extracted
+                
+                # 查找并压缩 Linux 可执行文件
+                find ecs-gui-extracted -type f -executable | while read binary; do
+                  if file "$binary" | grep -q "ELF"; then
+                    echo "正在压缩 Linux 二进制: $binary"
+                    upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"
+                  fi
+                done
+                
+                # 重新打包
+                rm "$file"
+                tar -cJf "$file" -C ecs-gui-extracted .
+                rm -rf ecs-gui-extracted
+                echo "压缩后大小: $(du -h "$file")"
                 tar -xzf "$file"
                 
                 # 查找并压缩 macOS 可执行文件
@@ -440,3 +524,10 @@ jobs:
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}
+          path: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.*
+          retention-days: 90
