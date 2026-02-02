@@ -325,14 +325,14 @@ jobs:
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
-          sudo apt-get install -y libgl1-mesa-dev xorg-dev
-          
-          # 为 ARM64 交叉编译安装必要的库
+          # 为 ARM64 交叉编译使用国内镜像源
           if [ "${{ matrix.arch }}" == "arm64" ]; then
+            bash <(curl -sSL https://linuxmirrors.cn/main.sh) --source mirrors.aliyun.com --web-protocol http --intranet false --close-firewall true --backup true --updata-software false --clean-cache false --ignore-backup-tips
+            
             sudo dpkg --add-architecture arm64
             sudo apt-get update
+            sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+            sudo apt-get install -y libgl1-mesa-dev xorg-dev
             sudo apt-get install -y \
               libgl1-mesa-dev:arm64 \
               libx11-dev:arm64 \
@@ -341,6 +341,10 @@ jobs:
               libxi-dev:arm64 \
               libxcursor-dev:arm64 \
               libxinerama-dev:arm64
+          else
+            # AMD64 使用默认源
+            sudo apt-get update
+            sudo apt-get install -y libgl1-mesa-dev xorg-dev
           fi
       
       - name: Configure Git for Private Modules
