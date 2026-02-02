@@ -328,6 +328,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
           sudo apt-get install -y libgl1-mesa-dev xorg-dev
+          
+          # 为 ARM64 交叉编译安装必要的库
+          if [ "${{ matrix.arch }}" == "arm64" ]; then
+            sudo dpkg --add-architecture arm64
+            sudo apt-get update
+            sudo apt-get install -y \
+              libgl1-mesa-dev:arm64 \
+              libx11-dev:arm64 \
+              libxrandr-dev:arm64 \
+              libxxf86vm-dev:arm64 \
+              libxi-dev:arm64 \
+              libxcursor-dev:arm64 \
+              libxinerama-dev:arm64
+          fi
       
       - name: Configure Git for Private Modules
         run: |
@@ -458,6 +472,23 @@ jobs:
               if [[ "$file" == *.tar.gz ]]; then
                 # macOS app 需要解压后压缩二进制
                 echo "正在处理 macOS app: $file"
+                tar -xzf "$file"
+                
+                # 查找并压缩 macOS 可执行文件
+                if [ -d ecs-gui.app/Contents/MacOS ]; then
+                  for binary in ecs-gui.app/Contents/MacOS/*; do
+                    if [ -f "$binary" ] && [ -x "$binary" ]; then
+                      echo "正在压缩 macOS 二进制: $binary"
+                      upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"
+                    fi
+                  done
+                fi
+                
+                # 重新打包
+                rm "$file"
+                tar -czf "$file" ecs-gui.app
+                rm -rf ecs-gui.app
+                echo "压缩后大小: $(du -h "$file")"
               elif [[ "$file" == *.tar.xz ]]; then
                 # Linux app 需要解压后压缩二进制
                 echo "正在处理 Linux app: $file"
@@ -476,23 +507,6 @@ jobs:
                 rm "$file"
                 tar -cJf "$file" -C ecs-gui-extracted .
                 rm -rf ecs-gui-extracted
-                echo "压缩后大小: $(du -h "$file")"
-                tar -xzf "$file"
-                
-                # 查找并压缩 macOS 可执行文件
-                if [ -d ecs-gui.app/Contents/MacOS ]; then
-                  for binary in ecs-gui.app/Contents/MacOS/*; do
-                    if [ -f "$binary" ] && [ -x "$binary" ]; then
-                      echo "正在压缩 macOS 二进制: $binary"
-                      upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"
-                    fi
-                  done
-                fi
-                
-                # 重新打包
-                rm "$file"
-                tar -czf "$file" ecs-gui.app
-                rm -rf ecs-gui.app
                 echo "压缩后大小: $(du -h "$file")"
               fi
             fi
