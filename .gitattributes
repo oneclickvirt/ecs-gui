@@ -1,0 +1,19 @@
+# APK files should be treated as binary
+*.apk binary
+*.aab binary
+
+# Go files
+*.go text eol=lf
+
+# Shell scripts  
+*.sh text eol=lf
+
+# TOML files
+*.toml text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# GitHub Actions
+*.yml text eol=lf
+*.yaml text eol=lf

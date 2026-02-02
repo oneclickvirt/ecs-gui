@@ -1,0 +1,455 @@
+name: Build All UI APP
+
+on:
+  push:
+    branches:
+      - 'gui'
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: Prepare Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      app_version: ${{ steps.version.outputs.APP_VERSION }}
+      is_release: ${{ steps.version.outputs.IS_RELEASE }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Get version info
+        id: version
+        run: |
+          BASE_VERSION=$(cat VERSION)
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            APP_VERSION=${VERSION#v}
+            IS_RELEASE="true"
+          else
+            APP_VERSION="$BASE_VERSION"
+            VERSION=v${BASE_VERSION}
+            IS_RELEASE="false"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+          echo "App version: $APP_VERSION"
+
+  build-android:
+    name: Build Android APK
+    needs: prepare
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+      
+      - name: Install Fyne CLI
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;25.2.9519653"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+      
+      - name: Install Android Build Tools
+        run: |
+          sdkmanager --install "build-tools;34.0.0"
+          sdkmanager --install "platforms;android-34"
+      
+      - name: Configure Git for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.GHT }}@github.com/".insteadOf "https://github.com/"
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHT }}
+      
+      - name: Download dependencies
+        run: go mod download
+        env:
+          GOPRIVATE: github.com/oneclickvirt/security
+      
+      - name: Verify dependencies
+        run: go mod verify
+      
+      - name: Update FyneApp.toml version
+        run: |
+          sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+          cat FyneApp.toml
+      
+      - name: Build Android APK (arm64)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
+        run: |
+          fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          if [ -f *.apk ]; then
+            mv *.apk goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+            echo "ARM64 APK 构建成功"
+            ls -lh goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+          else
+            echo "ARM64 APK 构建失败"
+            exit 1
+          fi
+      
+      - name: Build Android APK (x86_64)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
+        run: |
+          fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          # 查找新生成的 APK（排除已重命名的 arm64 版本）
+          NEW_APK=$(find . -maxdepth 1 -name "*.apk" -not -name "goecs-gui-android-*" -type f | head -n 1)
+          if [ -n "$NEW_APK" ]; then
+            mv "$NEW_APK" goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+            echo "x86_64 APK 构建成功"
+            ls -lh goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+          else
+            echo "x86_64 APK 构建失败"
+            exit 1
+          fi
+      
+      - name: Install UPX
+        run: |
+          wget -q https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-amd64_linux.tar.xz
+          tar -xf upx-4.2.1-amd64_linux.tar.xz
+          sudo mv upx-4.2.1-amd64_linux/upx /usr/local/bin/
+          upx --version
+      
+      - name: Compress APK with UPX
+        run: |
+          for apk in goecs-gui-android-*.apk; do
+            if [ -f "$apk" ]; then
+              echo "压缩前大小: $(du -h "$apk")"
+              # 解压 APK
+              unzip -q "$apk" -d "${apk%.apk}_extracted"
+              
+              # 对 lib 目录下的 .so 文件使用 UPX 压缩
+              find "${apk%.apk}_extracted/lib" -name "*.so" -type f | while read so_file; do
+                echo "正在压缩: $so_file"
+                upx --best --lzma "$so_file" || echo "警告: $so_file 压缩失败，继续处理"
+              done
+              
+              # 重新打包 APK
+              cd "${apk%.apk}_extracted"
+              zip -r -q "../${apk%.apk}_compressed.apk" .
+              cd ..
+              
+              # 替换原 APK
+              mv "${apk%.apk}_compressed.apk" "$apk"
+              rm -rf "${apk%.apk}_extracted"
+              
+              echo "压缩后大小: $(du -h "$apk")"
+            fi
+          done
+      
+      - name: Download signing keystore
+        run: |
+          # 使用 GitHub Token 下载私有仓库的 JKS 文件
+          curl -L \
+            -H "Authorization: token ${{ secrets.GHT }}" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            -o oneclickvirt.jks \
+            "https://api.github.com/repos/oneclickvirt/jks/contents/oneclickvirt.jks"
+          
+          # 验证文件是否下载成功
+          if [ -f oneclickvirt.jks ]; then
+            echo "✓ JKS 文件下载成功"
+            ls -lh oneclickvirt.jks
+          else
+            echo "✗ JKS 文件下载失败"
+            exit 1
+          fi
+      
+      - name: Sign APK files
+        run: |
+          # 安装 apksigner (包含在 Android build-tools 中)
+          BUILD_TOOLS_VERSION="34.0.0"
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner"
+          
+          if [ ! -f "$APKSIGNER" ]; then
+            echo "✗ apksigner 未找到"
+            exit 1
+          fi
+          
+          echo "使用 apksigner: $APKSIGNER"
+          
+          # 对所有 APK 文件进行签名
+          for apk in goecs-gui-android-*.apk; do
+            if [ -f "$apk" ]; then
+              echo "正在签名: $apk"
+              SIGNED_APK="${apk%.apk}_signed.apk"
+              
+              # 签名 APK
+              $APKSIGNER sign \
+                --ks oneclickvirt.jks \
+                --ks-key-alias gui \
+                --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+                --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+                --out "$SIGNED_APK" \
+                "$apk"
+              
+              # 验证签名
+              $APKSIGNER verify "$SIGNED_APK"
+              
+              if [ $? -eq 0 ]; then
+                echo "✓ $apk 签名成功"
+                # 替换原始 APK
+                mv "$SIGNED_APK" "$apk"
+              else
+                echo "✗ $apk 签名验证失败"
+                exit 1
+              fi
+            fi
+          done
+          
+          # 清理 JKS 文件
+          rm -f oneclickvirt.jks
+      
+      - name: List build artifacts
+        run: |
+          ls -lh goecs-gui-android-*.apk
+          du -sh goecs-gui-android-*.apk
+      
+      - name: Get release
+        id: get_release
+        shell: bash
+        run: |
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
+            exit 1
+          else
+            RELEASE_TAG="$LATEST_RELEASE"
+            echo "Found existing release: $RELEASE_TAG"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload to release
+        shell: bash
+        run: |
+          for file in goecs-gui-android-*.apk; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file to release ${{ steps.get_release.outputs.RELEASE_TAG }}"
+              gh release upload "${{ steps.get_release.outputs.RELEASE_TAG }}" "$file" --clobber
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload ARM64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
+          path: goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+          retention-days: 90
+      
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
+          path: goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+          retention-days: 90
+
+  build-desktop:
+    name: Build Desktop Apps
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS builds
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            name: macos-arm64
+          - os: macos-13  # Intel Mac runner
+            platform: darwin
+            arch: amd64
+            name: macos-amd64
+          
+          # Windows builds
+          - os: windows-latest
+            platform: windows
+            arch: amd64
+            name: windows-amd64
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+      
+      - name: Install Fyne CLI
+        run: go install fyne.io/tools/cmd/fyne@latest
+      
+      - name: Configure Git for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.GHT }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHT }}
+      
+      - name: Download dependencies
+        run: go mod download
+        env:
+          GOPRIVATE: github.com/oneclickvirt/security
+      
+      - name: Verify dependencies
+        run: go mod verify
+      
+      - name: Update FyneApp.toml version
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            sed -i '' "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+          else
+            sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+          fi
+          cat FyneApp.toml
+      
+      - name: Install UPX
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            brew install upx
+            upx --version
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            echo "跳过 Windows UPX 安装（不支持）"
+          fi
+      
+      - name: Build for ${{ matrix.name }}
+        env:
+          GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w -checklinkname=0'"
+        shell: bash
+        run: |
+          # macOS 需要特殊处理：先编译再打包
+          if [ "${{ matrix.platform }}" == "darwin" ]; then
+            echo "Building macOS binary with ldflags..."
+            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o goecs-bin .
+            
+            echo "Packaging macOS app with fyne..."
+            fyne package -os darwin -name goecs --exe goecs-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            
+            if [ -d goecs.app ]; then
+              TARFILE="goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
+              echo "Creating tar file: $TARFILE"
+              tar -czf "$TARFILE" goecs.app
+              echo "✓ macOS app 构建成功"
+            else
+              echo "✗ macOS app 构建失败"
+              exit 1
+            fi
+          else
+            # Windows 直接使用 fyne package
+            echo "Building ${{ matrix.platform }} with fyne package..."
+            fyne package -os ${{ matrix.platform }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            
+            if [ "${{ matrix.platform }}" == "windows" ]; then
+              if [ -f goecs.exe ]; then
+                mv goecs.exe goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
+                echo "✓ Windows exe 构建成功"
+              else
+                echo "✗ Windows exe 构建失败"
+                exit 1
+              fi
+            fi
+          fi
+      
+      - name: Compress with UPX
+        shell: bash
+        run: |
+          # Windows 跳过 UPX 压缩
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            echo "跳过 Windows exe 的 UPX 压缩（不支持）"
+            exit 0
+          fi
+          
+          for file in goecs-gui-${{ matrix.name }}-*; do
+            if [ -f "$file" ]; then
+              echo "压缩前大小: $(du -h "$file")"
+              
+              if [[ "$file" == *.tar.gz ]]; then
+                # macOS app 需要解压后压缩二进制
+                echo "正在处理 macOS app: $file"
+                tar -xzf "$file"
+                
+                # 查找并压缩 macOS 可执行文件
+                if [ -d goecs.app/Contents/MacOS ]; then
+                  for binary in goecs.app/Contents/MacOS/*; do
+                    if [ -f "$binary" ] && [ -x "$binary" ]; then
+                      echo "正在压缩 macOS 二进制: $binary"
+                      upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"
+                    fi
+                  done
+                fi
+                
+                # 重新打包
+                rm "$file"
+                tar -czf "$file" goecs.app
+                rm -rf goecs.app
+                echo "压缩后大小: $(du -h "$file")"
+              fi
+            fi
+          done
+      
+      - name: List build artifacts
+        shell: bash
+        run: |
+          ls -lh goecs-gui-${{ matrix.name }}-*
+          du -sh goecs-gui-${{ matrix.name }}-*
+      
+      - name: Get release
+        id: get_release
+        shell: bash
+        run: |
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
+            exit 1
+          else
+            RELEASE_TAG="$LATEST_RELEASE"
+            echo "Found existing release: $RELEASE_TAG"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload to release
+        shell: bash
+        run: |
+          for file in goecs-gui-${{ matrix.name }}-*; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file to release ${{ steps.get_release.outputs.RELEASE_TAG }}"
+              gh release upload "${{ steps.get_release.outputs.RELEASE_TAG }}" "$file" --clobber
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

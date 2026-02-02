@@ -1,0 +1,29 @@
+# APK and AAB files
+*.apk
+*.aab
+
+# Build artifacts
+goecs-*
+!goecs-desktop
+
+# Vendor
+vendor/
+
+# IDE
+.idea/
+
+# macOS
+.DS_Store
+
+# Fyne cross-compilation cache
+fyne-cross/
+.fyne-cross/
+
+# Build binaries
+goecs-android
+goecs-desktop
+test-build
+
+# Embedded binaries (downloaded during build)
+binaries/goecs-*
+binaries/*.zip
