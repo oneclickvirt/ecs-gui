@@ -1,8 +1,10 @@
 # GOECS GUI Version
 
-[![Build All UI APP](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml/badge.svg)](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml)
+[![Build All UI APP](https://github.com/oneclickvirt/ecs-gui/actions/workflows/build.yml/badge.svg)](https://github.com/oneclickvirt/ecs-gui/actions/workflows/build.yml)
 
 基于融合怪GO版本在Fyne框架上开发的跨平台系统测试工具，支持 Android、macOS、Windows 和 Linux 平台。
+
+原项目：https://github.com/oneclickvirt/ecs
 
 ## 支持平台
 
@@ -23,7 +25,7 @@
 - 支持架构: ARM64, AMD64
 
 ### Linux
-- Action未编译
+- Action编译未自签证书
 - 支持架构: ARM64, AMD64
 
 ## 本地构建
@@ -90,7 +92,7 @@ go install fyne.io/fyne/v2/cmd/fyne@latest
 
 ```bash
 # 克隆仓库
-git clone https://github.com/oneclickvirt/ecs.git
+git clone https://github.com/oneclickvirt/ecs-gui.git
 cd ecs
 
 # 切换到 GUI 分支
