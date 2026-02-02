@@ -300,7 +300,7 @@ jobs:
             name: windows-amd64
           
           # Linux builds
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             platform: linux
             arch: arm64
             name: linux-arm64
@@ -326,7 +326,6 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           if [ "${{ matrix.arch }}" == "arm64" ]; then
-            sudo bash <(curl -sSL https://linuxmirrors.cn/main.sh) --source mirrors.aliyun.com --web-protocol http --intranet false --backup true --updata-software true --clean-cache false --ignore-backup-tips
             sudo dpkg --add-architecture arm64
             sudo apt-get update
             sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
