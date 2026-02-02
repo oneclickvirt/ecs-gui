@@ -325,9 +325,8 @@ jobs:
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
-          # 为 ARM64 交叉编译使用国内镜像源
           if [ "${{ matrix.arch }}" == "arm64" ]; then
-            bash <(curl -sSL https://linuxmirrors.cn/main.sh) --source mirrors.aliyun.com --web-protocol http --intranet false --close-firewall true --backup true --updata-software false --clean-cache false --ignore-backup-tips
+            bash <(curl -sSL https://linuxmirrors.cn/main.sh) --source mirrors.aliyun.com --web-protocol http --intranet false --backup true --updata-software true --clean-cache false --ignore-backup-tips
             
             sudo dpkg --add-architecture arm64
             sudo apt-get update
