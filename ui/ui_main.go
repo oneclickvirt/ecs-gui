@@ -19,6 +19,20 @@ func NewTestUI(app fyne.App) *TestUI {
 	ui.Window.CenterOnScreen()
 
 	ui.buildUI()
+
+	// 设置窗口关闭时的清理操作
+	ui.Window.SetOnClosed(func() {
+		// 如果测试正在运行，取消它
+		if ui.CancelFn != nil {
+			ui.CancelFn()
+		}
+
+		// 清理 Terminal 资源
+		if ui.Terminal != nil {
+			ui.Terminal.Destroy()
+		}
+	})
+
 	return ui
 }
 

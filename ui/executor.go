@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -21,12 +22,19 @@ const ecsVersion = "v0.1.98"
 
 type CommandExecutor struct {
 	outputCallback func(string)
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 func NewCommandExecutor(outputCallback func(string)) *CommandExecutor {
 	return &CommandExecutor{
 		outputCallback: outputCallback,
 	}
+}
+
+// SetContext 设置执行上下文
+func (e *CommandExecutor) SetContext(ctx context.Context) {
+	e.ctx = ctx
 }
 
 func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language string, testUpload bool, testDownload bool, chinaModeEnabled bool,
@@ -72,16 +80,40 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
+	// 确保有上下文
+	if e.ctx == nil {
+		e.ctx = context.Background()
+	}
+
 	// 重定向输出到回调
 	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	r, w, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("创建管道失败: %v", err)
+	}
 
 	done := make(chan bool)
+	readerCtx, readerCancel := context.WithCancel(e.ctx)
+
 	go func() {
+		defer readerCancel()
+		defer r.Close()
+
 		buf := make([]byte, 8192) // 增加缓冲区大小
 		var partial string        // 用于保存不完整的行
 		for {
+			// 检查上下文是否取消
+			select {
+			case <-readerCtx.Done():
+				// 输出剩余内容
+				if partial != "" && e.outputCallback != nil {
+					e.outputCallback(partial)
+				}
+				done <- true
+				return
+			default:
+			}
+
 			n, err := r.Read(buf)
 			if n > 0 && e.outputCallback != nil {
 				text := partial + string(buf[:n])
@@ -103,15 +135,47 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 					if partial != "" && e.outputCallback != nil {
 						e.outputCallback(partial)
 					}
-					break
+					done <- true
+					return
 				}
 			}
 		}
-		done <- true
 	}()
+
+	// 延迟恢复 stdout 和清理资源
+	defer func() {
+		w.Close()
+
+		// 等待reader goroutine完成，但不要无限等待
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			readerCancel()
+			<-done
+		}
+
+		os.Stdout = oldStdout
+		signal.Stop(sig)
+	}()
+
+	os.Stdout = w
+
+	// 检查取消的辅助函数
+	checkCancelled := func() bool {
+		select {
+		case <-e.ctx.Done():
+			return true
+		default:
+			return false
+		}
+	}
 
 	// 执行测试（参考原goecs.go的runChineseTests和runEnglishTests顺序）
 	// 1. 打印头部和基本信息
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if basicStatus || securityTestStatus {
 		outputMutex.Lock()
 		PrintHead(language, 82, ecsVersion)
@@ -141,6 +205,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 2. CPU测试
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if cpuTestStatus {
 		outputMutex.Lock()
 		realTestMethod, res := ecsapi.CpuTest(language, cpuMethod, threadMode)
@@ -154,6 +222,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 3. 内存测试
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if memoryTestStatus {
 		outputMutex.Lock()
 		realTestMethod, res := ecsapi.MemoryTest(language, memoryMethod)
@@ -167,6 +239,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 4. 磁盘测试
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if diskTestStatus {
 		outputMutex.Lock()
 		realTestMethod, res := ecsapi.DiskTest(language, diskMethod, diskPath, diskMulti, true)
@@ -180,11 +256,18 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 5. 启动异步测试（流媒体解锁和邮件端口）
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if utTestStatus && preCheck.Connected {
 		wg1.Add(1)
 		go func() {
 			defer wg1.Done()
-			mediaInfo = ecsapi.MediaTest(language)
+			// 检查取消
+			if !checkCancelled() {
+				mediaInfo = ecsapi.MediaTest(language)
+			}
 		}()
 	}
 
@@ -192,11 +275,18 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		wg2.Add(1)
 		go func() {
 			defer wg2.Done()
-			emailInfo = email.EmailCheck()
+			// 检查取消
+			if !checkCancelled() {
+				emailInfo = email.EmailCheck()
+			}
 		}()
 	}
 
 	// 6. 御三家流媒体测试（仅中文）
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if commTestStatus && preCheck.Connected && language == "zh" {
 		outputMutex.Lock()
 		PrintCenteredTitle("御三家流媒体测试", 82)
@@ -207,7 +297,23 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	// 7. 显示跨国流媒体解锁结果
 	if utTestStatus && preCheck.Connected {
-		wg1.Wait()
+		// 使用带超时的等待
+		waitDone := make(chan struct{})
+		go func() {
+			wg1.Wait()
+			close(waitDone)
+		}()
+
+		select {
+		case <-waitDone:
+			// 正常完成
+		case <-e.ctx.Done():
+			// 被取消
+			return fmt.Errorf("测试已取消")
+		case <-time.After(5 * time.Minute):
+			// 超时
+			mediaInfo = "\n流媒体测试超时\n"
+		}
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("跨国流媒体解锁", 82)
@@ -232,7 +338,23 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	// 9. 显示邮件端口测试结果
 	if emailTestStatus && preCheck.Connected {
-		wg2.Wait()
+		// 使用带超时的等待
+		waitDone := make(chan struct{})
+		go func() {
+			wg2.Wait()
+			close(waitDone)
+		}()
+
+		select {
+		case <-waitDone:
+			// 正常完成
+		case <-e.ctx.Done():
+			// 被取消
+			return fmt.Errorf("测试已取消")
+		case <-time.After(3 * time.Minute):
+			// 超时
+			emailInfo = "\n邮件端口测试超时\n"
+		}
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("邮件端口检测", 82)
@@ -244,6 +366,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 10. 上游及回程线路检测
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if backtraceStatus && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
@@ -256,6 +382,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 
 	// 11. 三网回程路由检测
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if nt3Status && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
@@ -272,6 +402,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	// - 中国模式(chinaModeEnabled)下：只测三网PING，不测TGDC和Web
 	// - 非中国模式且pingTestStatus=true：根据用户配置决定
 	// - 单独的pingTgdc/pingWeb可以在没有pingTestStatus的情况下也显示
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if pingTestStatus && preCheck.Connected {
 		outputMutex.Lock()
 
@@ -324,7 +458,13 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		}
 
 		outputMutex.Unlock()
-	} // 13. 速度测试
+	}
+
+	// 13. 速度测试
+	if checkCancelled() {
+		return fmt.Errorf("测试已取消")
+	}
+
 	if speedTestStatus && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
@@ -369,11 +509,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	_ = sig
 	_ = output
 	_ = tempOutput
-
-	// 恢复输出
-	w.Close()
-	<-done
-	os.Stdout = oldStdout
 
 	return nil
 }

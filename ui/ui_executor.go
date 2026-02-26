@@ -7,10 +7,15 @@ import (
 
 // runTestsWithExecutor 使用命令执行器运行测试
 func (ui *TestUI) runTestsWithExecutor() {
+	// 添加错误恢复
 	defer func() {
 		if r := recover(); r != nil {
-			ui.Terminal.AppendText(fmt.Sprintf("\n错误: %v\n", r))
+			// 安全地更新UI
+			errorMsg := fmt.Sprintf("\n严重错误: %v\n", r)
+			ui.Terminal.AppendText(errorMsg)
+			ui.StatusLabel.SetText("测试失败")
 		}
+		// 确保UI状态被重置
 		ui.resetUIState()
 	}()
 
@@ -18,8 +23,13 @@ func (ui *TestUI) runTestsWithExecutor() {
 
 	// 创建命令执行器
 	executor := NewCommandExecutor(func(text string) {
+		// 这个回调会从 executor 的 goroutine 调用
+		// TerminalOutput 的 AppendText 已经是线程安全的
 		ui.Terminal.AppendText(text)
 	})
+
+	// 设置执行上下文
+	executor.SetContext(ui.CancelCtx)
 
 	// 获取选择的测试选项
 	selectedOptions := ui.GetSelectedOptions()
@@ -98,7 +108,13 @@ func (ui *TestUI) runTestsWithExecutor() {
 
 	if err != nil {
 		ui.Terminal.AppendText(fmt.Sprintf("\n错误: %v\n", err))
-		ui.StatusLabel.SetText("测试失败")
+
+		// 检查是否是取消导致的
+		if ui.isCancelled() {
+			ui.StatusLabel.SetText("测试已停止")
+		} else {
+			ui.StatusLabel.SetText("测试失败")
+		}
 	} else if ui.isCancelled() {
 		ui.Terminal.AppendText("\n测试被用户中断\n")
 		ui.StatusLabel.SetText("测试已停止")

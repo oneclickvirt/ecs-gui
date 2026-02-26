@@ -22,8 +22,13 @@ func init() {
 }
 
 func main() {
-	// 禁用 Fyne 的线程警告
-	os.Setenv("FYNE_DISABLE_DRIVER_THREAD_CHECK", "1")
+	// 添加全局错误恢复
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "程序发生严重错误: %v\n", r)
+			os.Exit(1)
+		}
+	}()
 
 	flag.Parse()
 

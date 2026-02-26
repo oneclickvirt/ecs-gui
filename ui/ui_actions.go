@@ -231,6 +231,7 @@ func (ui *TestUI) startTests() {
 		return
 	}
 
+	// 禁用开始按钮，启用停止按钮
 	ui.StartButton.Disable()
 	ui.StopButton.Enable()
 	ui.ProgressBar.Show()
@@ -241,19 +242,33 @@ func (ui *TestUI) startTests() {
 		ui.Terminal.Clear()
 	}
 
+	// 创建新的取消上下文
 	ui.CancelCtx, ui.CancelFn = context.WithCancel(context.Background())
+
+	// 在新 goroutine 中运行测试
 	go ui.runTestsWithExecutor()
 } // stopTests 停止正在执行的测试
 func (ui *TestUI) stopTests() {
 	ui.Mu.Lock()
-	defer ui.Mu.Unlock()
+	if !ui.IsRunning {
+		ui.Mu.Unlock()
+		return
+	}
 
+	// 调用取消函数
 	if ui.CancelFn != nil {
 		ui.CancelFn()
 	}
-	ui.StatusLabel.SetText("测试已停止")
+	ui.Mu.Unlock()
+
+	// 更新UI状态
+	ui.StatusLabel.SetText("正在停止...")
 	ui.Terminal.AppendText("\n\n========== 测试被用户中断 ==========\n")
-	ui.resetUIState()
+
+	// 禁用停止按钮，防止重复点击
+	ui.StopButton.Disable()
+
+	// resetUIState 会在 runTestsWithExecutor 的 defer 中调用
 }
 
 // clearResults 清空测试结果
