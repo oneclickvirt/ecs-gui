@@ -9,6 +9,26 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+type ExecutionConfig struct {
+	SelectedOptions  map[string]bool
+	Language         string
+	TestUpload       bool
+	TestDownload     bool
+	ChinaModeEnabled bool
+	CpuMethod        string
+	ThreadMode       string
+	MemoryMethod     string
+	DiskMethod       string
+	DiskPath         string
+	DiskMulti        bool
+	Nt3Location      string
+	Nt3Type          string
+	SpNum            int
+	PingTgdc         bool
+	PingWeb          bool
+	LogEnabled       bool
+}
+
 // TestUI 测试界面结构体
 type TestUI struct {
 	App    fyne.App
@@ -74,4 +94,11 @@ type TestUI struct {
 	CancelCtx context.Context
 	CancelFn  context.CancelFunc
 	Mu        sync.Mutex
+
+	testChecks []*widget.Check
+
+	uiLang               string
+	presetLabelToKey     map[string]string
+	selectedPresetKey    string
+	suppressPresetChange bool
 }

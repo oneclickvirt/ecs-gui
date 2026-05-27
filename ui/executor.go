@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/oneclickvirt/CommonMediaTests/commediatests"
@@ -18,7 +16,7 @@ import (
 	"github.com/oneclickvirt/portchecker/email"
 )
 
-const ecsVersion = "v0.1.98"
+const ecsVersion = "v0.1.138"
 
 type CommandExecutor struct {
 	outputCallback func(string)
@@ -72,13 +70,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	var (
 		wg1, wg2                                      sync.WaitGroup
 		basicInfo, securityInfo, emailInfo, mediaInfo string
-		output, tempOutput                            string
 		outputMutex                                   sync.Mutex
 	)
 	startTime := time.Now()
-	uploadDone := make(chan bool, 1)
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// 确保有上下文
 	if e.ctx == nil {
@@ -155,7 +149,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		}
 
 		os.Stdout = oldStdout
-		signal.Stop(sig)
 	}()
 
 	os.Stdout = w
@@ -266,7 +259,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 			defer wg1.Done()
 			// 检查取消
 			if !checkCancelled() {
-				mediaInfo = ecsapi.MediaTest(language)
+				mediaInfo = ecsapi.MediaTest(language, "", "", false)
 			}
 		}()
 	}
@@ -377,7 +370,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		} else {
 			PrintCenteredTitle("Upstreams-Backtrace-Check", 82)
 		}
-		ecsapi.UpstreamsCheck()
+		ecsapi.UpstreamsCheck(language)
 		outputMutex.Unlock()
 	}
 
@@ -503,12 +496,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	}
 	PrintCenteredTitle("", 82)
 	outputMutex.Unlock()
-
-	// 清理
-	_ = uploadDone
-	_ = sig
-	_ = output
-	_ = tempOutput
 
 	return nil
 }

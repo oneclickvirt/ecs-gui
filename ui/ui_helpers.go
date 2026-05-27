@@ -1,19 +1,182 @@
 package ui
 
+import (
+	"strconv"
+
+	"fyne.io/fyne/v2"
+)
+
+type uiStateSnapshot struct {
+	checks       map[string]bool
+	selections   map[string]string
+	entries      map[string]string
+	presetKey    string
+	terminalText string
+	logContent   string
+	logEnabled   bool
+	activeTab    int
+}
+
+func (ui *TestUI) runOnUI(fn func()) {
+	fyne.Do(fn)
+}
+
+func (ui *TestUI) tr(key string) string {
+	lang := ui.uiLang
+	if lang != langEN {
+		lang = langZH
+	}
+
+	if table, ok := i18nText[key]; ok {
+		if val, ok := table[lang]; ok && val != "" {
+			return val
+		}
+		if val, ok := table[langZH]; ok {
+			return val
+		}
+	}
+	return key
+}
+
+func (ui *TestUI) selectedLanguageCode() string {
+	if ui.LanguageSelect != nil && ui.LanguageSelect.Selected == "English" {
+		return langEN
+	}
+	return langZH
+}
+
+func (ui *TestUI) rebuildPresetMappings() []string {
+	labels := make([]string, 0, len(presetDefs))
+	ui.presetLabelToKey = make(map[string]string, len(presetDefs))
+	for _, def := range presetDefs {
+		label := ui.tr(def.labelKey)
+		labels = append(labels, label)
+		ui.presetLabelToKey[label] = def.key
+	}
+	return labels
+}
+
+func (ui *TestUI) presetLabelByKey(key string) string {
+	for _, def := range presetDefs {
+		if def.key == key {
+			return ui.tr(def.labelKey)
+		}
+	}
+	return ui.tr("preset.custom")
+}
+
+func (ui *TestUI) snapshotUIState() uiStateSnapshot {
+	state := uiStateSnapshot{
+		checks: map[string]bool{
+			"basic":     ui.BasicCheck.Checked,
+			"cpu":       ui.CpuCheck.Checked,
+			"memory":    ui.MemoryCheck.Checked,
+			"disk":      ui.DiskCheck.Checked,
+			"comm":      ui.CommCheck.Checked,
+			"unlock":    ui.UnlockCheck.Checked,
+			"security":  ui.SecurityCheck.Checked,
+			"email":     ui.EmailCheck.Checked,
+			"backtrace": ui.BacktraceCheck.Checked,
+			"nt3":       ui.Nt3Check.Checked,
+			"speed":     ui.SpeedCheck.Checked,
+			"ping":      ui.PingCheck.Checked,
+			"diskMulti": ui.DiskMultiCheck.Checked,
+			"spUp":      ui.SpTestUploadCheck.Checked,
+			"spDown":    ui.SpTestDownloadCheck.Checked,
+			"chinaMode": ui.ChinaModeCheck.Checked,
+			"pingTgdc":  ui.PingTgdcCheck.Checked,
+			"pingWeb":   ui.PingWebCheck.Checked,
+			"enableLog": ui.LogCheck.Checked,
+		},
+		selections: map[string]string{
+			"language":   ui.LanguageSelect.Selected,
+			"cpuMethod":  ui.CpuMethodSelect.Selected,
+			"threadMode": ui.ThreadModeSelect.Selected,
+			"memMethod":  ui.MemoryMethodSelect.Selected,
+			"diskMethod": ui.DiskMethodSelect.Selected,
+			"nt3Loc":     ui.Nt3LocationSelect.Selected,
+			"nt3Type":    ui.Nt3TypeSelect.Selected,
+		},
+		entries: map[string]string{
+			"diskPath": ui.DiskPathEntry.Text,
+			"spNum":    ui.SpNumEntry.Text,
+		},
+		presetKey:  ui.selectedPresetKey,
+		logContent: ui.LogContent,
+		logEnabled: ui.LogCheck.Checked,
+		activeTab:  ui.MainTabs.SelectedIndex(),
+	}
+
+	if ui.Terminal != nil {
+		state.terminalText = ui.Terminal.GetText()
+	}
+
+	return state
+}
+
+func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
+	ui.suppressPresetChange = true
+	ui.selectedPresetKey = state.presetKey
+	ui.PresetSelect.SetSelected(ui.presetLabelByKey(ui.selectedPresetKey))
+	ui.suppressPresetChange = false
+
+	ui.BasicCheck.Checked = state.checks["basic"]
+	ui.CpuCheck.Checked = state.checks["cpu"]
+	ui.MemoryCheck.Checked = state.checks["memory"]
+	ui.DiskCheck.Checked = state.checks["disk"]
+	ui.CommCheck.Checked = state.checks["comm"]
+	ui.UnlockCheck.Checked = state.checks["unlock"]
+	ui.SecurityCheck.Checked = state.checks["security"]
+	ui.EmailCheck.Checked = state.checks["email"]
+	ui.BacktraceCheck.Checked = state.checks["backtrace"]
+	ui.Nt3Check.Checked = state.checks["nt3"]
+	ui.SpeedCheck.Checked = state.checks["speed"]
+	ui.PingCheck.Checked = state.checks["ping"]
+	ui.DiskMultiCheck.Checked = state.checks["diskMulti"]
+	ui.SpTestUploadCheck.Checked = state.checks["spUp"]
+	ui.SpTestDownloadCheck.Checked = state.checks["spDown"]
+	ui.ChinaModeCheck.Checked = state.checks["chinaMode"]
+	ui.PingTgdcCheck.Checked = state.checks["pingTgdc"]
+	ui.PingWebCheck.Checked = state.checks["pingWeb"]
+	ui.LogCheck.Checked = state.checks["enableLog"]
+
+	ui.LanguageSelect.SetSelected(state.selections["language"])
+	ui.CpuMethodSelect.SetSelected(state.selections["cpuMethod"])
+	ui.ThreadModeSelect.SetSelected(state.selections["threadMode"])
+	ui.MemoryMethodSelect.SetSelected(state.selections["memMethod"])
+	ui.DiskMethodSelect.SetSelected(state.selections["diskMethod"])
+	ui.Nt3LocationSelect.SetSelected(state.selections["nt3Loc"])
+	ui.Nt3TypeSelect.SetSelected(state.selections["nt3Type"])
+
+	ui.DiskPathEntry.SetText(state.entries["diskPath"])
+	ui.SpNumEntry.SetText(state.entries["spNum"])
+
+	ui.refreshAllChecks()
+	ui.refreshSpeedTestChecks()
+
+	ui.LogContent = state.logContent
+	if state.logEnabled {
+		ui.addLogTab()
+		ui.refreshLogContent()
+	}
+
+	if ui.Terminal != nil {
+		ui.Terminal.SetFullText(state.terminalText)
+	}
+
+	if state.activeTab >= 0 && state.activeTab < len(ui.MainTabs.Items) {
+		ui.MainTabs.SelectIndex(state.activeTab)
+	}
+}
+
 // hasSelectedTests 检查是否有选中的测试项
 func (ui *TestUI) hasSelectedTests() bool {
-	return ui.BasicCheck.Checked ||
-		ui.CpuCheck.Checked ||
-		ui.MemoryCheck.Checked ||
-		ui.DiskCheck.Checked ||
-		ui.CommCheck.Checked ||
-		ui.UnlockCheck.Checked ||
-		ui.SecurityCheck.Checked ||
-		ui.EmailCheck.Checked ||
-		ui.BacktraceCheck.Checked ||
-		ui.Nt3Check.Checked ||
-		ui.SpeedCheck.Checked ||
-		ui.PingCheck.Checked
+	for _, check := range ui.testChecks {
+		if check != nil && check.Checked {
+			return true
+		}
+	}
+	return false
 }
 
 // isCancelled 检查测试是否被取消
@@ -32,16 +195,16 @@ func (ui *TestUI) resetUIState() {
 	ui.IsRunning = false
 	ui.Mu.Unlock()
 
-	// UI更新应该在主线程，但 Fyne 的组件更新已经处理了线程安全
-	ui.StartButton.Enable()
-	ui.StopButton.Disable()
-	ui.ProgressBar.Hide()
-	ui.ProgressBar.SetValue(0)
+	ui.runOnUI(func() {
+		ui.StartButton.Enable()
+		ui.StopButton.Disable()
+		ui.ProgressBar.Hide()
+		ui.ProgressBar.SetValue(0)
 
-	// 如果状态还是"正在停止..."，更新为"就绪"
-	if ui.StatusLabel.Text == "正在停止..." {
-		ui.StatusLabel.SetText("测试已停止")
-	}
+		if ui.StatusLabel.Text == ui.tr("status.stopping") {
+			ui.StatusLabel.SetText(ui.tr("status.stopped"))
+		}
+	})
 }
 
 // GetSelectedOptions 获取所有选中的测试选项
@@ -59,5 +222,77 @@ func (ui *TestUI) GetSelectedOptions() map[string]bool {
 		"nt3":       ui.Nt3Check.Checked,
 		"speed":     ui.SpeedCheck.Checked,
 		"ping":      ui.PingCheck.Checked,
+	}
+}
+
+func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
+	language := "zh"
+	if ui.selectedLanguageCode() == langEN {
+		language = "en"
+	}
+
+	cpuMethod := ui.CpuMethodSelect.Selected
+	if cpuMethod == "" {
+		cpuMethod = "sysbench"
+	}
+
+	threadMode := ui.ThreadModeSelect.Selected
+	if threadMode == "" {
+		threadMode = "multi"
+	}
+
+	memoryMethod := ui.MemoryMethodSelect.Selected
+	if memoryMethod == "" {
+		memoryMethod = "auto"
+	}
+
+	diskMethod := ui.DiskMethodSelect.Selected
+	if diskMethod == "" {
+		diskMethod = "auto"
+	}
+
+	nt3Location := ui.Nt3LocationSelect.Selected
+	if nt3Location == "" {
+		nt3Location = "GZ"
+	}
+
+	nt3Type := ui.Nt3TypeSelect.Selected
+	if nt3Type == "" {
+		nt3Type = "ipv4"
+	}
+
+	spNum := 2
+	if ui.SpNumEntry.Text != "" {
+		if parsed, err := strconv.Atoi(ui.SpNumEntry.Text); err == nil && parsed > 0 {
+			spNum = parsed
+		}
+	}
+	if spNum > 20 {
+		spNum = 20
+	}
+
+	logEnabled := false
+	if ui.LogCheck != nil {
+		logEnabled = ui.LogCheck.Checked
+	}
+
+	return ExecutionConfig{
+		SelectedOptions:  ui.GetSelectedOptions(),
+		Language:         language,
+		TestUpload:       ui.SpTestUploadCheck.Checked,
+		TestDownload:     ui.SpTestDownloadCheck.Checked,
+		ChinaModeEnabled: ui.ChinaModeCheck.Checked,
+		CpuMethod:        cpuMethod,
+		ThreadMode:       threadMode,
+		MemoryMethod:     memoryMethod,
+		DiskMethod:       diskMethod,
+		DiskPath:         ui.DiskPathEntry.Text,
+		DiskMulti:        ui.DiskMultiCheck.Checked,
+		Nt3Location:      nt3Location,
+		Nt3Type:          nt3Type,
+		SpNum:            spNum,
+		PingTgdc:         ui.PingTgdcCheck.Checked,
+		PingWeb:          ui.PingWebCheck.Checked,
+		LogEnabled:       logEnabled,
 	}
 }

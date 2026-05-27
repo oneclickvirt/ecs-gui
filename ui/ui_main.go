@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"runtime"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -10,11 +12,15 @@ import (
 func NewTestUI(app fyne.App) *TestUI {
 	ui := &TestUI{
 		App:    app,
-		Window: app.NewWindow("融合怪测试 - 完整版"),
+		uiLang: langZH,
+		Window: app.NewWindow(""),
 	}
+	ui.Window.SetTitle(ui.tr("app.title"))
 
-	// 设置窗口大小
-	ui.Window.Resize(fyne.NewSize(900, 800))
+	// 移动端使用系统默认窗口行为，桌面端提供较舒适的初始尺寸
+	if runtime.GOOS != "android" && runtime.GOOS != "ios" {
+		ui.Window.Resize(fyne.NewSize(980, 820))
+	}
 	ui.Window.SetPadded(true)
 	ui.Window.CenterOnScreen()
 
@@ -42,14 +48,16 @@ func (ui *TestUI) buildUI() {
 	ui.Terminal = NewTerminalOutput()
 
 	// 创建状态栏
-	ui.StatusLabel = widget.NewLabel("就绪")
+	ui.StatusLabel = widget.NewLabel(ui.tr("status.ready"))
 	ui.ProgressBar = widget.NewProgressBar()
 	ui.ProgressBar.Hide()
 
 	// 创建Tab页面
+	configTab := container.NewTabItem(ui.tr("tab.config"), ui.createConfigTab())
+	resultTab := container.NewTabItem(ui.tr("tab.result"), ui.createResultTab())
 	ui.MainTabs = container.NewAppTabs(
-		container.NewTabItem("测试选项与配置", ui.createConfigTab()),
-		container.NewTabItem("测试结果", ui.createResultTab()),
+		configTab,
+		resultTab,
 	)
 
 	ui.Window.SetContent(ui.MainTabs)
@@ -87,9 +95,9 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 	)
 
 	// 导出按钮
-	copyButton := widget.NewButton("复制", ui.copyResults)
-	exportButton := widget.NewButton("导出", ui.exportResults)
-	clearButton := widget.NewButton("清空", ui.clearResults)
+	copyButton := widget.NewButton(ui.tr("button.copy"), ui.copyResults)
+	exportButton := widget.NewButton(ui.tr("button.export"), ui.exportResults)
+	clearButton := widget.NewButton(ui.tr("button.clear"), ui.clearResults)
 
 	topBar := container.NewBorder(
 		nil, nil,
@@ -111,10 +119,10 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 
 // createControlButtons 创建控制按钮
 func (ui *TestUI) createControlButtons() fyne.CanvasObject {
-	ui.StartButton = widget.NewButton("开始测试", ui.startTests)
+	ui.StartButton = widget.NewButton(ui.tr("button.start"), ui.startTests)
 	ui.StartButton.Importance = widget.HighImportance
 
-	ui.StopButton = widget.NewButton("停止测试", ui.stopTests)
+	ui.StopButton = widget.NewButton(ui.tr("button.stop"), ui.stopTests)
 	ui.StopButton.Disable()
 
 	return container.NewCenter(

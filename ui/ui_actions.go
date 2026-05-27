@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -14,8 +13,18 @@ import (
 
 // onPresetChanged 预设模式改变时的处理
 func (ui *TestUI) onPresetChanged(preset string) {
-	switch preset {
-	case "1. 融合怪完全体(能测全测)":
+	if ui.suppressPresetChange {
+		return
+	}
+
+	key, ok := ui.presetLabelToKey[preset]
+	if !ok {
+		key = "custom"
+	}
+	ui.selectedPresetKey = key
+
+	switch key {
+	case "full":
 		// 对应原goecs.go的选项1: SetFullTestStatus
 		ui.setAllChecks(true)
 		// 注意：原goecs.go的完全体包括TGDC和Web测试，不包括三网ping测试
@@ -26,7 +35,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "2. 极简版(系统信息+CPU+内存+磁盘+测速节点5个)":
+	case "minimal":
 		// 对应原goecs.go的选项2: SetMinimalTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
@@ -40,7 +49,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "3. 精简版(系统信息+CPU+内存+磁盘+常用流媒体+路由+测速节点5个)":
+	case "standard":
 		// 对应原goecs.go的选项3: SetStandardTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
@@ -56,7 +65,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "4. 精简网络版(系统信息+CPU+内存+磁盘+回程+路由+测速节点5个)":
+	case "network_focus":
 		// 对应原goecs.go的选项4: SetNetworkFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
@@ -72,7 +81,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "5. 精简解锁版(系统信息+CPU+内存+磁盘IO+御三家+常用流媒体+测速节点5个)":
+	case "unlock_focus":
 		// 对应原goecs.go的选项5: SetUnlockFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
@@ -88,7 +97,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "6. 网络单项(IP质量检测+上游及三网回程+广州三网回程详细路由+全国延迟+TGDC+网站延迟+测速节点11个)":
+	case "network_only":
 		// 对应原goecs.go的选项6: SetNetworkOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = false // 6号选项不包括基础信息
@@ -103,7 +112,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
-	case "7. 解锁单项(御三家解锁+常用流媒体解锁)":
+	case "unlock_only":
 		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.CommCheck.Checked = true
@@ -114,7 +123,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
-	case "8. 硬件单项(系统信息+CPU+dd磁盘测试+fio磁盘测试)":
+	case "hardware_only":
 		// 对应原goecs.go的选项8: SetHardwareOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
@@ -128,7 +137,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
-	case "9. IP质量检测(15个数据库的IP质量检测+邮件端口检测)":
+	case "ip_quality":
 		// 对应原goecs.go的选项9: SetIPQualityTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = false // 9号选项不包括基础信息
@@ -140,7 +149,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
-	case "10. 三网回程线路检测+三网回程详细路由(北京上海广州成都)+全国延迟+TGDC+网站延迟":
+	case "route_only":
 		// 对应原goecs.go的选项10: SetRouteTestStatus + nt3Location = "ALL"
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = false // 10号选项不包括基础信息
@@ -163,35 +172,21 @@ func (ui *TestUI) onPresetChanged(preset string) {
 
 // setAllChecks 设置所有测试项的选中状态
 func (ui *TestUI) setAllChecks(checked bool) {
-	ui.BasicCheck.Checked = checked
-	ui.CpuCheck.Checked = checked
-	ui.MemoryCheck.Checked = checked
-	ui.DiskCheck.Checked = checked
-	ui.CommCheck.Checked = checked
-	ui.UnlockCheck.Checked = checked
-	ui.SecurityCheck.Checked = checked
-	ui.EmailCheck.Checked = checked
-	ui.BacktraceCheck.Checked = checked
-	ui.Nt3Check.Checked = checked
-	ui.SpeedCheck.Checked = checked
-	ui.PingCheck.Checked = checked
+	for _, check := range ui.testChecks {
+		if check != nil {
+			check.Checked = checked
+		}
+	}
 	ui.refreshAllChecks()
 }
 
 // refreshAllChecks 刷新所有测试项的显示
 func (ui *TestUI) refreshAllChecks() {
-	ui.BasicCheck.Refresh()
-	ui.CpuCheck.Refresh()
-	ui.MemoryCheck.Refresh()
-	ui.DiskCheck.Refresh()
-	ui.CommCheck.Refresh()
-	ui.UnlockCheck.Refresh()
-	ui.SecurityCheck.Refresh()
-	ui.EmailCheck.Refresh()
-	ui.BacktraceCheck.Refresh()
-	ui.Nt3Check.Refresh()
-	ui.SpeedCheck.Refresh()
-	ui.PingCheck.Refresh()
+	for _, check := range ui.testChecks {
+		if check != nil {
+			check.Refresh()
+		}
+	}
 }
 
 // refreshSpeedTestChecks 刷新测速配置的显示
@@ -224,18 +219,20 @@ func (ui *TestUI) startTests() {
 	ui.Mu.Unlock()
 
 	if !ui.hasSelectedTests() {
-		dialog.ShowInformation("提示", "请至少选择一项测试！", ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.no_tests"), ui.Window)
 		ui.Mu.Lock()
 		ui.IsRunning = false
 		ui.Mu.Unlock()
 		return
 	}
 
+	config := ui.collectExecutionConfig()
+
 	// 禁用开始按钮，启用停止按钮
 	ui.StartButton.Disable()
 	ui.StopButton.Enable()
 	ui.ProgressBar.Show()
-	ui.StatusLabel.SetText("测试运行中...")
+	ui.StatusLabel.SetText(ui.tr("status.running"))
 
 	// 清空终端输出
 	if ui.Terminal != nil {
@@ -246,7 +243,7 @@ func (ui *TestUI) startTests() {
 	ui.CancelCtx, ui.CancelFn = context.WithCancel(context.Background())
 
 	// 在新 goroutine 中运行测试
-	go ui.runTestsWithExecutor()
+	go ui.runTestsWithExecutor(config)
 } // stopTests 停止正在执行的测试
 func (ui *TestUI) stopTests() {
 	ui.Mu.Lock()
@@ -262,11 +259,11 @@ func (ui *TestUI) stopTests() {
 	ui.Mu.Unlock()
 
 	// 更新UI状态
-	ui.StatusLabel.SetText("正在停止...")
-	ui.Terminal.AppendText("\n\n========== 测试被用户中断 ==========\n")
-
-	// 禁用停止按钮，防止重复点击
-	ui.StopButton.Disable()
+	ui.runOnUI(func() {
+		ui.StatusLabel.SetText(ui.tr("status.stopping"))
+		ui.StopButton.Disable()
+	})
+	ui.Terminal.AppendText(ui.tr("log.interrupted"))
 
 	// resetUIState 会在 runTestsWithExecutor 的 defer 中调用
 }
@@ -276,8 +273,10 @@ func (ui *TestUI) clearResults() {
 	if ui.Terminal != nil {
 		ui.Terminal.Clear()
 	}
-	ui.StatusLabel.SetText("就绪")
-	ui.ProgressBar.SetValue(0)
+	ui.runOnUI(func() {
+		ui.StatusLabel.SetText(ui.tr("status.ready"))
+		ui.ProgressBar.SetValue(0)
+	})
 }
 
 // copyResults 复制测试结果到剪贴板
@@ -288,13 +287,13 @@ func (ui *TestUI) copyResults() {
 	}
 
 	if content == "" {
-		dialog.ShowInformation("提示", "没有可复制的内容", ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.no_copy"), ui.Window)
 		return
 	}
 
 	// 复制到剪贴板
 	ui.App.Clipboard().SetContent(content)
-	dialog.ShowInformation("成功", "测试结果已复制到剪贴板", ui.Window)
+	dialog.ShowInformation(ui.tr("dialog.success"), ui.tr("dialog.copy_ok"), ui.Window)
 }
 
 // exportResults 导出测试结果
@@ -305,7 +304,7 @@ func (ui *TestUI) exportResults() {
 	}
 
 	if content == "" {
-		dialog.ShowInformation("提示", "没有可导出的结果", ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.no_export"), ui.Window)
 		return
 	}
 
@@ -330,7 +329,7 @@ func (ui *TestUI) exportResults() {
 			return
 		}
 
-		dialog.ShowInformation("成功", "结果已导出到: "+writer.URI().Path(), ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.success"), ui.tr("dialog.exported")+writer.URI().Path(), ui.Window)
 	}, ui.Window)
 
 	// 设置默认文件名
@@ -367,24 +366,24 @@ func (ui *TestUI) addLogTab() {
 
 	// 创建日志查看器
 	ui.LogViewer = widget.NewMultiLineEntry()
-	ui.LogViewer.SetPlaceHolder("日志内容将在测试运行时显示...")
+	ui.LogViewer.SetPlaceHolder(ui.tr("placeholder.log_viewer"))
 	ui.LogViewer.Wrapping = fyne.TextWrapWord
 	// 不使用 Disable()，让文字颜色保持正常
 	// ui.LogViewer.Disable() // 只读
 
 	// 刷新日志按钮
-	refreshButton := widget.NewButton("刷新日志", func() {
+	refreshButton := widget.NewButton(ui.tr("button.log_refresh"), func() {
 		ui.refreshLogFromFile()
 	})
 
 	// 清空日志按钮
-	clearLogButton := widget.NewButton("清空日志", func() {
+	clearLogButton := widget.NewButton(ui.tr("button.log_clear"), func() {
 		ui.LogContent = ""
 		ui.LogViewer.SetText("")
 	})
 
 	// 导出日志按钮
-	exportLogButton := widget.NewButton("导出日志", ui.exportLogContent)
+	exportLogButton := widget.NewButton(ui.tr("button.log_export"), ui.exportLogContent)
 
 	// 按钮栏
 	buttonBar := container.NewHBox(
@@ -406,7 +405,7 @@ func (ui *TestUI) addLogTab() {
 	)
 
 	// 创建并添加日志标签页
-	ui.LogTab = container.NewTabItem("日志", logContent)
+	ui.LogTab = container.NewTabItem(ui.tr("tab.log"), logContent)
 	ui.MainTabs.Append(ui.LogTab)
 
 	// 初始化日志内容
@@ -434,9 +433,13 @@ func (ui *TestUI) refreshLogContent() {
 
 	// 显示存储的日志内容
 	if ui.LogContent != "" {
-		ui.LogViewer.SetText(ui.LogContent)
+		ui.runOnUI(func() {
+			ui.LogViewer.SetText(ui.LogContent)
+		})
 	} else {
-		ui.LogViewer.SetText("暂无日志内容\n\n日志将在测试运行时自动更新。")
+		ui.runOnUI(func() {
+			ui.LogViewer.SetText(ui.tr("log.empty"))
+		})
 	}
 }
 
@@ -454,22 +457,28 @@ func (ui *TestUI) refreshLogFromFile() {
 	if err != nil {
 		// 如果文件不存在或无法读取，显示错误信息
 		if os.IsNotExist(err) {
-			ui.LogViewer.SetText("日志文件 ecs.log 不存在\n\n可能测试未生成日志文件，或文件已被删除。")
+			ui.runOnUI(func() {
+				ui.LogViewer.SetText(ui.tr("log.not_found"))
+			})
 		} else {
-			ui.LogViewer.SetText(fmt.Sprintf("无法读取日志文件: %v", err))
+			ui.runOnUI(func() {
+				ui.LogViewer.SetText(ui.tr("log.read_failed") + err.Error())
+			})
 		}
 		return
 	}
 
 	// 更新日志内容
 	ui.LogContent = string(content)
-	ui.LogViewer.SetText(ui.LogContent)
+	ui.runOnUI(func() {
+		ui.LogViewer.SetText(ui.LogContent)
+	})
 }
 
 // exportLogContent 导出日志内容
 func (ui *TestUI) exportLogContent() {
 	if ui.LogViewer == nil || ui.LogViewer.Text == "" {
-		dialog.ShowInformation("提示", "没有可导出的日志内容", ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.no_log_export"), ui.Window)
 		return
 	}
 
@@ -491,7 +500,7 @@ func (ui *TestUI) exportLogContent() {
 			return
 		}
 
-		dialog.ShowInformation("成功", "日志已成功导出", ui.Window)
+		dialog.ShowInformation(ui.tr("dialog.success"), ui.tr("dialog.log_export_ok"), ui.Window)
 	}, ui.Window)
 }
 
@@ -505,5 +514,7 @@ func (ui *TestUI) AppendLog(text string) {
 	defer ui.Mu.Unlock()
 
 	ui.LogContent += text
-	ui.LogViewer.SetText(ui.LogContent)
+	ui.runOnUI(func() {
+		ui.LogViewer.SetText(ui.LogContent)
+	})
 }
