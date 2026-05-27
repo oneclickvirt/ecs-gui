@@ -32,7 +32,7 @@
 
 ### 环境要求
 
-1. Go 1.25.3 或更高版本
+1. Go 1.25.4 或更高版本
 2. Android SDK (仅用于构建 Android 版本)
 3. Android NDK 25.2.9519653 (仅用于构建 Android 版本)
 4. JDK 17 或更高版本 (仅用于构建 Android 版本)
