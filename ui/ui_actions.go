@@ -2,6 +2,8 @@ package ui
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -10,6 +12,8 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
+
+const maxLogViewBytes int64 = 2 * 1024 * 1024
 
 // onPresetChanged 预设模式改变时的处理
 func (ui *TestUI) onPresetChanged(preset string) {
@@ -130,7 +134,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.CpuCheck.Checked = true
 		ui.MemoryCheck.Checked = true
 		ui.DiskCheck.Checked = true
-		ui.DiskMethodSelect.Selected = "auto" // 使用auto让系统自动选择dd和fio
+		ui.DiskMethodSelect.SetSelected("auto") // 使用auto让系统自动选择dd和fio
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
@@ -158,7 +162,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingCheck.Checked = true
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
-		ui.Nt3LocationSelect.Selected = "ALL" // 设置为全部地点
+		ui.Nt3LocationSelect.SetSelected("ALL") // 设置为全部地点
 		ui.ChinaModeCheck.Checked = false
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
@@ -373,7 +377,7 @@ func (ui *TestUI) addLogTab() {
 
 	// 刷新日志按钮
 	refreshButton := widget.NewButton(ui.tr("button.log_refresh"), func() {
-		ui.refreshLogFromFile()
+		ui.refreshLogFromFileAsync()
 	})
 
 	// 清空日志按钮
@@ -445,34 +449,81 @@ func (ui *TestUI) refreshLogContent() {
 
 // refreshLogFromFile 从 ecs.log 文件读取日志内容
 func (ui *TestUI) refreshLogFromFile() {
+	ui.refreshLogFromFileAsync()
+}
+
+func (ui *TestUI) refreshLogFromFileAsync() {
 	if ui.LogViewer == nil {
 		return
 	}
 
-	// ecs.log 文件应该在当前工作目录下
-	logFilePath := "ecs.log"
-
-	// 尝试读取日志文件
-	content, err := os.ReadFile(logFilePath)
-	if err != nil {
-		// 如果文件不存在或无法读取，显示错误信息
-		if os.IsNotExist(err) {
-			ui.runOnUI(func() {
-				ui.LogViewer.SetText(ui.tr("log.not_found"))
-			})
-		} else {
-			ui.runOnUI(func() {
-				ui.LogViewer.SetText(ui.tr("log.read_failed") + err.Error())
-			})
+	go func() {
+		logFilePath := "ecs.log"
+		content, err := tailFileContent(logFilePath, maxLogViewBytes)
+		if err != nil {
+			if os.IsNotExist(err) {
+				ui.runOnUI(func() {
+					if ui.LogViewer != nil {
+						ui.LogViewer.SetText(ui.tr("log.not_found"))
+					}
+				})
+			} else {
+				ui.runOnUI(func() {
+					if ui.LogViewer != nil {
+						ui.LogViewer.SetText(ui.tr("log.read_failed") + err.Error())
+					}
+				})
+			}
+			return
 		}
-		return
+
+		ui.Mu.Lock()
+		ui.LogContent = content
+		ui.Mu.Unlock()
+
+		ui.runOnUI(func() {
+			if ui.LogViewer != nil {
+				ui.LogViewer.SetText(content)
+			}
+		})
+	}()
+}
+
+func tailFileContent(path string, maxBytes int64) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return "", err
 	}
 
-	// 更新日志内容
-	ui.LogContent = string(content)
-	ui.runOnUI(func() {
-		ui.LogViewer.SetText(ui.LogContent)
-	})
+	size := info.Size()
+	if size == 0 {
+		return "", nil
+	}
+
+	start := int64(0)
+	truncated := false
+	if size > maxBytes {
+		start = size - maxBytes
+		truncated = true
+	}
+
+	buf := make([]byte, size-start)
+	_, err = f.ReadAt(buf, start)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+
+	content := string(buf)
+	if truncated {
+		content = fmt.Sprintf("[log truncated: showing last %d bytes]\n%s", maxBytes, content)
+	}
+	return content, nil
 }
 
 // exportLogContent 导出日志内容
@@ -514,7 +565,10 @@ func (ui *TestUI) AppendLog(text string) {
 	defer ui.Mu.Unlock()
 
 	ui.LogContent += text
+	content := ui.LogContent
 	ui.runOnUI(func() {
-		ui.LogViewer.SetText(ui.LogContent)
+		if ui.LogViewer != nil {
+			ui.LogViewer.SetText(content)
+		}
 	})
 }

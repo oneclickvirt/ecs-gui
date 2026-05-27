@@ -48,6 +48,7 @@ func main() {
 
 func runGUIMode() {
 	myApp := app.NewWithID("com.oneclickvirt.goecs")
+	myApp.SetIcon(appIconResource())
 	myApp.Settings().SetTheme(&ui.CustomTheme{})
 
 	testUI := ui.NewTestUI(myApp)

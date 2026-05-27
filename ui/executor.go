@@ -86,10 +86,11 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		return fmt.Errorf("创建管道失败: %v", err)
 	}
 
-	done := make(chan bool)
+	done := make(chan struct{})
 	readerCtx, readerCancel := context.WithCancel(e.ctx)
 
 	go func() {
+		defer close(done)
 		defer readerCancel()
 		defer r.Close()
 
@@ -103,7 +104,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 				if partial != "" && e.outputCallback != nil {
 					e.outputCallback(partial)
 				}
-				done <- true
 				return
 			default:
 			}
@@ -129,9 +129,12 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 					if partial != "" && e.outputCallback != nil {
 						e.outputCallback(partial)
 					}
-					done <- true
 					return
 				}
+				if e.outputCallback != nil {
+					e.outputCallback(fmt.Sprintf("\n读取输出失败: %v\n", err))
+				}
+				return
 			}
 		}
 	}()
@@ -145,7 +148,10 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		case <-done:
 		case <-time.After(2 * time.Second):
 			readerCancel()
-			<-done
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+			}
 		}
 
 		os.Stdout = oldStdout

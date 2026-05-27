@@ -1,7 +1,7 @@
 Website = "https://github.com/oneclickvirt/ecs"
 
 [Details]
-Icon = "logo.png"
+Icon = "assets/icons/logo.png"
 Name = "goecs"
 ID = "com.oneclickvirt.goecs"
 Version = "0.0.1"

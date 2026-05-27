@@ -170,7 +170,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 				return
 			}
 
-			if ui.IsRunning {
+			if ui.isRunning() {
 				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.running_no_switch"), ui.Window)
 				if ui.uiLang == langEN {
 					ui.LanguageSelect.SetSelected("English")

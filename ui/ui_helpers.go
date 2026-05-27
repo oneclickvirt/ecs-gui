@@ -231,12 +231,21 @@ func (ui *TestUI) hasSelectedTests() bool {
 
 // isCancelled 检查测试是否被取消
 func (ui *TestUI) isCancelled() bool {
+	if ui.CancelCtx == nil {
+		return false
+	}
 	select {
 	case <-ui.CancelCtx.Done():
 		return true
 	default:
 		return false
 	}
+}
+
+func (ui *TestUI) isRunning() bool {
+	ui.Mu.Lock()
+	defer ui.Mu.Unlock()
+	return ui.IsRunning
 }
 
 // resetUIState 重置UI状态（线程安全）
