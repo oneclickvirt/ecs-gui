@@ -5,6 +5,8 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -49,6 +51,7 @@ func (ui *TestUI) buildUI() {
 
 	// 创建状态栏
 	ui.StatusLabel = widget.NewLabel(ui.tr("status.ready"))
+	ui.StatusBadge = widget.NewLabel(ui.tr("badge.ready"))
 	ui.ProgressBar = widget.NewProgressBar()
 	ui.ProgressBar.Hide()
 
@@ -72,7 +75,7 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 	controlButtons := ui.createControlButtons()
 
 	// 将选项放在滚动容器中
-	scrollContent := container.NewScroll(optionsContent)
+	scrollContent := container.NewScroll(container.NewPadded(optionsContent))
 
 	// 使用Border布局，控制按钮固定在底部
 	return container.NewBorder(
@@ -86,30 +89,34 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 
 // createResultTab 创建测试结果页面
 func (ui *TestUI) createResultTab() fyne.CanvasObject {
-	// 状态栏
-	statusBar := container.NewBorder(
-		nil, nil,
+	statusRow := container.NewHBox(
 		ui.StatusLabel,
-		nil,
-		ui.ProgressBar,
+		layout.NewSpacer(),
+		ui.StatusBadge,
 	)
+	statusBar := container.NewVBox(statusRow, ui.ProgressBar)
 
-	// 导出按钮
-	copyButton := widget.NewButton(ui.tr("button.copy"), ui.copyResults)
-	exportButton := widget.NewButton(ui.tr("button.export"), ui.exportResults)
-	clearButton := widget.NewButton(ui.tr("button.clear"), ui.clearResults)
+	copyButton := widget.NewButtonWithIcon(ui.tr("button.copy"), theme.ContentCopyIcon(), ui.copyResults)
+	exportButton := widget.NewButtonWithIcon(ui.tr("button.export"), theme.DownloadIcon(), ui.exportResults)
+	clearButton := widget.NewButtonWithIcon(ui.tr("button.clear"), theme.DeleteIcon(), ui.clearResults)
 
-	topBar := container.NewBorder(
-		nil, nil,
+	actions := []fyne.CanvasObject{clearButton, copyButton, exportButton}
+	actionsBar := container.NewHBox(actions...)
+	if isMobilePlatform() {
+		actionsBar = container.NewAdaptiveGrid(2, actions...)
+	} else {
+		actionsBar = container.NewHBox(layout.NewSpacer(), clearButton, copyButton, exportButton)
+	}
+
+	header := widget.NewCard("", "", container.NewVBox(
 		statusBar,
-		container.NewHBox(clearButton, copyButton, exportButton),
-	)
+		actionsBar,
+	))
 
-	// 终端输出占据主要空间
-	terminalScroll := container.NewScroll(ui.Terminal)
+	terminalScroll := container.NewScroll(container.NewPadded(ui.Terminal))
 
 	return container.NewBorder(
-		topBar,         // Top: 状态栏和操作按钮
+		header,         // Top: 状态栏和操作按钮
 		nil,            // Bottom
 		nil,            // Left
 		nil,            // Right
@@ -124,11 +131,16 @@ func (ui *TestUI) createControlButtons() fyne.CanvasObject {
 
 	ui.StopButton = widget.NewButton(ui.tr("button.stop"), ui.stopTests)
 	ui.StopButton.Disable()
+	ui.StopButton.Importance = widget.MediumImportance
 
-	return container.NewCenter(
+	if isMobilePlatform() {
+		return container.NewPadded(container.NewVBox(ui.StartButton, ui.StopButton))
+	}
+
+	return container.NewPadded(container.NewCenter(
 		container.NewHBox(
 			ui.StartButton,
 			ui.StopButton,
 		),
-	)
+	))
 }

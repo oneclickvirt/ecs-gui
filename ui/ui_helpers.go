@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"runtime"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -15,10 +16,47 @@ type uiStateSnapshot struct {
 	logContent   string
 	logEnabled   bool
 	activeTab    int
+	statusText   string
+	statusBadge  string
 }
 
 func (ui *TestUI) runOnUI(fn func()) {
 	fyne.Do(fn)
+}
+
+func isMobilePlatform() bool {
+	return runtime.GOOS == "android" || runtime.GOOS == "ios"
+}
+
+func optionGridColumns() int {
+	if isMobilePlatform() {
+		return 1
+	}
+	return 2
+}
+
+func (ui *TestUI) statusBadge(statusKey string) string {
+	switch statusKey {
+	case "status.running", "status.executing":
+		return ui.tr("badge.running")
+	case "status.stopping", "status.stopped":
+		return ui.tr("badge.stopped")
+	case "status.failed":
+		return ui.tr("badge.failed")
+	case "status.done":
+		return ui.tr("badge.done")
+	default:
+		return ui.tr("badge.ready")
+	}
+}
+
+func (ui *TestUI) setStatus(statusKey string) {
+	if ui.StatusLabel != nil {
+		ui.StatusLabel.SetText(ui.tr(statusKey))
+	}
+	if ui.StatusBadge != nil {
+		ui.StatusBadge.SetText(ui.statusBadge(statusKey))
+	}
 }
 
 func (ui *TestUI) tr(key string) string {
@@ -105,6 +143,11 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 		logContent: ui.LogContent,
 		logEnabled: ui.LogCheck.Checked,
 		activeTab:  ui.MainTabs.SelectedIndex(),
+		statusText: ui.StatusLabel.Text,
+	}
+
+	if ui.StatusBadge != nil {
+		state.statusBadge = ui.StatusBadge.Text
 	}
 
 	if ui.Terminal != nil {
@@ -167,6 +210,13 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	if state.activeTab >= 0 && state.activeTab < len(ui.MainTabs.Items) {
 		ui.MainTabs.SelectIndex(state.activeTab)
 	}
+
+	if state.statusText != "" {
+		ui.StatusLabel.SetText(state.statusText)
+	}
+	if state.statusBadge != "" && ui.StatusBadge != nil {
+		ui.StatusBadge.SetText(state.statusBadge)
+	}
 }
 
 // hasSelectedTests 检查是否有选中的测试项
@@ -202,7 +252,7 @@ func (ui *TestUI) resetUIState() {
 		ui.ProgressBar.SetValue(0)
 
 		if ui.StatusLabel.Text == ui.tr("status.stopping") {
-			ui.StatusLabel.SetText(ui.tr("status.stopped"))
+			ui.setStatus("status.stopped")
 		}
 	})
 }

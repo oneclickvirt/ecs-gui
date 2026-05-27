@@ -37,6 +37,11 @@ var i18nText = map[string]map[string]string{
 	"status.stopped":   {"zh": "测试已停止", "en": "Stopped"},
 	"status.failed":    {"zh": "测试失败", "en": "Failed"},
 	"status.done":      {"zh": "测试完成", "en": "Completed"},
+	"badge.ready":      {"zh": "[就绪]", "en": "[READY]"},
+	"badge.running":    {"zh": "[运行中]", "en": "[RUNNING]"},
+	"badge.stopped":    {"zh": "[已停止]", "en": "[STOPPED]"},
+	"badge.failed":     {"zh": "[失败]", "en": "[FAILED]"},
+	"badge.done":       {"zh": "[完成]", "en": "[DONE]"},
 
 	"button.start":        {"zh": "开始测试", "en": "Start"},
 	"button.stop":         {"zh": "停止测试", "en": "Stop"},
@@ -75,6 +80,7 @@ var i18nText = map[string]map[string]string{
 	"preset.route_only":    {"zh": "10. 三网回程线路检测+三网回程详细路由(北京上海广州成都)+全国延迟+TGDC+网站延迟", "en": "10. Route + Latency"},
 
 	"tests.card.title":    {"zh": "测试项目", "en": "Test Items"},
+	"tests.card.subtitle": {"zh": "按场景分组，便于移动端快速操作", "en": "Grouped by scenario for faster operation"},
 	"tests.basic.title":   {"zh": "基础性能", "en": "Core Performance"},
 	"tests.basic.sub":     {"zh": "系统与硬件能力", "en": "System and hardware"},
 	"tests.network.title": {"zh": "网络质量", "en": "Network Quality"},

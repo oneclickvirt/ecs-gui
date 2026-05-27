@@ -82,6 +82,7 @@ type TestUI struct {
 	Terminal    *TerminalOutput
 	ProgressBar *widget.ProgressBar
 	StatusLabel *widget.Label
+	StatusBadge *widget.Label
 
 	// 日志相关
 	LogViewer  *widget.Entry      // 日志查看器

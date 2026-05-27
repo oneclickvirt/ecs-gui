@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"runtime"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
@@ -44,18 +45,40 @@ func (m *CustomTheme) Font(style fyne.TextStyle) fyne.Resource {
 }
 
 func (m *CustomTheme) Size(name fyne.ThemeSizeName) float32 {
-	// 增大字体以提高可读性
+	compact := runtime.GOOS == "android" || runtime.GOOS == "ios"
+
+	// 统一字号和间距节奏：移动端更紧凑，桌面端更舒展
 	switch name {
 	case theme.SizeNameText:
-		return 16 // 默认 14
+		if compact {
+			return 14
+		}
+		return 15
 	case theme.SizeNameHeadingText:
-		return 22 // 默认 20
+		if compact {
+			return 19
+		}
+		return 22
 	case theme.SizeNameSubHeadingText:
-		return 18 // 默认 16
+		if compact {
+			return 16
+		}
+		return 18
 	case theme.SizeNameCaptionText:
-		return 13 // 默认 11
+		if compact {
+			return 11
+		}
+		return 12
 	case theme.SizeNamePadding:
-		return 6 // 增加间距
+		if compact {
+			return 4
+		}
+		return 8
+	case theme.SizeNameInlineIcon:
+		if compact {
+			return 18
+		}
+		return 20
 	default:
 		return theme.DefaultTheme().Size(name)
 	}

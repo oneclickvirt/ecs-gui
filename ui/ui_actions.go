@@ -232,7 +232,7 @@ func (ui *TestUI) startTests() {
 	ui.StartButton.Disable()
 	ui.StopButton.Enable()
 	ui.ProgressBar.Show()
-	ui.StatusLabel.SetText(ui.tr("status.running"))
+	ui.setStatus("status.running")
 
 	// 清空终端输出
 	if ui.Terminal != nil {
@@ -260,7 +260,7 @@ func (ui *TestUI) stopTests() {
 
 	// 更新UI状态
 	ui.runOnUI(func() {
-		ui.StatusLabel.SetText(ui.tr("status.stopping"))
+		ui.setStatus("status.stopping")
 		ui.StopButton.Disable()
 	})
 	ui.Terminal.AppendText(ui.tr("log.interrupted"))
@@ -274,7 +274,7 @@ func (ui *TestUI) clearResults() {
 		ui.Terminal.Clear()
 	}
 	ui.runOnUI(func() {
-		ui.StatusLabel.SetText(ui.tr("status.ready"))
+		ui.setStatus("status.ready")
 		ui.ProgressBar.SetValue(0)
 	})
 }

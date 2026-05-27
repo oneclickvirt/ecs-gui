@@ -4,8 +4,23 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
+
+func (ui *TestUI) newIconCard(title, subtitle string, icon fyne.Resource, body fyne.CanvasObject) fyne.CanvasObject {
+	head := container.NewHBox(
+		widget.NewIcon(icon),
+		widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+	)
+	return widget.NewCard("", "", container.NewVBox(
+		head,
+		widget.NewLabel(subtitle),
+		layout.NewSpacer(),
+		body,
+	))
+}
 
 // createOptionsPanel 创建选项面板（测试项目 + 配置选项整合在一起）
 func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
@@ -92,14 +107,14 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 	buttonRow := container.NewHBox(selectAllBtn, deselectAllBtn)
 
 	// 测试项目分组
-	basicTests := widget.NewCard(ui.tr("tests.basic.title"), ui.tr("tests.basic.sub"), container.NewVBox(
+	basicTests := ui.newIconCard(ui.tr("tests.basic.title"), ui.tr("tests.basic.sub"), theme.SettingsIcon(), container.NewVBox(
 		ui.BasicCheck,
 		ui.CpuCheck,
 		ui.MemoryCheck,
 		ui.DiskCheck,
 	))
 
-	networkTests := widget.NewCard(ui.tr("tests.network.title"), ui.tr("tests.network.sub"), container.NewVBox(
+	networkTests := ui.newIconCard(ui.tr("tests.network.title"), ui.tr("tests.network.sub"), theme.SearchIcon(), container.NewVBox(
 		ui.SpeedCheck,
 		ui.SecurityCheck,
 		ui.EmailCheck,
@@ -108,19 +123,20 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 		ui.PingCheck,
 	))
 
-	unlockTests := widget.NewCard(ui.tr("tests.unlock.title"), ui.tr("tests.unlock.sub"), container.NewVBox(
+	unlockTests := ui.newIconCard(ui.tr("tests.unlock.title"), ui.tr("tests.unlock.sub"), theme.InfoIcon(), container.NewVBox(
 		ui.CommCheck,
 		ui.UnlockCheck,
 	))
 
-	testsGrid := container.NewAdaptiveGrid(2,
+	testsGrid := container.NewAdaptiveGrid(optionGridColumns(),
 		basicTests,
 		networkTests,
 		unlockTests,
 	)
 
-	testsSection := widget.NewCard(ui.tr("tests.card.title"), "", container.NewVBox(
+	testsSection := widget.NewCard(ui.tr("tests.card.title"), ui.tr("tests.card.subtitle"), container.NewVBox(
 		buttonRow,
+		layout.NewSpacer(),
 		testsGrid,
 	))
 
@@ -129,8 +145,10 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 
 	// 整合所有内容
 	allContent := container.NewVBox(
-		presetSection,
+		widget.NewCard("", "", presetSection),
+		widget.NewSeparator(),
 		testsSection,
+		widget.NewSeparator(),
 		configSection,
 	)
 
@@ -249,31 +267,31 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.PingWebCheck = widget.NewCheck(ui.tr("check.ping_web"), nil)
 	ui.PingWebCheck.Checked = false
 
-	generalCard := widget.NewCard(ui.tr("config.general.title"), ui.tr("config.general.sub"), container.NewVBox(
+	generalContent := container.NewVBox(
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.language")),
 			ui.LanguageSelect,
 		),
 		ui.LogCheck,
-	))
+	)
 
-	chinaCard := widget.NewCard(ui.tr("config.china.title"), ui.tr("config.china.sub"), container.NewVBox(
+	chinaContent := container.NewVBox(
 		ui.ChinaModeCheck,
-	))
+	)
 
-	cpuCard := widget.NewCard(ui.tr("config.cpu.title"), ui.tr("config.cpu.sub"), container.NewGridWithColumns(2,
+	cpuContent := container.NewGridWithColumns(2,
 		widget.NewLabel(ui.tr("label.cpu_method")),
 		ui.CpuMethodSelect,
 		widget.NewLabel(ui.tr("label.thread_mode")),
 		ui.ThreadModeSelect,
-	))
+	)
 
-	memoryCard := widget.NewCard(ui.tr("config.mem.title"), ui.tr("config.mem.sub"), container.NewGridWithColumns(2,
+	memoryContent := container.NewGridWithColumns(2,
 		widget.NewLabel(ui.tr("label.cpu_method")),
 		ui.MemoryMethodSelect,
-	))
+	)
 
-	diskCard := widget.NewCard(ui.tr("config.disk.title"), ui.tr("config.disk.sub"), container.NewVBox(
+	diskContent := container.NewVBox(
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.cpu_method")),
 			ui.DiskMethodSelect,
@@ -281,30 +299,55 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			ui.DiskPathEntry,
 		),
 		ui.DiskMultiCheck,
-	))
+	)
 
-	routeCard := widget.NewCard(ui.tr("config.route.title"), ui.tr("config.route.sub"), container.NewGridWithColumns(2,
+	routeContent := container.NewGridWithColumns(2,
 		widget.NewLabel(ui.tr("label.nt3_location")),
 		ui.Nt3LocationSelect,
 		widget.NewLabel(ui.tr("label.nt3_type")),
 		ui.Nt3TypeSelect,
-	))
+	)
 
-	speedCard := widget.NewCard(ui.tr("config.speed.title"), ui.tr("config.speed.sub"), container.NewVBox(
+	speedContent := container.NewVBox(
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.sp_num")),
 			ui.SpNumEntry,
 		),
 		ui.SpTestUploadCheck,
 		ui.SpTestDownloadCheck,
-	))
+	)
 
-	pingCard := widget.NewCard(ui.tr("config.ping.title"), ui.tr("config.ping.sub"), container.NewVBox(
+	pingContent := container.NewVBox(
 		ui.PingTgdcCheck,
 		ui.PingWebCheck,
-	))
+	)
 
-	configGrid := container.NewAdaptiveGrid(2,
+	if isMobilePlatform() {
+		acc := widget.NewAccordion(
+			widget.NewAccordionItem(ui.tr("config.general.title"), generalContent),
+			widget.NewAccordionItem(ui.tr("config.china.title"), chinaContent),
+			widget.NewAccordionItem(ui.tr("config.cpu.title"), cpuContent),
+			widget.NewAccordionItem(ui.tr("config.mem.title"), memoryContent),
+			widget.NewAccordionItem(ui.tr("config.disk.title"), diskContent),
+			widget.NewAccordionItem(ui.tr("config.route.title"), routeContent),
+			widget.NewAccordionItem(ui.tr("config.speed.title"), speedContent),
+			widget.NewAccordionItem(ui.tr("config.ping.title"), pingContent),
+		)
+		acc.MultiOpen = false
+		acc.Open(0)
+		return widget.NewCard(ui.tr("config.card.title"), ui.tr("config.card.sub"), acc)
+	}
+
+	generalCard := ui.newIconCard(ui.tr("config.general.title"), ui.tr("config.general.sub"), theme.SettingsIcon(), generalContent)
+	chinaCard := ui.newIconCard(ui.tr("config.china.title"), ui.tr("config.china.sub"), theme.InfoIcon(), chinaContent)
+	cpuCard := ui.newIconCard(ui.tr("config.cpu.title"), ui.tr("config.cpu.sub"), theme.SettingsIcon(), cpuContent)
+	memoryCard := ui.newIconCard(ui.tr("config.mem.title"), ui.tr("config.mem.sub"), theme.SettingsIcon(), memoryContent)
+	diskCard := ui.newIconCard(ui.tr("config.disk.title"), ui.tr("config.disk.sub"), theme.StorageIcon(), diskContent)
+	routeCard := ui.newIconCard(ui.tr("config.route.title"), ui.tr("config.route.sub"), theme.SearchIcon(), routeContent)
+	speedCard := ui.newIconCard(ui.tr("config.speed.title"), ui.tr("config.speed.sub"), theme.DownloadIcon(), speedContent)
+	pingCard := ui.newIconCard(ui.tr("config.ping.title"), ui.tr("config.ping.sub"), theme.InfoIcon(), pingContent)
+
+	configGrid := container.NewAdaptiveGrid(optionGridColumns(),
 		generalCard,
 		chinaCard,
 		cpuCard,

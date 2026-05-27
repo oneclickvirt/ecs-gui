@@ -14,7 +14,7 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 			errorMsg := fmt.Sprintf("%s%v\n", ui.tr("log.fatal_prefix"), r)
 			ui.Terminal.AppendText(errorMsg)
 			ui.runOnUI(func() {
-				ui.StatusLabel.SetText(ui.tr("status.failed"))
+				ui.setStatus("status.failed")
 			})
 		}
 		// 确保UI状态被重置
@@ -36,7 +36,7 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 	// 更新进度
 	ui.runOnUI(func() {
 		ui.ProgressBar.SetValue(0.1)
-		ui.StatusLabel.SetText(ui.tr("status.executing"))
+		ui.setStatus("status.executing")
 	})
 
 	// 执行测试（输出会实时显示在terminal widget中）
@@ -55,21 +55,21 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 		// 检查是否是取消导致的
 		if ui.isCancelled() {
 			ui.runOnUI(func() {
-				ui.StatusLabel.SetText(ui.tr("status.stopped"))
+				ui.setStatus("status.stopped")
 			})
 		} else {
 			ui.runOnUI(func() {
-				ui.StatusLabel.SetText(ui.tr("status.failed"))
+				ui.setStatus("status.failed")
 			})
 		}
 	} else if ui.isCancelled() {
 		ui.Terminal.AppendText(ui.tr("log.interrupted_short"))
 		ui.runOnUI(func() {
-			ui.StatusLabel.SetText(ui.tr("status.stopped"))
+			ui.setStatus("status.stopped")
 		})
 	} else {
 		ui.runOnUI(func() {
-			ui.StatusLabel.SetText(ui.tr("status.done"))
+			ui.setStatus("status.done")
 			ui.ProgressBar.SetValue(1.0)
 		})
 
