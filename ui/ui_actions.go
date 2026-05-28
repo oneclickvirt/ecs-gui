@@ -92,7 +92,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.CpuCheck.Checked = true
 		ui.MemoryCheck.Checked = true
 		ui.DiskCheck.Checked = true
-		ui.CommCheck.Checked = true
+
 		ui.UnlockCheck.Checked = true
 		ui.SpeedCheck.Checked = true
 		ui.PingTgdcCheck.Checked = false
@@ -119,7 +119,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 	case "unlock_only":
 		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
 		ui.setAllChecks(false)
-		ui.CommCheck.Checked = true
+
 		ui.UnlockCheck.Checked = true
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
@@ -231,6 +231,21 @@ func (ui *TestUI) startTests() {
 	}
 
 	config := ui.collectExecutionConfig()
+
+	// 权限检测：检查是否有需要管理员/root权限的测试项
+	if needsPriv, testsZH, testsEN := needsPrivilege(config); needsPriv && !isPrivileged() {
+		var body string
+		if config.Language == "en" {
+			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body_zh"), testsEN)
+		} else {
+			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body_zh"), testsZH)
+		}
+		dialog.ShowInformation(ui.tr("dialog.no_privilege_title"), body, ui.Window)
+		ui.Mu.Lock()
+		ui.IsRunning = false
+		ui.Mu.Unlock()
+		return
+	}
 
 	// 禁用开始按钮，启用停止按钮
 	ui.StartButton.Disable()

@@ -53,9 +53,6 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 	ui.DiskCheck = widget.NewCheck(ui.tr("check.disk"), nil)
 	ui.DiskCheck.Checked = true
 
-	ui.CommCheck = widget.NewCheck(ui.tr("check.comm"), nil)
-	ui.CommCheck.Checked = false
-
 	ui.UnlockCheck = widget.NewCheck(ui.tr("check.unlock"), nil)
 	ui.UnlockCheck.Checked = false
 
@@ -85,7 +82,6 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 		ui.CpuCheck,
 		ui.MemoryCheck,
 		ui.DiskCheck,
-		ui.CommCheck,
 		ui.UnlockCheck,
 		ui.SecurityCheck,
 		ui.EmailCheck,
@@ -124,7 +120,6 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 	))
 
 	unlockTests := ui.newIconCard(ui.tr("tests.unlock.title"), ui.tr("tests.unlock.sub"), theme.InfoIcon(), container.NewVBox(
-		ui.CommCheck,
 		ui.UnlockCheck,
 	))
 

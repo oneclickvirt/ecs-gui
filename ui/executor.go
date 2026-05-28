@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/oneclickvirt/CommonMediaTests/commediatests"
 	"github.com/oneclickvirt/basics/utils"
 	ecsapi "github.com/oneclickvirt/ecs/api"
 	"github.com/oneclickvirt/pingtest/pt"
@@ -43,7 +42,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	cpuTestStatus := selectedOptions["cpu"]
 	memoryTestStatus := selectedOptions["memory"]
 	diskTestStatus := selectedOptions["disk"]
-	commTestStatus := selectedOptions["comm"]
 	utTestStatus := selectedOptions["unlock"]
 	securityTestStatus := selectedOptions["security"]
 	emailTestStatus := selectedOptions["email"]
@@ -55,7 +53,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	// 中国模式逻辑：禁用流媒体测试，启用PING测试（只测三网PING）
 	// 对齐主仓库逻辑：中国模式下强制启用ping，但不测TGDC和Web
 	if chinaModeEnabled {
-		commTestStatus = false
 		utTestStatus = false
 		pingTestStatus = true
 		// 中国模式下强制禁用TGDC和Web测试
@@ -265,7 +262,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 			defer wg1.Done()
 			// 检查取消
 			if !checkCancelled() {
-				mediaInfo = ecsapi.MediaTest(language, "", "", false)
+				mediaInfo = ecsapi.MediaTest(language, "0", "", false)
 			}
 		}()
 	}
@@ -281,20 +278,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		}()
 	}
 
-	// 6. 御三家流媒体测试（仅中文）
-	if checkCancelled() {
-		return fmt.Errorf("测试已取消")
-	}
-
-	if commTestStatus && preCheck.Connected && language == "zh" {
-		outputMutex.Lock()
-		PrintCenteredTitle("御三家流媒体测试", 82)
-		commInfo := commediatests.MediaTests(language)
-		fmt.Print(commInfo)
-		outputMutex.Unlock()
-	}
-
-	// 7. 显示跨国流媒体解锁结果
+	// 6. 显示跨国流媒体解锁结果
 	if utTestStatus && preCheck.Connected {
 		// 使用带超时的等待
 		waitDone := make(chan struct{})

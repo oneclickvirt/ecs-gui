@@ -110,7 +110,6 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"cpu":       ui.CpuCheck.Checked,
 			"memory":    ui.MemoryCheck.Checked,
 			"disk":      ui.DiskCheck.Checked,
-			"comm":      ui.CommCheck.Checked,
 			"unlock":    ui.UnlockCheck.Checked,
 			"security":  ui.SecurityCheck.Checked,
 			"email":     ui.EmailCheck.Checked,
@@ -167,7 +166,6 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.CpuCheck.Checked = state.checks["cpu"]
 	ui.MemoryCheck.Checked = state.checks["memory"]
 	ui.DiskCheck.Checked = state.checks["disk"]
-	ui.CommCheck.Checked = state.checks["comm"]
 	ui.UnlockCheck.Checked = state.checks["unlock"]
 	ui.SecurityCheck.Checked = state.checks["security"]
 	ui.EmailCheck.Checked = state.checks["email"]
@@ -273,7 +271,6 @@ func (ui *TestUI) GetSelectedOptions() map[string]bool {
 		"cpu":       ui.CpuCheck.Checked,
 		"memory":    ui.MemoryCheck.Checked,
 		"disk":      ui.DiskCheck.Checked,
-		"comm":      ui.CommCheck.Checked,
 		"unlock":    ui.UnlockCheck.Checked,
 		"security":  ui.SecurityCheck.Checked,
 		"email":     ui.EmailCheck.Checked,

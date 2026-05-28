@@ -54,6 +54,9 @@ var i18nText = map[string]map[string]string{
 	"button.log_clear":    {"zh": "清空日志", "en": "Clear Logs"},
 	"button.log_export":   {"zh": "导出日志", "en": "Export Logs"},
 
+	"dialog.no_privilege_title":   {"zh": "权限不足", "en": "Insufficient Privileges"},
+	"dialog.no_privilege_body_zh": {"zh": "以下测试项需要管理员/root权限才能正常运行：\n\n%s\n\n请关闭程序后以管理员（Windows：右键→以管理员身份运行；Linux/macOS：sudo）身份重新启动。", "en": "The following tests require Administrator/root privileges:\n\n%s\n\nPlease close the app and restart it as Administrator (Windows: right-click → Run as administrator; Linux/macOS: sudo)."},
+
 	"dialog.hint":              {"zh": "提示", "en": "Notice"},
 	"dialog.success":           {"zh": "成功", "en": "Success"},
 	"dialog.no_tests":          {"zh": "请至少选择一项测试！", "en": "Select at least one test item."},
@@ -92,7 +95,6 @@ var i18nText = map[string]map[string]string{
 	"check.cpu":        {"zh": "CPU 性能测试", "en": "CPU Benchmark"},
 	"check.memory":     {"zh": "内存性能测试", "en": "Memory Benchmark"},
 	"check.disk":       {"zh": "磁盘性能测试", "en": "Disk Benchmark"},
-	"check.comm":       {"zh": "御三家流媒体测试", "en": "CN Streaming Trio"},
 	"check.unlock":     {"zh": "跨国流媒体解锁测试", "en": "Global Media Unlock"},
 	"check.security":   {"zh": "IP质量检测", "en": "IP Quality"},
 	"check.email":      {"zh": "邮件端口检测", "en": "Email Ports"},

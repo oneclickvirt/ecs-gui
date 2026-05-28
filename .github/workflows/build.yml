@@ -297,7 +297,7 @@ jobs:
             name: macos-amd64
           
           # Windows builds
-          - os: windows-latest
+          - os: windows-2025
             platform: windows
             arch: amd64
             name: windows-amd64

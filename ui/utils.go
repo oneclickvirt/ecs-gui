@@ -43,3 +43,15 @@ func PrintCenteredTitle(title string, width int) {
 func BasicsAndSecurityCheck(language, nt3CheckType string, securityCheckStatus bool) (string, string, string, string, string) {
 	return utils.BasicsAndSecurityCheck(language, nt3CheckType, securityCheckStatus)
 }
+
+// joinStrings joins a slice of strings with the given separator.
+func joinStrings(parts []string, sep string) string {
+	result := ""
+	for i, p := range parts {
+		if i > 0 {
+			result += sep
+		}
+		result += p
+	}
+	return result
+}

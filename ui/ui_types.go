@@ -39,7 +39,6 @@ type TestUI struct {
 	CpuCheck       *widget.Check
 	MemoryCheck    *widget.Check
 	DiskCheck      *widget.Check
-	CommCheck      *widget.Check // 御三家流媒体
 	UnlockCheck    *widget.Check // 跨国流媒体解锁
 	SecurityCheck  *widget.Check // IP质量检测
 	EmailCheck     *widget.Check // 邮件端口检测
