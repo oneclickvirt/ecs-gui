@@ -262,6 +262,19 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.PingWebCheck = widget.NewCheck(ui.tr("check.ping_web"), nil)
 	ui.PingWebCheck.Checked = false
 
+	// 流媒体解锁配置
+	ui.UnlockRegionSelect = widget.NewSelect(
+		unlockRegionLabelsForLang(ui.uiLang),
+		func(value string) {},
+	)
+	ui.UnlockRegionSelect.SetSelected(unlockRegionLabelsForLang(ui.uiLang)[0])
+
+	ui.UnlockIpVersionSelect = widget.NewSelect(
+		unlockIpVersionOptions,
+		func(value string) {},
+	)
+	ui.UnlockIpVersionSelect.SetSelected("auto")
+
 	generalContent := container.NewVBox(
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.language")),
@@ -312,6 +325,13 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		ui.SpTestDownloadCheck,
 	)
 
+	unlockContent := container.NewGridWithColumns(2,
+		widget.NewLabel(ui.tr("label.unlock_region")),
+		ui.UnlockRegionSelect,
+		widget.NewLabel(ui.tr("label.unlock_ip_ver")),
+		ui.UnlockIpVersionSelect,
+	)
+
 	pingContent := container.NewVBox(
 		ui.PingTgdcCheck,
 		ui.PingWebCheck,
@@ -324,6 +344,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			widget.NewAccordionItem(ui.tr("config.cpu.title"), cpuContent),
 			widget.NewAccordionItem(ui.tr("config.mem.title"), memoryContent),
 			widget.NewAccordionItem(ui.tr("config.disk.title"), diskContent),
+			widget.NewAccordionItem(ui.tr("config.unlock.title"), unlockContent),
 			widget.NewAccordionItem(ui.tr("config.route.title"), routeContent),
 			widget.NewAccordionItem(ui.tr("config.speed.title"), speedContent),
 			widget.NewAccordionItem(ui.tr("config.ping.title"), pingContent),
@@ -338,6 +359,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	cpuCard := ui.newIconCard(ui.tr("config.cpu.title"), ui.tr("config.cpu.sub"), theme.SettingsIcon(), cpuContent)
 	memoryCard := ui.newIconCard(ui.tr("config.mem.title"), ui.tr("config.mem.sub"), theme.SettingsIcon(), memoryContent)
 	diskCard := ui.newIconCard(ui.tr("config.disk.title"), ui.tr("config.disk.sub"), theme.StorageIcon(), diskContent)
+	unlockCard := ui.newIconCard(ui.tr("config.unlock.title"), ui.tr("config.unlock.sub"), theme.InfoIcon(), unlockContent)
 	routeCard := ui.newIconCard(ui.tr("config.route.title"), ui.tr("config.route.sub"), theme.SearchIcon(), routeContent)
 	speedCard := ui.newIconCard(ui.tr("config.speed.title"), ui.tr("config.speed.sub"), theme.DownloadIcon(), speedContent)
 	pingCard := ui.newIconCard(ui.tr("config.ping.title"), ui.tr("config.ping.sub"), theme.InfoIcon(), pingContent)
@@ -348,6 +370,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		cpuCard,
 		memoryCard,
 		diskCard,
+		unlockCard,
 		routeCard,
 		speedCard,
 		pingCard,

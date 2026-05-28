@@ -36,7 +36,8 @@ func (e *CommandExecutor) SetContext(ctx context.Context) {
 
 func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language string, testUpload bool, testDownload bool, chinaModeEnabled bool,
 	cpuMethod, threadMode, memoryMethod, diskMethod, diskPath string, diskMulti bool,
-	nt3Location, nt3Type string, spNum int, pingTgdc, pingWeb bool) error {
+	nt3Location, nt3Type string, spNum int, pingTgdc, pingWeb bool,
+	unlockRegion, unlockIpVersion string) error {
 	// 设置测试选项
 	basicStatus := selectedOptions["basic"]
 	cpuTestStatus := selectedOptions["cpu"]
@@ -262,7 +263,8 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 			defer wg1.Done()
 			// 检查取消
 			if !checkCancelled() {
-				mediaInfo = ecsapi.MediaTest(language, "0", "", false)
+				showIP := unlockIpVersion == "auto" || unlockIpVersion == ""
+				mediaInfo = ecsapi.MediaTest(language, unlockRegion, unlockIpVersion, showIP)
 			}
 		}()
 	}

@@ -26,6 +26,8 @@ type ExecutionConfig struct {
 	SpNum            int
 	PingTgdc         bool
 	PingWeb          bool
+	UnlockRegion     string
+	UnlockIpVersion  string
 	LogEnabled       bool
 }
 
@@ -35,18 +37,22 @@ type TestUI struct {
 	Window fyne.Window
 
 	// 测试选项复选框 - 完整支持所有测试项
-	BasicCheck     *widget.Check
-	CpuCheck       *widget.Check
-	MemoryCheck    *widget.Check
-	DiskCheck      *widget.Check
-	UnlockCheck    *widget.Check // 跨国流媒体解锁
-	SecurityCheck  *widget.Check // IP质量检测
-	EmailCheck     *widget.Check // 邮件端口检测
-	BacktraceCheck *widget.Check // 上游及回程线路
-	Nt3Check       *widget.Check // 三网回程路由
-	SpeedCheck     *widget.Check // 网络测速
-	PingCheck      *widget.Check // 三网PING值
-	LogCheck       *widget.Check // 启用日志记录
+	BasicCheck    *widget.Check
+	CpuCheck      *widget.Check
+	MemoryCheck   *widget.Check
+	DiskCheck     *widget.Check
+	UnlockCheck   *widget.Check // 跨国流媒体解锁
+	SecurityCheck *widget.Check // IP质量检测
+
+	// 解锁配置
+	UnlockRegionSelect    *widget.Select
+	UnlockIpVersionSelect *widget.Select
+	EmailCheck            *widget.Check // 邮件端口检测
+	BacktraceCheck        *widget.Check // 上游及回程线路
+	Nt3Check              *widget.Check // 三网回程路由
+	SpeedCheck            *widget.Check // 网络测速
+	PingCheck             *widget.Check // 三网PING值
+	LogCheck              *widget.Check // 启用日志记录
 
 	// 预设模式选择
 	PresetSelect *widget.Select

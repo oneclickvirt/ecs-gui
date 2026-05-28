@@ -126,13 +126,15 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"enableLog": ui.LogCheck.Checked,
 		},
 		selections: map[string]string{
-			"language":   ui.LanguageSelect.Selected,
-			"cpuMethod":  ui.CpuMethodSelect.Selected,
-			"threadMode": ui.ThreadModeSelect.Selected,
-			"memMethod":  ui.MemoryMethodSelect.Selected,
-			"diskMethod": ui.DiskMethodSelect.Selected,
-			"nt3Loc":     ui.Nt3LocationSelect.Selected,
-			"nt3Type":    ui.Nt3TypeSelect.Selected,
+			"language":     ui.LanguageSelect.Selected,
+			"cpuMethod":    ui.CpuMethodSelect.Selected,
+			"threadMode":   ui.ThreadModeSelect.Selected,
+			"memMethod":    ui.MemoryMethodSelect.Selected,
+			"diskMethod":   ui.DiskMethodSelect.Selected,
+			"nt3Loc":       ui.Nt3LocationSelect.Selected,
+			"nt3Type":      ui.Nt3TypeSelect.Selected,
+			"unlockRegion": unlockRegionLabelToCode(ui.UnlockRegionSelect.Selected, ui.uiLang),
+			"unlockIpVer":  ui.UnlockIpVersionSelect.Selected,
 		},
 		entries: map[string]string{
 			"diskPath": ui.DiskPathEntry.Text,
@@ -188,6 +190,12 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.DiskMethodSelect.SetSelected(state.selections["diskMethod"])
 	ui.Nt3LocationSelect.SetSelected(state.selections["nt3Loc"])
 	ui.Nt3TypeSelect.SetSelected(state.selections["nt3Type"])
+	if code := state.selections["unlockRegion"]; code != "" {
+		ui.UnlockRegionSelect.SetSelected(unlockRegionCodeToLabel(code, ui.uiLang))
+	}
+	if ver := state.selections["unlockIpVer"]; ver != "" {
+		ui.UnlockIpVersionSelect.SetSelected(ver)
+	}
 
 	ui.DiskPathEntry.SetText(state.entries["diskPath"])
 	ui.SpNumEntry.SetText(state.entries["spNum"])
@@ -332,6 +340,18 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		logEnabled = ui.LogCheck.Checked
 	}
 
+	pingTgdc := ui.PingTgdcCheck.Checked
+	pingWeb := ui.PingWebCheck.Checked
+
+	unlockRegion := unlockRegionLabelToCode(ui.UnlockRegionSelect.Selected, language)
+	if unlockRegion == "" {
+		unlockRegion = "0"
+	}
+	unlockIpVersion := ui.UnlockIpVersionSelect.Selected
+	if unlockIpVersion == "" {
+		unlockIpVersion = "auto"
+	}
+
 	return ExecutionConfig{
 		SelectedOptions:  ui.GetSelectedOptions(),
 		Language:         language,
@@ -347,8 +367,10 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		Nt3Location:      nt3Location,
 		Nt3Type:          nt3Type,
 		SpNum:            spNum,
-		PingTgdc:         ui.PingTgdcCheck.Checked,
-		PingWeb:          ui.PingWebCheck.Checked,
+		PingTgdc:         pingTgdc,
+		PingWeb:          pingWeb,
+		UnlockRegion:     unlockRegion,
+		UnlockIpVersion:  unlockIpVersion,
 		LogEnabled:       logEnabled,
 	}
 }

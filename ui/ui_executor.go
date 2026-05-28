@@ -42,7 +42,8 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 	// 执行测试（输出会实时显示在terminal widget中）
 	err := executor.Execute(config.SelectedOptions, config.Language, config.TestUpload, config.TestDownload, config.ChinaModeEnabled,
 		config.CpuMethod, config.ThreadMode, config.MemoryMethod, config.DiskMethod, config.DiskPath, config.DiskMulti,
-		config.Nt3Location, config.Nt3Type, config.SpNum, config.PingTgdc, config.PingWeb)
+		config.Nt3Location, config.Nt3Type, config.SpNum, config.PingTgdc, config.PingWeb,
+		config.UnlockRegion, config.UnlockIpVersion)
 
 	// 显示结束信息
 	endTime := time.Now()
