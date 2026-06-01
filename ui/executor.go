@@ -5,17 +5,28 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	unlocktestmodel "github.com/oneclickvirt/UnlockTests/model"
+	backtracemodel "github.com/oneclickvirt/backtrace/model"
+	basicmodel "github.com/oneclickvirt/basics/model"
 	"github.com/oneclickvirt/basics/utils"
+	cputestmodel "github.com/oneclickvirt/cputest/model"
+	disktestmodel "github.com/oneclickvirt/disktest/disk"
 	ecsapi "github.com/oneclickvirt/ecs/api"
+	gostunmodel "github.com/oneclickvirt/gostun/model"
+	memorytestmodel "github.com/oneclickvirt/memorytest/memory"
+	nt3model "github.com/oneclickvirt/nt3/model"
+	ptmodel "github.com/oneclickvirt/pingtest/model"
 	"github.com/oneclickvirt/pingtest/pt"
 	"github.com/oneclickvirt/portchecker/email"
+	speedtestmodel "github.com/oneclickvirt/speedtest/model"
 )
 
-const ecsVersion = "v0.1.138"
+const ecsVersion = "v0.1.139"
 
 type CommandExecutor struct {
 	outputCallback func(string)
@@ -34,11 +45,19 @@ func (e *CommandExecutor) SetContext(ctx context.Context) {
 	e.ctx = ctx
 }
 
-func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language string, testUpload bool, testDownload bool, chinaModeEnabled bool,
-	cpuMethod, threadMode, memoryMethod, diskMethod, diskPath string, diskMulti bool,
-	nt3Location, nt3Type string, spNum int, pingTgdc, pingWeb bool,
-	unlockRegion, unlockIpVersion string) error {
+func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	// 设置测试选项
+	selectedOptions := config.SelectedOptions
+	language := config.Language
+	testUpload := config.TestUpload
+	testDownload := config.TestDownload
+	chinaModeEnabled := config.ChinaModeEnabled
+	width := config.OutputWidth
+	if width <= 0 {
+		width = 82
+	}
+	setComponentLogging(config.LogEnabled)
+
 	basicStatus := selectedOptions["basic"]
 	cpuTestStatus := selectedOptions["cpu"]
 	memoryTestStatus := selectedOptions["memory"]
@@ -50,6 +69,8 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	nt3Status := selectedOptions["nt3"]
 	speedTestStatus := selectedOptions["speed"]
 	pingTestStatus := selectedOptions["ping"]
+	pingTgdc := config.PingTgdc
+	pingWeb := config.PingWeb
 
 	// 中国模式逻辑：禁用流媒体测试，启用PING测试（只测三网PING）
 	// 对齐主仓库逻辑：中国模式下强制启用ping，但不测TGDC和Web
@@ -69,8 +90,40 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		wg1, wg2                                      sync.WaitGroup
 		basicInfo, securityInfo, emailInfo, mediaInfo string
 		outputMutex                                   sync.Mutex
+		captureMutex                                  sync.Mutex
+		captured                                      strings.Builder
+		captureTruncated                              bool
 	)
 	startTime := time.Now()
+	captureLimit := resultCaptureLimit()
+	appendCaptured := func(text string) {
+		cleanText := ansiRegex.ReplaceAllString(text, "")
+		captureMutex.Lock()
+		defer captureMutex.Unlock()
+		if captureLimit <= 0 || len(cleanText) == 0 {
+			return
+		}
+		remaining := captureLimit - captured.Len()
+		if remaining <= 0 {
+			captureTruncated = true
+			return
+		}
+		if len(cleanText) > remaining {
+			captured.WriteString(cleanText[:remaining])
+			captureTruncated = true
+			return
+		}
+		captured.WriteString(cleanText)
+	}
+	capturedOutput := func() string {
+		captureMutex.Lock()
+		defer captureMutex.Unlock()
+		out := captured.String()
+		if captureTruncated {
+			out += "\n[结果过长，GUI 已截断用于上传/分析的历史输出]\n"
+		}
+		return out
+	}
 
 	// 确保有上下文
 	if e.ctx == nil {
@@ -101,6 +154,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 				// 输出剩余内容
 				if partial != "" && e.outputCallback != nil {
 					e.outputCallback(partial)
+					appendCaptured(partial)
 				}
 				return
 			default:
@@ -113,7 +167,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 				lastNewline := strings.LastIndex(text, "\n")
 				if lastNewline >= 0 {
 					// 输出完整的行
-					e.outputCallback(text[:lastNewline+1])
+					complete := text[:lastNewline+1]
+					e.outputCallback(complete)
+					appendCaptured(complete)
 					// 保存不完整的部分
 					partial = text[lastNewline+1:]
 				} else {
@@ -126,11 +182,14 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 					// 输出剩余的不完整部分
 					if partial != "" && e.outputCallback != nil {
 						e.outputCallback(partial)
+						appendCaptured(partial)
 					}
 					return
 				}
 				if e.outputCallback != nil {
-					e.outputCallback(fmt.Sprintf("\n读取输出失败: %v\n", err))
+					msg := fmt.Sprintf("\n读取输出失败: %v\n", err)
+					e.outputCallback(msg)
+					appendCaptured(msg)
 				}
 				return
 			}
@@ -175,16 +234,16 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	if basicStatus || securityTestStatus {
 		outputMutex.Lock()
-		PrintHead(language, 82, ecsVersion)
+		PrintHead(language, width, ecsVersion)
 		if basicStatus {
 			if language == "zh" {
-				PrintCenteredTitle("系统基础信息", 82)
+				PrintCenteredTitle("系统基础信息", width)
 			} else {
-				PrintCenteredTitle("System-Basic-Information", 82)
+				PrintCenteredTitle("System-Basic-Information", width)
 			}
 		}
 		// 根据网络连接状态选择检测类型
-		checkType := nt3Type
+		checkType := config.Nt3Type
 		if preCheck.Connected && preCheck.StackType == "DualStack" {
 			_, _, basicInfo, securityInfo, _ = BasicsAndSecurityCheck(language, checkType, securityTestStatus)
 		} else if preCheck.Connected && preCheck.StackType == "IPv4" {
@@ -208,11 +267,11 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	if cpuTestStatus {
 		outputMutex.Lock()
-		realTestMethod, res := ecsapi.CpuTest(language, cpuMethod, threadMode)
+		realTestMethod, res := ecsapi.CpuTest(language, config.CpuMethod, config.ThreadMode)
 		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("CPU测试-通过%s测试", realTestMethod), 82)
+			PrintCenteredTitle(fmt.Sprintf("CPU测试-通过%s测试", realTestMethod), width)
 		} else {
-			PrintCenteredTitle(fmt.Sprintf("CPU-Test--%s-Method", realTestMethod), 82)
+			PrintCenteredTitle(fmt.Sprintf("CPU-Test--%s-Method", realTestMethod), width)
 		}
 		fmt.Print(res)
 		outputMutex.Unlock()
@@ -225,11 +284,11 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	if memoryTestStatus {
 		outputMutex.Lock()
-		realTestMethod, res := ecsapi.MemoryTest(language, memoryMethod)
+		realTestMethod, res := ecsapi.MemoryTest(language, config.MemoryMethod)
 		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("内存测试-通过%s测试", realTestMethod), 82)
+			PrintCenteredTitle(fmt.Sprintf("内存测试-通过%s测试", realTestMethod), width)
 		} else {
-			PrintCenteredTitle(fmt.Sprintf("Memory-Test--%s-Method", realTestMethod), 82)
+			PrintCenteredTitle(fmt.Sprintf("Memory-Test--%s-Method", realTestMethod), width)
 		}
 		fmt.Print(res)
 		outputMutex.Unlock()
@@ -242,13 +301,30 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 
 	if diskTestStatus {
 		outputMutex.Lock()
-		realTestMethod, res := ecsapi.DiskTest(language, diskMethod, diskPath, diskMulti, true)
-		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("硬盘测试-通过%s测试", realTestMethod), 82)
+		if config.AutoDiskMethod {
+			realTestMethod, res := ecsapi.DiskTest(language, config.DiskMethod, config.DiskPath, config.DiskMulti, true)
+			if language == "zh" {
+				PrintCenteredTitle(fmt.Sprintf("硬盘测试-通过%s测试", realTestMethod), width)
+			} else {
+				PrintCenteredTitle(fmt.Sprintf("Disk-Test--%s-Method", realTestMethod), width)
+			}
+			fmt.Print(res)
 		} else {
-			PrintCenteredTitle(fmt.Sprintf("Disk-Test--%s-Method", realTestMethod), 82)
+			if language == "zh" {
+				PrintCenteredTitle("硬盘测试-通过dd测试", width)
+			} else {
+				PrintCenteredTitle("Disk-Test--dd-Method", width)
+			}
+			_, res := ecsapi.DiskTest(language, "dd", config.DiskPath, config.DiskMulti, false)
+			fmt.Print(res)
+			if language == "zh" {
+				PrintCenteredTitle("硬盘测试-通过fio测试", width)
+			} else {
+				PrintCenteredTitle("Disk-Test--fio-Method", width)
+			}
+			_, res = ecsapi.DiskTest(language, "fio", config.DiskPath, config.DiskMulti, false)
+			fmt.Print(res)
 		}
-		fmt.Print(res)
 		outputMutex.Unlock()
 	}
 
@@ -263,8 +339,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 			defer wg1.Done()
 			// 检查取消
 			if !checkCancelled() {
-				showIP := unlockIpVersion == "auto" || unlockIpVersion == ""
-				mediaInfo = ecsapi.MediaTest(language, unlockRegion, unlockIpVersion, showIP)
+				mediaInfo = ecsapi.MediaTest(language, config.UnlockRegion, config.UnlockIpVersion, config.UnlockShowIP)
 			}
 		}()
 	}
@@ -301,9 +376,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		}
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("跨国流媒体解锁", 82)
+			PrintCenteredTitle("跨国流媒体解锁", width)
 		} else {
-			PrintCenteredTitle("Cross-Border-Streaming-Media-Unlock", 82)
+			PrintCenteredTitle("Cross-Border-Streaming-Media-Unlock", width)
 		}
 		fmt.Printf("%s", mediaInfo)
 		outputMutex.Unlock()
@@ -313,9 +388,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	if securityTestStatus && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("IP质量检测", 82)
+			PrintCenteredTitle("IP质量检测", width)
 		} else {
-			PrintCenteredTitle("IP-Quality-Check", 82)
+			PrintCenteredTitle("IP-Quality-Check", width)
 		}
 		fmt.Printf("%s", securityInfo)
 		outputMutex.Unlock()
@@ -342,9 +417,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		}
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("邮件端口检测", 82)
+			PrintCenteredTitle("邮件端口检测", width)
 		} else {
-			PrintCenteredTitle("Email-Port-Check", 82)
+			PrintCenteredTitle("Email-Port-Check", width)
 		}
 		fmt.Println(emailInfo)
 		outputMutex.Unlock()
@@ -358,9 +433,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	if backtraceStatus && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("上游及回程线路检测", 82)
+			PrintCenteredTitle("上游及回程线路检测", width)
 		} else {
-			PrintCenteredTitle("Upstreams-Backtrace-Check", 82)
+			PrintCenteredTitle("Upstreams-Backtrace-Check", width)
 		}
 		ecsapi.UpstreamsCheck(language)
 		outputMutex.Unlock()
@@ -374,11 +449,11 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	if nt3Status && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("三网回程路由检测", 82)
+			PrintCenteredTitle("三网回程路由检测", width)
 		} else {
-			PrintCenteredTitle("NextTrace-3Networks-Check", 82)
+			PrintCenteredTitle("NextTrace-3Networks-Check", width)
 		}
-		ecsapi.NextTrace3Check(language, nt3Location, nt3Type)
+		ecsapi.NextTrace3Check(language, config.Nt3Location, config.Nt3Type)
 		outputMutex.Unlock()
 	}
 
@@ -398,18 +473,18 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		if chinaModeEnabled {
 			// 中国模式：只测三网PING
 			if language == "zh" {
-				PrintCenteredTitle("PING值检测", 82)
+				PrintCenteredTitle("PING值检测", width)
 			} else {
-				PrintCenteredTitle("PING-Test", 82)
+				PrintCenteredTitle("PING-Test", width)
 			}
 			pingResult := pt.PingTest()
 			fmt.Println(pingResult)
 		} else {
 			// 非中国模式：根据配置测试
 			if language == "zh" {
-				PrintCenteredTitle("PING值检测", 82)
+				PrintCenteredTitle("PING值检测", width)
 			} else {
-				PrintCenteredTitle("PING-Test", 82)
+				PrintCenteredTitle("PING-Test", width)
 			}
 			pingResult := pt.PingTest()
 			fmt.Println(pingResult)
@@ -430,9 +505,9 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	if !pingTestStatus && preCheck.Connected && (pingTgdc || pingWeb) {
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("PING值检测", 82)
+			PrintCenteredTitle("PING值检测", width)
 		} else {
-			PrintCenteredTitle("PING-Test", 82)
+			PrintCenteredTitle("PING-Test", width)
 		}
 
 		if pingTgdc {
@@ -453,20 +528,15 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	if speedTestStatus && preCheck.Connected {
 		outputMutex.Lock()
 		if language == "zh" {
-			PrintCenteredTitle("就近节点测速", 82)
+			PrintCenteredTitle("就近节点测速", width)
 		} else {
-			PrintCenteredTitle("Speed-Test", 82)
+			PrintCenteredTitle("Speed-Test", width)
 		}
 		ecsapi.SpeedTestShowHead(language)
 
 		// 根据上传/下载配置进行测试
 		if testUpload || testDownload {
-			ecsapi.SpeedTestNearby()
-			if language == "zh" {
-				ecsapi.SpeedTestCustom("net", "global", spNum, language)
-			} else {
-				ecsapi.SpeedTestCustom("net", "global", -1, language)
-			}
+			runSpeedProfile(config, language)
 		}
 		outputMutex.Unlock()
 	}
@@ -478,7 +548,7 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 	minutes := int(duration.Minutes())
 	seconds := int(duration.Seconds()) % 60
 	currentTime := time.Now().Format("Mon Jan 2 15:04:05 MST 2006")
-	PrintCenteredTitle("", 82)
+	PrintCenteredTitle("", width)
 	if language == "zh" {
 		fmt.Printf("花费          : %d 分 %d 秒\n", minutes, seconds)
 		fmt.Printf("时间          : %s\n", currentTime)
@@ -486,8 +556,83 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 		fmt.Printf("Cost    Time          : %d min %d sec\n", minutes, seconds)
 		fmt.Printf("Current Time          : %s\n", currentTime)
 	}
-	PrintCenteredTitle("", 82)
+	PrintCenteredTitle("", width)
 	outputMutex.Unlock()
 
+	time.Sleep(200 * time.Millisecond)
+	if config.AnalyzeResult {
+		if summary := BuildResultSummary(language, capturedOutput()); strings.TrimSpace(summary) != "" {
+			outputMutex.Lock()
+			fmt.Print(summary)
+			if !strings.HasSuffix(summary, "\n") {
+				fmt.Println()
+			}
+			outputMutex.Unlock()
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	if config.EnableUpload && preCheck.Connected {
+		outputMutex.Lock()
+		uploadConfig := ecsapi.NewConfig(ecsVersion)
+		uploadConfig.Language = language
+		uploadConfig.FilePath = config.FilePath
+		uploadConfig.EnableUpload = true
+		ecsapi.HandleUploadResults(uploadConfig, capturedOutput())
+		outputMutex.Unlock()
+	}
+
 	return nil
+}
+
+func resultCaptureLimit() int {
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		return 2 * 1024 * 1024
+	}
+	return 8 * 1024 * 1024
+}
+
+func setComponentLogging(enabled bool) {
+	gostunmodel.EnableLoger = enabled
+	basicmodel.EnableLoger = enabled
+	cputestmodel.EnableLoger = enabled
+	memorytestmodel.EnableLoger = enabled
+	disktestmodel.EnableLoger = enabled
+	unlocktestmodel.EnableLoger = enabled
+	ptmodel.EnableLoger = enabled
+	backtracemodel.EnableLoger = enabled
+	nt3model.EnableLoger = enabled
+	speedtestmodel.EnableLoger = enabled
+}
+
+func runSpeedProfile(config ExecutionConfig, language string) {
+	spNum := config.SpNum
+	if spNum <= 0 {
+		spNum = 2
+	}
+	switch config.PresetKey {
+	case "full":
+		ecsapi.SpeedTestNearby()
+		ecsapi.SpeedTestCustom("net", "global", 2, language)
+		ecsapi.SpeedTestCustom("net", "cu", spNum, language)
+		ecsapi.SpeedTestCustom("net", "ct", spNum, language)
+		ecsapi.SpeedTestCustom("net", "cmcc", spNum, language)
+	case "minimal", "standard", "network_focus", "unlock_focus":
+		if language == "zh" {
+			ecsapi.SpeedTestNearby()
+			ecsapi.SpeedTestCustom("net", "other", 1, language)
+			ecsapi.SpeedTestCustom("net", "cu", 1, language)
+			ecsapi.SpeedTestCustom("net", "ct", 1, language)
+			ecsapi.SpeedTestCustom("net", "cmcc", 1, language)
+		} else {
+			ecsapi.SpeedTestCustom("net", "global", 4, language)
+		}
+	case "network_only":
+		ecsapi.SpeedTestCustom("net", "global", 11, language)
+	default:
+		ecsapi.SpeedTestNearby()
+		ecsapi.SpeedTestCustom("net", "cu", spNum, language)
+		ecsapi.SpeedTestCustom("net", "ct", spNum, language)
+		ecsapi.SpeedTestCustom("net", "cmcc", spNum, language)
+	}
 }

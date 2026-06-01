@@ -2,6 +2,7 @@ package ui
 
 import (
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ type TerminalOutput struct {
 	closeOnce   sync.Once
 	content     string        // 存储完整内容
 	maxBytes    int           // 最大字节数限制
+	maxLines    int           // 最大显示行数
 	maxPending  int           // 待刷新文本最大字节数
 	pendingText string        // 待刷新的文本
 	updateChan  chan string   // 更新通道
@@ -27,11 +29,20 @@ type TerminalOutput struct {
 
 // NewTerminalOutput 创建新的终端输出组件
 func NewTerminalOutput() *TerminalOutput {
+	maxBytes := 2 * 1024 * 1024
+	maxPending := 128 * 1024
+	maxLines := 5000
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		maxBytes = 768 * 1024
+		maxPending = 64 * 1024
+		maxLines = 1600
+	}
 	terminal := &TerminalOutput{
 		content:    "",
-		maxBytes:   1024 * 1024 * 6,
-		maxPending: 1024 * 512,
-		updateChan: make(chan string, 256),
+		maxBytes:   maxBytes,
+		maxLines:   maxLines,
+		maxPending: maxPending,
+		updateChan: make(chan string, 96),
 		stopChan:   make(chan struct{}),
 	}
 	terminal.ExtendBaseWidget(terminal)
@@ -48,7 +59,11 @@ func NewTerminalOutput() *TerminalOutput {
 
 // batchUpdateLoop 批量更新循环，减少UI刷新频率
 func (t *TerminalOutput) batchUpdateLoop() {
-	ticker := time.NewTicker(120 * time.Millisecond)
+	interval := 180 * time.Millisecond
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		interval = 320 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
@@ -153,11 +168,35 @@ func (t *TerminalOutput) appendPendingLocked(text string) {
 
 func (t *TerminalOutput) trimToMaxContentLocked() {
 	if len(t.content) <= t.maxBytes {
+		t.trimLinesLocked()
 		return
 	}
 	t.content = t.content[len(t.content)-t.maxBytes:]
 	if idx := strings.Index(t.content, "\n"); idx > 0 {
 		t.content = t.content[idx+1:]
+	}
+	t.trimLinesLocked()
+}
+
+func (t *TerminalOutput) trimLinesLocked() {
+	if t.maxLines <= 0 {
+		return
+	}
+	lineCount := strings.Count(t.content, "\n")
+	if lineCount <= t.maxLines {
+		return
+	}
+	cut := 0
+	toDrop := lineCount - t.maxLines
+	for i := 0; i < toDrop; i++ {
+		next := strings.Index(t.content[cut:], "\n")
+		if next < 0 {
+			break
+		}
+		cut += next + 1
+	}
+	if cut > 0 && cut < len(t.content) {
+		t.content = "[历史输出过长，已保留最近内容]\n" + t.content[cut:]
 	}
 }
 
@@ -165,5 +204,10 @@ func (t *TerminalOutput) trimToMaxContentLocked() {
 func (t *TerminalOutput) GetText() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	if t.pendingText != "" {
+		t.content += t.pendingText
+		t.pendingText = ""
+		t.trimToMaxContentLocked()
+	}
 	return t.content
 }

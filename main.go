@@ -75,6 +75,6 @@ func printHelp() {
   - 路由追踪测试
 
 更多信息:
-  GitHub: https://github.com/oneclickvirt/ecs
-  分支: android-app`)
+  GUI项目: https://github.com/oneclickvirt/ecs-gui
+  上游项目: https://github.com/oneclickvirt/ecs`)
 }

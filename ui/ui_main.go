@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"net/url"
 	"runtime"
 
 	"fyne.io/fyne/v2"
@@ -56,14 +57,52 @@ func (ui *TestUI) buildUI() {
 	ui.ProgressBar.Hide()
 
 	// 创建Tab页面
+	launchTab := container.NewTabItem(ui.tr("tab.launch"), ui.createLaunchTab())
 	configTab := container.NewTabItem(ui.tr("tab.config"), ui.createConfigTab())
 	resultTab := container.NewTabItem(ui.tr("tab.result"), ui.createResultTab())
 	ui.MainTabs = container.NewAppTabs(
+		launchTab,
 		configTab,
 		resultTab,
 	)
 
-	ui.Window.SetContent(ui.MainTabs)
+	ui.Window.SetContent(ui.createRootContent())
+}
+
+func (ui *TestUI) createRootContent() fyne.CanvasObject {
+	return container.NewBorder(nil, ui.createFooter(), nil, nil, ui.MainTabs)
+}
+
+func (ui *TestUI) createFooter() fyne.CanvasObject {
+	link := func(label, rawURL string) *widget.Hyperlink {
+		parsed, err := url.Parse(rawURL)
+		if err != nil {
+			parsed = &url.URL{Scheme: "https", Host: "github.com"}
+		}
+		return widget.NewHyperlink(label, parsed)
+	}
+
+	links := []fyne.CanvasObject{
+		link(ui.tr("footer.gui"), "https://github.com/oneclickvirt/ecs-gui"),
+		link(ui.tr("footer.upstream"), "https://github.com/oneclickvirt/ecs"),
+		link(ui.tr("footer.guide"), "https://bash.spiritlhl.net/ecsguide"),
+	}
+	if isMobilePlatform() {
+		return container.NewPadded(container.NewAdaptiveGrid(3, links...))
+	}
+	return container.NewPadded(container.NewHBox(layout.NewSpacer(), links[0], links[1], links[2]))
+}
+
+func (ui *TestUI) showConfigTab() {
+	if ui.MainTabs != nil && len(ui.MainTabs.Items) > 1 {
+		ui.MainTabs.SelectIndex(1)
+	}
+}
+
+func (ui *TestUI) showResultTab() {
+	if ui.MainTabs != nil && len(ui.MainTabs.Items) > 2 {
+		ui.MainTabs.SelectIndex(2)
+	}
 }
 
 // createConfigTab 创建测试选项与配置页面（支持滚动）
@@ -122,6 +161,66 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 		nil,            // Right
 		terminalScroll, // Center: 终端输出
 	)
+}
+
+func (ui *TestUI) createLaunchTab() fyne.CanvasObject {
+	presetButton := func(label string, icon fyne.Resource, presetKey string) fyne.CanvasObject {
+		return widget.NewButtonWithIcon(label, icon, func() {
+			ui.applyPresetAndStart(presetKey)
+		})
+	}
+	singleButton := func(label string, icon fyne.Resource, keys ...string) fyne.CanvasObject {
+		return widget.NewButtonWithIcon(label, icon, func() {
+			ui.applySingleSelection(keys...)
+			ui.startTests()
+			ui.showResultTab()
+		})
+	}
+
+	presets := container.NewAdaptiveGrid(optionGridColumns(),
+		presetButton(ui.tr("button.start_standard"), theme.MediaPlayIcon(), "standard"),
+		presetButton(ui.tr("button.start_full"), theme.ViewFullScreenIcon(), "full"),
+		presetButton(ui.tr("preset.network_only"), theme.SearchIcon(), "network_only"),
+		presetButton(ui.tr("preset.hardware_only"), theme.ComputerIcon(), "hardware_only"),
+		presetButton(ui.tr("preset.unlock_only"), theme.InfoIcon(), "unlock_only"),
+		presetButton(ui.tr("preset.route_only"), theme.NavigateNextIcon(), "route_only"),
+	)
+
+	singles := container.NewAdaptiveGrid(optionGridColumns(),
+		singleButton(ui.tr("single.basic"), theme.SettingsIcon(), "basic"),
+		singleButton(ui.tr("single.cpu"), theme.ComputerIcon(), "cpu"),
+		singleButton(ui.tr("single.memory"), theme.StorageIcon(), "memory"),
+		singleButton(ui.tr("single.disk"), theme.FolderIcon(), "disk"),
+		singleButton(ui.tr("single.unlock"), theme.InfoIcon(), "unlock"),
+		singleButton(ui.tr("single.security"), theme.VisibilityIcon(), "security"),
+		singleButton(ui.tr("single.email"), theme.MailComposeIcon(), "email"),
+		singleButton(ui.tr("single.backtrace"), theme.SearchIcon(), "backtrace"),
+		singleButton(ui.tr("single.nt3"), theme.NavigateNextIcon(), "nt3"),
+		singleButton(ui.tr("single.speed"), theme.DownloadIcon(), "speed"),
+		singleButton(ui.tr("single.ping"), theme.ViewRefreshIcon(), "ping"),
+		singleButton(ui.tr("single.tgdc"), theme.UploadIcon(), "tgdc"),
+		singleButton(ui.tr("single.web"), theme.HomeIcon(), "web"),
+	)
+
+	manage := container.NewAdaptiveGrid(optionGridColumns(),
+		widget.NewButtonWithIcon(ui.tr("button.open_config"), theme.SettingsIcon(), ui.showConfigTab),
+		widget.NewButtonWithIcon(ui.tr("tab.result"), theme.DocumentIcon(), ui.showResultTab),
+	)
+
+	content := container.NewVBox(
+		widget.NewCard(ui.tr("launch.card.title"), ui.tr("launch.card.sub"), container.NewVBox(
+			widget.NewLabelWithStyle(ui.tr("launch.presets"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			presets,
+			widget.NewSeparator(),
+			widget.NewLabelWithStyle(ui.tr("launch.single"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			singles,
+			widget.NewSeparator(),
+			widget.NewLabelWithStyle(ui.tr("launch.manage"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			manage,
+		)),
+	)
+
+	return container.NewScroll(container.NewPadded(content))
 }
 
 // createControlButtons 创建控制按钮

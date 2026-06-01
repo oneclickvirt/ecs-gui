@@ -16,7 +16,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.RELEASE_TAG }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
       
       - name: Get version info
         id: version
@@ -63,10 +63,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
       
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v6.4.0
         with:
           go-version-file: 'go.mod'
           cache: true
@@ -76,13 +76,13 @@ jobs:
           go install fyne.io/tools/cmd/fyne@latest
       
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v5.2.0
         with:
           distribution: 'temurin'
           java-version: '17'
       
       - name: Install Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v4.0.1
         with:
           packages: 'platform-tools'
       
@@ -265,14 +265,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload ARM64 APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
           path: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
           retention-days: 90
       
       - name: Upload x86_64 APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
           path: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
@@ -314,10 +314,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
       
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v6.4.0
         with:
           go-version-file: 'go.mod'
           cache: true
@@ -536,7 +536,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload build artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}
           path: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.*

@@ -140,7 +140,7 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 
 	// 整合所有内容
 	allContent := container.NewVBox(
-		widget.NewCard("", "", presetSection),
+		presetSection,
 		widget.NewSeparator(),
 		testsSection,
 		widget.NewSeparator(),
@@ -183,7 +183,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			ui.uiLang = lang
 			ui.buildUI()
 			ui.restoreUIState(state)
-			ui.Window.SetContent(ui.MainTabs)
+			ui.Window.SetContent(ui.createRootContent())
 			ui.Window.SetTitle(ui.tr("app.title"))
 		},
 	)
@@ -211,20 +211,22 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		[]string{"auto", "stream", "sysbench", "dd", "winsat"},
 		func(value string) {},
 	)
-	ui.MemoryMethodSelect.Selected = "auto"
+	ui.MemoryMethodSelect.Selected = "stream"
 
 	// 磁盘配置
 	ui.DiskMethodSelect = widget.NewSelect(
-		[]string{"auto", "fio", "dd", "winsat"},
+		[]string{"fio", "dd", "winsat"},
 		func(value string) {},
 	)
-	ui.DiskMethodSelect.Selected = "auto"
+	ui.DiskMethodSelect.Selected = "fio"
 
 	ui.DiskPathEntry = widget.NewEntry()
 	ui.DiskPathEntry.SetPlaceHolder(ui.tr("placeholder.disk_path"))
 
 	ui.DiskMultiCheck = widget.NewCheck(ui.tr("check.disk_multi"), nil)
 	ui.DiskMultiCheck.Checked = false
+	ui.AutoDiskMethodCheck = widget.NewCheck(ui.tr("check.auto_disk"), nil)
+	ui.AutoDiskMethodCheck.Checked = true
 
 	// NT3 配置
 	ui.Nt3LocationSelect = widget.NewSelect(
@@ -243,6 +245,19 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.SpNumEntry = widget.NewEntry()
 	ui.SpNumEntry.SetText("2")
 	ui.SpNumEntry.SetPlaceHolder(ui.tr("placeholder.sp_num"))
+	ui.OutputWidthEntry = widget.NewEntry()
+	ui.OutputWidthEntry.SetText("82")
+	ui.OutputWidthEntry.SetPlaceHolder(ui.tr("placeholder.output_width"))
+
+	ui.OutputFileEntry = widget.NewEntry()
+	ui.OutputFileEntry.SetText("goecs.md")
+	ui.OutputFileEntry.SetPlaceHolder(ui.tr("placeholder.output_file"))
+
+	ui.ResultUploadCheck = widget.NewCheck(ui.tr("check.result_upload"), nil)
+	ui.ResultUploadCheck.Checked = false
+
+	ui.AnalyzeResultCheck = widget.NewCheck(ui.tr("check.analysis"), nil)
+	ui.AnalyzeResultCheck.Checked = false
 
 	// 速度测试上传下载控制
 	ui.SpTestUploadCheck = widget.NewCheck(ui.tr("check.sp_up"), nil)
@@ -274,13 +289,21 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		func(value string) {},
 	)
 	ui.UnlockIpVersionSelect.SetSelected("auto")
+	ui.UnlockShowIPCheck = widget.NewCheck(ui.tr("check.unlock_show_ip"), nil)
+	ui.UnlockShowIPCheck.Checked = false
 
 	generalContent := container.NewVBox(
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.language")),
 			ui.LanguageSelect,
+			widget.NewLabel(ui.tr("label.output_width")),
+			ui.OutputWidthEntry,
+			widget.NewLabel(ui.tr("label.output_file")),
+			ui.OutputFileEntry,
 		),
 		ui.LogCheck,
+		ui.ResultUploadCheck,
+		ui.AnalyzeResultCheck,
 	)
 
 	chinaContent := container.NewVBox(
@@ -295,18 +318,19 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	)
 
 	memoryContent := container.NewGridWithColumns(2,
-		widget.NewLabel(ui.tr("label.cpu_method")),
+		widget.NewLabel(ui.tr("label.memory_method")),
 		ui.MemoryMethodSelect,
 	)
 
 	diskContent := container.NewVBox(
 		container.NewGridWithColumns(2,
-			widget.NewLabel(ui.tr("label.cpu_method")),
+			widget.NewLabel(ui.tr("label.disk_method")),
 			ui.DiskMethodSelect,
 			widget.NewLabel(ui.tr("label.disk_path")),
 			ui.DiskPathEntry,
 		),
 		ui.DiskMultiCheck,
+		ui.AutoDiskMethodCheck,
 	)
 
 	routeContent := container.NewGridWithColumns(2,
@@ -330,6 +354,8 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		ui.UnlockRegionSelect,
 		widget.NewLabel(ui.tr("label.unlock_ip_ver")),
 		ui.UnlockIpVersionSelect,
+		widget.NewLabel(""),
+		ui.UnlockShowIPCheck,
 	)
 
 	pingContent := container.NewVBox(

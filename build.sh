@@ -9,7 +9,7 @@ FYNE_BUILD_FLAGS_DEFAULT="-trimpath -buildvcs=false -ldflags '-checklinkname=0 -
 check_fyne_cli() {
     if ! command -v fyne &> /dev/null; then
         echo "正在安装 Fyne CLI..."
-        go install fyne.io/fyne/v2/cmd/fyne@latest
+        go install fyne.io/tools/cmd/fyne@latest
         if [ $? -ne 0 ]; then
             echo "Fyne CLI 安装失败"
             exit 1

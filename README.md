@@ -44,7 +44,7 @@
 export ANDROID_NDK_HOME=/path/to/android-ndk
 
 # 安装 Fyne CLI
-go install fyne.io/fyne/v2/cmd/fyne@latest
+go install fyne.io/tools/cmd/fyne@latest
 ```
 
 ### 构建命令
@@ -93,7 +93,7 @@ go install fyne.io/fyne/v2/cmd/fyne@latest
 ```bash
 # 克隆仓库
 git clone https://github.com/oneclickvirt/ecs-gui.git
-cd ecs
+cd ecs-gui
 
 # 切换到 GUI 分支
 git checkout gui

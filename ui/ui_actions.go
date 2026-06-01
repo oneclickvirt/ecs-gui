@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -13,7 +14,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const maxLogViewBytes int64 = 2 * 1024 * 1024
+const maxLogViewBytes int64 = 1024 * 1024
 
 // onPresetChanged 预设模式改变时的处理
 func (ui *TestUI) onPresetChanged(preset string) {
@@ -39,6 +40,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("2")
 	case "minimal":
 		// 对应原goecs.go的选项2: SetMinimalTestStatus
 		ui.setAllChecks(false)
@@ -53,6 +55,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("5")
 	case "standard":
 		// 对应原goecs.go的选项3: SetStandardTestStatus
 		ui.setAllChecks(false)
@@ -69,6 +72,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("5")
 	case "network_focus":
 		// 对应原goecs.go的选项4: SetNetworkFocusedTestStatus
 		ui.setAllChecks(false)
@@ -85,6 +89,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("5")
 	case "unlock_focus":
 		// 对应原goecs.go的选项5: SetUnlockFocusedTestStatus
 		ui.setAllChecks(false)
@@ -101,6 +106,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("5")
 	case "network_only":
 		// 对应原goecs.go的选项6: SetNetworkOnlyTestStatus
 		ui.setAllChecks(false)
@@ -116,6 +122,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：全部启用
 		ui.SpTestUploadCheck.Checked = true
 		ui.SpTestDownloadCheck.Checked = true
+		ui.SpNumEntry.SetText("11")
 	case "unlock_only":
 		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
 		ui.setAllChecks(false)
@@ -127,6 +134,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
+		ui.SpNumEntry.SetText("2")
 	case "hardware_only":
 		// 对应原goecs.go的选项8: SetHardwareOnlyTestStatus
 		ui.setAllChecks(false)
@@ -134,13 +142,15 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.CpuCheck.Checked = true
 		ui.MemoryCheck.Checked = true
 		ui.DiskCheck.Checked = true
-		ui.DiskMethodSelect.SetSelected("auto") // 使用auto让系统自动选择dd和fio
+		ui.DiskMethodSelect.SetSelected("fio")
+		ui.AutoDiskMethodCheck.Checked = false
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
+		ui.SpNumEntry.SetText("2")
 	case "ip_quality":
 		// 对应原goecs.go的选项9: SetIPQualityTestStatus
 		ui.setAllChecks(false)
@@ -153,6 +163,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
+		ui.SpNumEntry.SetText("2")
 	case "route_only":
 		// 对应原goecs.go的选项10: SetRouteTestStatus + nt3Location = "ALL"
 		ui.setAllChecks(false)
@@ -167,8 +178,75 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 测速配置：禁用
 		ui.SpTestUploadCheck.Checked = false
 		ui.SpTestDownloadCheck.Checked = false
+		ui.SpNumEntry.SetText("2")
 	default: // 自定义
 		return
+	}
+	if key != "hardware_only" && ui.AutoDiskMethodCheck != nil {
+		ui.AutoDiskMethodCheck.Checked = true
+	}
+	ui.refreshAllChecks()
+	ui.refreshSpeedTestChecks()
+}
+
+func (ui *TestUI) applyPresetAndStart(presetKey string) {
+	ui.suppressPresetChange = true
+	ui.selectedPresetKey = presetKey
+	if ui.PresetSelect != nil {
+		ui.PresetSelect.SetSelected(ui.presetLabelByKey(presetKey))
+	}
+	ui.suppressPresetChange = false
+	ui.onPresetChanged(ui.presetLabelByKey(presetKey))
+	ui.startTests()
+	ui.showResultTab()
+}
+
+func (ui *TestUI) applySingleSelection(keys ...string) {
+	ui.setAllChecks(false)
+	ui.selectedPresetKey = "custom"
+	if ui.PresetSelect != nil {
+		ui.suppressPresetChange = true
+		ui.PresetSelect.SetSelected(ui.presetLabelByKey("custom"))
+		ui.suppressPresetChange = false
+	}
+	if ui.PingTgdcCheck != nil {
+		ui.PingTgdcCheck.Checked = false
+	}
+	if ui.PingWebCheck != nil {
+		ui.PingWebCheck.Checked = false
+	}
+	if ui.ChinaModeCheck != nil {
+		ui.ChinaModeCheck.Checked = false
+	}
+	for _, key := range keys {
+		switch key {
+		case "basic":
+			ui.BasicCheck.Checked = true
+		case "cpu":
+			ui.CpuCheck.Checked = true
+		case "memory":
+			ui.MemoryCheck.Checked = true
+		case "disk":
+			ui.DiskCheck.Checked = true
+		case "unlock":
+			ui.UnlockCheck.Checked = true
+		case "security":
+			ui.SecurityCheck.Checked = true
+		case "email":
+			ui.EmailCheck.Checked = true
+		case "backtrace":
+			ui.BacktraceCheck.Checked = true
+		case "nt3":
+			ui.Nt3Check.Checked = true
+		case "speed":
+			ui.SpeedCheck.Checked = true
+		case "ping":
+			ui.PingCheck.Checked = true
+		case "tgdc":
+			ui.PingTgdcCheck.Checked = true
+		case "web":
+			ui.PingWebCheck.Checked = true
+		}
 	}
 	ui.refreshAllChecks()
 	ui.refreshSpeedTestChecks()
@@ -209,6 +287,12 @@ func (ui *TestUI) refreshSpeedTestChecks() {
 	}
 	if ui.ChinaModeCheck != nil {
 		ui.ChinaModeCheck.Refresh()
+	}
+	if ui.AutoDiskMethodCheck != nil {
+		ui.AutoDiskMethodCheck.Refresh()
+	}
+	if ui.UnlockShowIPCheck != nil {
+		ui.UnlockShowIPCheck.Refresh()
 	}
 }
 
@@ -252,6 +336,7 @@ func (ui *TestUI) startTests() {
 	ui.StopButton.Enable()
 	ui.ProgressBar.Show()
 	ui.setStatus("status.running")
+	ui.showResultTab()
 
 	// 清空终端输出
 	if ui.Terminal != nil {
@@ -327,9 +412,7 @@ func (ui *TestUI) exportResults() {
 		return
 	}
 
-	// 直接导出为文本文件
-	// 设置默认文件名
-	defaultFilename := "goecs.txt"
+	defaultFilename := "goecs-result.md"
 
 	// 创建保存对话框，设置默认文件名
 	saveDialog := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
@@ -342,7 +425,7 @@ func (ui *TestUI) exportResults() {
 		}
 		defer writer.Close()
 
-		_, err = writer.Write([]byte(content))
+		_, err = writer.Write([]byte(formatResultExport(content)))
 		if err != nil {
 			dialog.ShowError(err, ui.Window)
 			return
@@ -363,6 +446,14 @@ func (ui *TestUI) exportResults() {
 	}
 
 	saveDialog.Show()
+}
+
+func formatResultExport(content string) string {
+	clean := strings.TrimRight(content, "\n")
+	if strings.HasPrefix(strings.TrimSpace(clean), "# GOECS Result") {
+		return clean + "\n"
+	}
+	return "# GOECS Result\n\n```text\n" + clean + "\n```\n"
 }
 
 // onLogCheckChanged 当日志复选框状态改变时调用
@@ -580,6 +671,13 @@ func (ui *TestUI) AppendLog(text string) {
 	defer ui.Mu.Unlock()
 
 	ui.LogContent += text
+	if len(ui.LogContent) > int(maxLogViewBytes) {
+		ui.LogContent = ui.LogContent[len(ui.LogContent)-int(maxLogViewBytes):]
+		if idx := strings.Index(ui.LogContent, "\n"); idx > 0 {
+			ui.LogContent = ui.LogContent[idx+1:]
+		}
+		ui.LogContent = "[日志过长，已保留最近内容]\n" + ui.LogContent
+	}
 	content := ui.LogContent
 	ui.runOnUI(func() {
 		if ui.LogViewer != nil {

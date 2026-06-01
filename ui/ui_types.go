@@ -15,6 +15,7 @@ type ExecutionConfig struct {
 	TestUpload       bool
 	TestDownload     bool
 	ChinaModeEnabled bool
+	AutoDiskMethod   bool
 	CpuMethod        string
 	ThreadMode       string
 	MemoryMethod     string
@@ -28,6 +29,12 @@ type ExecutionConfig struct {
 	PingWeb          bool
 	UnlockRegion     string
 	UnlockIpVersion  string
+	UnlockShowIP     bool
+	EnableUpload     bool
+	AnalyzeResult    bool
+	FilePath         string
+	OutputWidth      int
+	PresetKey        string
 	LogEnabled       bool
 }
 
@@ -58,16 +65,21 @@ type TestUI struct {
 	PresetSelect *widget.Select
 
 	// 配置选项
-	LanguageSelect     *widget.Select
-	CpuMethodSelect    *widget.Select
-	MemoryMethodSelect *widget.Select
-	DiskMethodSelect   *widget.Select
-	DiskPathEntry      *widget.Entry
-	ThreadModeSelect   *widget.Select
-	Nt3LocationSelect  *widget.Select
-	Nt3TypeSelect      *widget.Select
-	DiskMultiCheck     *widget.Check
-	SpNumEntry         *widget.Entry
+	LanguageSelect      *widget.Select
+	CpuMethodSelect     *widget.Select
+	MemoryMethodSelect  *widget.Select
+	DiskMethodSelect    *widget.Select
+	DiskPathEntry       *widget.Entry
+	ThreadModeSelect    *widget.Select
+	Nt3LocationSelect   *widget.Select
+	Nt3TypeSelect       *widget.Select
+	DiskMultiCheck      *widget.Check
+	AutoDiskMethodCheck *widget.Check
+	SpNumEntry          *widget.Entry
+	OutputWidthEntry    *widget.Entry
+	OutputFileEntry     *widget.Entry
+	ResultUploadCheck   *widget.Check
+	AnalyzeResultCheck  *widget.Check
 	// 速度测试配置
 	SpTestUploadCheck   *widget.Check // 测试上传速度
 	SpTestDownloadCheck *widget.Check // 测试下载速度
@@ -76,8 +88,9 @@ type TestUI struct {
 
 	// PING测试配置
 	// 注：PingCheck控制三网PING测试，以下两个单独控制TGDC和Web测试
-	PingTgdcCheck *widget.Check // 是否测试TGDC
-	PingWebCheck  *widget.Check // 是否测试流行网站
+	PingTgdcCheck     *widget.Check // 是否测试TGDC
+	PingWebCheck      *widget.Check // 是否测试流行网站
+	UnlockShowIPCheck *widget.Check // 是否显示解锁测试IP标签
 
 	// 控制按钮
 	StartButton *widget.Button

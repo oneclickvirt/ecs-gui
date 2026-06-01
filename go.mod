@@ -3,20 +3,27 @@ module github.com/oneclickvirt/ecs-gui
 go 1.25.4
 
 require (
-	fyne.io/fyne/v2 v2.7.0
+	fyne.io/fyne/v2 v2.7.4
 	github.com/imroc/req/v3 v3.57.0
-	github.com/oneclickvirt/CommonMediaTests v0.0.4-20250329123841
+	github.com/mattn/go-runewidth v0.0.24
 	github.com/oneclickvirt/UnlockTests v0.0.36-20260527144003
+	github.com/oneclickvirt/backtrace v0.0.9-20260521161358
 	github.com/oneclickvirt/basics v0.0.18-20260521154614
+	github.com/oneclickvirt/cputest v0.0.12-20260509135512
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
-	github.com/oneclickvirt/ecs v0.1.138
+	github.com/oneclickvirt/disktest v0.0.11-20260521162552
+	github.com/oneclickvirt/ecs v0.1.139
+	github.com/oneclickvirt/gostun v0.0.6-20260509043509
+	github.com/oneclickvirt/memorytest v0.0.10-20251218032900
+	github.com/oneclickvirt/nt3 v0.0.11-20260112140912
 	github.com/oneclickvirt/pingtest v0.0.10-20260521161204
 	github.com/oneclickvirt/portchecker v0.0.3-20250728015900
 	github.com/oneclickvirt/security v0.0.9-20260521182714
+	github.com/oneclickvirt/speedtest v0.0.12-20260521180111
 )
 
 require (
-	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect
+	fyne.io/systray v1.12.1 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
@@ -47,8 +54,8 @@ require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/go-text/render v0.2.0 // indirect
-	github.com/go-text/typesetting v0.2.1 // indirect
+	github.com/go-text/render v0.2.1 // indirect
+	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gofrs/uuid/v5 v5.2.0 // indirect
@@ -77,7 +84,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-rl v0.0.0-20260413075423-3ae726920de8 // indirect
-	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/miekg/dns v1.1.61 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -89,17 +95,10 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/nxtrace/NTrace-core v1.5.0 // indirect
-	github.com/oneclickvirt/backtrace v0.0.9-20260521161358 // indirect
-	github.com/oneclickvirt/cputest v0.0.12-20260509135512 // indirect
 	github.com/oneclickvirt/dd v0.0.2-20250808062818 // indirect
-	github.com/oneclickvirt/disktest v0.0.11-20260521162552 // indirect
 	github.com/oneclickvirt/fio v0.0.2-20250808045755 // indirect
-	github.com/oneclickvirt/gostun v0.0.6-20260509043509 // indirect
 	github.com/oneclickvirt/mbw v0.0.1-20250808061222 // indirect
-	github.com/oneclickvirt/memorytest v0.0.10-20251218032900 // indirect
-	github.com/oneclickvirt/nt3 v0.0.11-20260112140912 // indirect
 	github.com/oneclickvirt/privatespeedtest v0.0.1-20260112130218 // indirect
-	github.com/oneclickvirt/speedtest v0.0.12-20260521180111 // indirect
 	github.com/oneclickvirt/stream v0.0.2-20250924154001 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect

@@ -106,24 +106,28 @@ func (ui *TestUI) presetLabelByKey(key string) string {
 func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 	state := uiStateSnapshot{
 		checks: map[string]bool{
-			"basic":     ui.BasicCheck.Checked,
-			"cpu":       ui.CpuCheck.Checked,
-			"memory":    ui.MemoryCheck.Checked,
-			"disk":      ui.DiskCheck.Checked,
-			"unlock":    ui.UnlockCheck.Checked,
-			"security":  ui.SecurityCheck.Checked,
-			"email":     ui.EmailCheck.Checked,
-			"backtrace": ui.BacktraceCheck.Checked,
-			"nt3":       ui.Nt3Check.Checked,
-			"speed":     ui.SpeedCheck.Checked,
-			"ping":      ui.PingCheck.Checked,
-			"diskMulti": ui.DiskMultiCheck.Checked,
-			"spUp":      ui.SpTestUploadCheck.Checked,
-			"spDown":    ui.SpTestDownloadCheck.Checked,
-			"chinaMode": ui.ChinaModeCheck.Checked,
-			"pingTgdc":  ui.PingTgdcCheck.Checked,
-			"pingWeb":   ui.PingWebCheck.Checked,
-			"enableLog": ui.LogCheck.Checked,
+			"basic":        ui.BasicCheck.Checked,
+			"cpu":          ui.CpuCheck.Checked,
+			"memory":       ui.MemoryCheck.Checked,
+			"disk":         ui.DiskCheck.Checked,
+			"unlock":       ui.UnlockCheck.Checked,
+			"security":     ui.SecurityCheck.Checked,
+			"email":        ui.EmailCheck.Checked,
+			"backtrace":    ui.BacktraceCheck.Checked,
+			"nt3":          ui.Nt3Check.Checked,
+			"speed":        ui.SpeedCheck.Checked,
+			"ping":         ui.PingCheck.Checked,
+			"diskMulti":    ui.DiskMultiCheck.Checked,
+			"spUp":         ui.SpTestUploadCheck.Checked,
+			"spDown":       ui.SpTestDownloadCheck.Checked,
+			"chinaMode":    ui.ChinaModeCheck.Checked,
+			"pingTgdc":     ui.PingTgdcCheck.Checked,
+			"pingWeb":      ui.PingWebCheck.Checked,
+			"enableLog":    ui.LogCheck.Checked,
+			"autoDisk":     ui.AutoDiskMethodCheck.Checked,
+			"unlockShowIP": ui.UnlockShowIPCheck.Checked,
+			"resultUpload": ui.ResultUploadCheck.Checked,
+			"analysis":     ui.AnalyzeResultCheck.Checked,
 		},
 		selections: map[string]string{
 			"language":     ui.LanguageSelect.Selected,
@@ -137,8 +141,10 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"unlockIpVer":  ui.UnlockIpVersionSelect.Selected,
 		},
 		entries: map[string]string{
-			"diskPath": ui.DiskPathEntry.Text,
-			"spNum":    ui.SpNumEntry.Text,
+			"diskPath":    ui.DiskPathEntry.Text,
+			"spNum":       ui.SpNumEntry.Text,
+			"outputWidth": ui.OutputWidthEntry.Text,
+			"outputFile":  ui.OutputFileEntry.Text,
 		},
 		presetKey:  ui.selectedPresetKey,
 		logContent: ui.LogContent,
@@ -182,6 +188,10 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.PingTgdcCheck.Checked = state.checks["pingTgdc"]
 	ui.PingWebCheck.Checked = state.checks["pingWeb"]
 	ui.LogCheck.Checked = state.checks["enableLog"]
+	ui.AutoDiskMethodCheck.Checked = state.checks["autoDisk"]
+	ui.UnlockShowIPCheck.Checked = state.checks["unlockShowIP"]
+	ui.ResultUploadCheck.Checked = state.checks["resultUpload"]
+	ui.AnalyzeResultCheck.Checked = state.checks["analysis"]
 
 	ui.LanguageSelect.SetSelected(state.selections["language"])
 	ui.CpuMethodSelect.SetSelected(state.selections["cpuMethod"])
@@ -199,6 +209,8 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 
 	ui.DiskPathEntry.SetText(state.entries["diskPath"])
 	ui.SpNumEntry.SetText(state.entries["spNum"])
+	ui.OutputWidthEntry.SetText(state.entries["outputWidth"])
+	ui.OutputFileEntry.SetText(state.entries["outputFile"])
 
 	ui.refreshAllChecks()
 	ui.refreshSpeedTestChecks()
@@ -232,7 +244,8 @@ func (ui *TestUI) hasSelectedTests() bool {
 			return true
 		}
 	}
-	return false
+	return (ui.PingTgdcCheck != nil && ui.PingTgdcCheck.Checked) ||
+		(ui.PingWebCheck != nil && ui.PingWebCheck.Checked)
 }
 
 // isCancelled 检查测试是否被取消
@@ -307,12 +320,12 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 
 	memoryMethod := ui.MemoryMethodSelect.Selected
 	if memoryMethod == "" {
-		memoryMethod = "auto"
+		memoryMethod = "stream"
 	}
 
 	diskMethod := ui.DiskMethodSelect.Selected
 	if diskMethod == "" {
-		diskMethod = "auto"
+		diskMethod = "fio"
 	}
 
 	nt3Location := ui.Nt3LocationSelect.Selected
@@ -335,6 +348,16 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		spNum = 20
 	}
 
+	outputWidth := 82
+	if ui.OutputWidthEntry.Text != "" {
+		if parsed, err := strconv.Atoi(ui.OutputWidthEntry.Text); err == nil && parsed >= 60 {
+			outputWidth = parsed
+		}
+	}
+	if outputWidth > 120 {
+		outputWidth = 120
+	}
+
 	logEnabled := false
 	if ui.LogCheck != nil {
 		logEnabled = ui.LogCheck.Checked
@@ -351,6 +374,10 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 	if unlockIpVersion == "" {
 		unlockIpVersion = "auto"
 	}
+	filePath := ui.OutputFileEntry.Text
+	if filePath == "" {
+		filePath = "goecs.md"
+	}
 
 	return ExecutionConfig{
 		SelectedOptions:  ui.GetSelectedOptions(),
@@ -358,6 +385,7 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		TestUpload:       ui.SpTestUploadCheck.Checked,
 		TestDownload:     ui.SpTestDownloadCheck.Checked,
 		ChinaModeEnabled: ui.ChinaModeCheck.Checked,
+		AutoDiskMethod:   ui.AutoDiskMethodCheck.Checked,
 		CpuMethod:        cpuMethod,
 		ThreadMode:       threadMode,
 		MemoryMethod:     memoryMethod,
@@ -371,6 +399,12 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		PingWeb:          pingWeb,
 		UnlockRegion:     unlockRegion,
 		UnlockIpVersion:  unlockIpVersion,
+		UnlockShowIP:     ui.UnlockShowIPCheck.Checked,
+		EnableUpload:     ui.ResultUploadCheck.Checked,
+		AnalyzeResult:    ui.AnalyzeResultCheck.Checked,
+		FilePath:         filePath,
+		OutputWidth:      outputWidth,
+		PresetKey:        ui.selectedPresetKey,
 		LogEnabled:       logEnabled,
 	}
 }
