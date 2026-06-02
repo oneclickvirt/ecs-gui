@@ -1,31 +1,43 @@
-# GOECS GUI Version
+# GOECS GUI 版本
 
 [![Build All UI APP](https://github.com/oneclickvirt/ecs-gui/actions/workflows/build.yml/badge.svg)](https://github.com/oneclickvirt/ecs-gui/actions/workflows/build.yml)
 
-基于融合怪GO版本在Fyne框架上开发的跨平台系统测试工具，支持 Android、macOS、Windows 和 Linux 平台。
+[English](README.en.md)
+
+基于融合怪 Go 版本在 Fyne 框架上开发的跨平台系统测试工具，支持 Android、macOS、Windows 和 Linux 平台。
 
 原项目：https://github.com/oneclickvirt/ecs
+
+## 功能概览
+
+- 图形化选择基础信息、CPU、内存、磁盘、流媒体解锁、路由、PING、测速等测试项
+- 运行时显示阶段进度和当前执行项
+- 支持结果复制、导出文本文件、上传生成分享链接
+- 支持中文/英文界面和深色/浅色主题
+- Android 支持测试完成系统通知，Windows 会在需要时请求 UAC 管理员启动
 
 ## 支持平台
 
 ### Android
-- Action编译已自签证书
+- Action 编译已集成 APK 签名流程
 - 最低版本: Android 7.0 (API Level 24)
 - 推荐版本: Android 13 (API Level 33) 或更高
 - 支持架构: ARM64, x86_64
 
 ### macOS
-- Action编译未自签证书
+- Action 编译默认未代码签名
 - 最低版本: macOS 11.0
 - 支持架构: Apple Silicon (ARM64), Intel (AMD64)
+- 签名说明: [docs/macos-signing.zh.md](docs/macos-signing.zh.md)
 
 ### Windows
-- Action编译未自签证书
+- Action 编译默认未代码签名
 - 最低版本: Windows 10
 - 支持架构: ARM64, AMD64
+- 部分磁盘和路由测试需要管理员权限，GUI 会尝试通过 UAC 重新启动
 
 ### Linux
-- Action编译未自签证书
+- Action 编译默认未代码签名
 - 支持架构: ARM64, AMD64
 
 ## 本地构建
@@ -71,6 +83,12 @@ go install fyne.io/tools/cmd/fyne@latest
 
 构建产物将直接输出到当前目录。
 
+版本来源：
+
+- `VERSION` 保存应用语义版本，例如 `0.1.139`
+- `FyneApp.toml` 的 `Version` 应与 `VERSION` 保持一致
+- GitHub Actions 发布标签使用 `vYYYYMMDD-HHMMSS`
+
 ### 构建产物说明
 
 - Android: APK 安装包
@@ -94,9 +112,6 @@ go install fyne.io/tools/cmd/fyne@latest
 # 克隆仓库
 git clone https://github.com/oneclickvirt/ecs-gui.git
 cd ecs-gui
-
-# 切换到 GUI 分支
-git checkout gui
 
 # 下载依赖
 go mod download

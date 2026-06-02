@@ -41,6 +41,8 @@ type GitHubRelease struct {
 	TagName string `json:"tag_name"`
 }
 
+var captureOutputMu sync.Mutex
+
 // PrintCenteredTitle 根据指定的宽度打印居中标题
 func PrintCenteredTitle(title string, width int) {
 	// 计算字符串的字符数
@@ -186,6 +188,9 @@ func BasicsAndSecurityCheck(language, nt3CheckType string, securityCheckStatus b
 
 // CaptureOutput 捕获函数输出和错误输出，实时输出，并返回字符串
 func CaptureOutput(f func()) string {
+	captureOutputMu.Lock()
+	defer captureOutputMu.Unlock()
+
 	// 保存旧的 stdout 和 stderr
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr

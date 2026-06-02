@@ -17,11 +17,32 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.2
+
+      - name: Sync VERSION from go.mod
+        id: sync_version
+        shell: bash
+        run: |
+          MODULE_ECS_VERSION="$(awk '$1 == "github.com/oneclickvirt/ecs" { print $2; exit }' go.mod)"
+          BASE_VERSION="${MODULE_ECS_VERSION#v}"
+          if [ -z "$BASE_VERSION" ]; then
+            echo "Unable to detect github.com/oneclickvirt/ecs version from go.mod"
+            exit 1
+          fi
+
+          CURRENT_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
+          if [ "$CURRENT_VERSION" != "$BASE_VERSION" ]; then
+            printf '%s\n' "$BASE_VERSION" > VERSION
+            echo "VERSION synchronized from ${CURRENT_VERSION:-<empty>} to $BASE_VERSION"
+          else
+            echo "VERSION already synchronized: $BASE_VERSION"
+          fi
+
+          echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
       
       - name: Get version info
         id: version
         run: |
-          BASE_VERSION=$(cat VERSION)
+          BASE_VERSION="${{ steps.sync_version.outputs.BASE_VERSION }}"
           # 使用当前日期时间生成tag (格式: v20260202-HHMMSS)
           CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M%S')
           RELEASE_TAG="v${CURRENT_DATE}"
@@ -112,7 +133,7 @@ jobs:
       
       - name: Update FyneApp.toml version
         run: |
-          sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+          sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.app_version }}\"/" FyneApp.toml
           cat FyneApp.toml
       
       - name: Build Android APK (arm64)
@@ -121,7 +142,7 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid='"
         run: |
-          fyne package --os android --app-id com.oneclickvirt.ecsgui --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
             mv *.apk ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
             echo "ARM64 APK 构建成功"
@@ -137,7 +158,7 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid='"
         run: |
-          fyne package --os android/amd64 --app-id com.oneclickvirt.ecsgui --app-version "${{ needs.prepare.outputs.app_version }}" --release
+          fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           # 查找新生成的 APK（排除已重命名的 arm64 版本）
           NEW_APK=$(find . -maxdepth 1 -name "*.apk" -not -name "ecs-gui-android-*" -type f | head -n 1)
           if [ -n "$NEW_APK" ]; then
@@ -301,6 +322,10 @@ jobs:
             platform: windows
             arch: amd64
             name: windows-amd64
+          - os: windows-2025
+            platform: windows
+            arch: arm64
+            name: windows-arm64
           
           # Linux builds
           - os: ubuntu-24.04-arm
@@ -365,9 +390,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" == "macOS" ]; then
-            sed -i '' "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+            sed -i '' "s/Version = .*/Version = \"${{ needs.prepare.outputs.app_version }}\"/" FyneApp.toml
           else
-            sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
+            sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.app_version }}\"/" FyneApp.toml
           fi
           cat FyneApp.toml
       

@@ -5,6 +5,9 @@ package ui
 import (
 	"os"
 	"runtime"
+	"strings"
+
+	"golang.org/x/sys/windows"
 )
 
 // isPrivileged returns true if the process is running as Administrator on Windows.
@@ -16,6 +19,49 @@ func isPrivileged() bool {
 		return true
 	}
 	return false
+}
+
+func requestPrivilegeRestart() error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	verb, err := windows.UTF16PtrFromString("runas")
+	if err != nil {
+		return err
+	}
+	file, err := windows.UTF16PtrFromString(exe)
+	if err != nil {
+		return err
+	}
+	args, err := windows.UTF16PtrFromString(shellArgumentString(os.Args[1:]))
+	if err != nil {
+		return err
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = ""
+	}
+	cwdPtr, err := windows.UTF16PtrFromString(cwd)
+	if err != nil {
+		return err
+	}
+	return windows.ShellExecute(0, verb, file, args, cwdPtr, windows.SW_SHOWNORMAL)
+}
+
+func shellArgumentString(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+	escaped := make([]string, 0, len(args))
+	for _, arg := range args {
+		if !strings.ContainsAny(arg, " \t\"") {
+			escaped = append(escaped, arg)
+			continue
+		}
+		escaped = append(escaped, `"`+strings.ReplaceAll(arg, `"`, `\"`)+`"`)
+	}
+	return strings.Join(escaped, " ")
 }
 
 // needsPrivilege reports whether the given config requires elevated privileges,

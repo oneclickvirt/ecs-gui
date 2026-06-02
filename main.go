@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"fyne.io/fyne/v2/app"
+	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
 	"github.com/oneclickvirt/ecs-gui/ui"
 )
 
@@ -33,7 +34,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Println("仅支持图形界面模式")
+		fmt.Printf("%s %s (upstream ecs %s)\n", appmeta.AppName, appmeta.Version, appmeta.UpstreamECSVersion)
 		os.Exit(0)
 	}
 
@@ -47,9 +48,8 @@ func main() {
 }
 
 func runGUIMode() {
-	myApp := app.NewWithID("com.oneclickvirt.goecs")
+	myApp := app.NewWithID(appmeta.AppID)
 	myApp.SetIcon(appIconResource())
-	myApp.Settings().SetTheme(&ui.CustomTheme{})
 
 	testUI := ui.NewTestUI(myApp)
 	testUI.Window.ShowAndRun()

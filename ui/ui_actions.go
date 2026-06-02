@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -12,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+	apputils "github.com/oneclickvirt/ecs-gui/utils"
 )
 
 const maxLogViewBytes int64 = 1024 * 1024
@@ -320,11 +322,19 @@ func (ui *TestUI) startTests() {
 	if needsPriv, testsZH, testsEN := needsPrivilege(config); needsPriv && !isPrivileged() {
 		var body string
 		if config.Language == "en" {
-			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body_zh"), testsEN)
+			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body"), testsEN)
 		} else {
-			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body_zh"), testsZH)
+			body = fmt.Sprintf(ui.tr("dialog.no_privilege_body"), testsZH)
 		}
-		dialog.ShowInformation(ui.tr("dialog.no_privilege_title"), body, ui.Window)
+		if runtime.GOOS == "windows" {
+			if err := requestPrivilegeRestart(); err == nil {
+				dialog.ShowInformation(ui.tr("dialog.no_privilege_title"), ui.tr("dialog.uac_started"), ui.Window)
+			} else {
+				dialog.ShowInformation(ui.tr("dialog.no_privilege_title"), body+"\n\n"+ui.tr("dialog.uac_failed"), ui.Window)
+			}
+		} else {
+			dialog.ShowInformation(ui.tr("dialog.no_privilege_title"), body, ui.Window)
+		}
 		ui.Mu.Lock()
 		ui.IsRunning = false
 		ui.Mu.Unlock()
@@ -336,6 +346,9 @@ func (ui *TestUI) startTests() {
 	ui.StopButton.Enable()
 	ui.ProgressBar.Show()
 	ui.setStatus("status.running")
+	if ui.CurrentItem != nil {
+		ui.CurrentItem.SetText(ui.tr("progress.precheck"))
+	}
 	ui.showResultTab()
 
 	// 清空终端输出
@@ -380,6 +393,9 @@ func (ui *TestUI) clearResults() {
 	ui.runOnUI(func() {
 		ui.setStatus("status.ready")
 		ui.ProgressBar.SetValue(0)
+		if ui.CurrentItem != nil {
+			ui.CurrentItem.SetText(ui.tr("progress.idle"))
+		}
 	})
 }
 
@@ -454,6 +470,66 @@ func formatResultExport(content string) string {
 		return clean + "\n"
 	}
 	return "# GOECS Result\n\n```text\n" + clean + "\n```\n"
+}
+
+func (ui *TestUI) shareResults() {
+	var content string
+	if ui.Terminal != nil {
+		content = ui.Terminal.GetText()
+	}
+
+	if content == "" {
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.no_export"), ui.Window)
+		return
+	}
+
+	exportContent := formatResultExport(content)
+	if len([]byte(exportContent)) > 25*1024 {
+		dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_too_large"), ui.Window)
+		return
+	}
+
+	go func() {
+		tmp, err := os.CreateTemp("", "goecs-share-*.md")
+		if err != nil {
+			ui.runOnUI(func() {
+				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_failed"), ui.Window)
+			})
+			return
+		}
+		defer os.Remove(tmp.Name())
+
+		if _, err := tmp.Write([]byte(exportContent)); err != nil {
+			tmp.Close()
+			ui.runOnUI(func() {
+				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_failed"), ui.Window)
+			})
+			return
+		}
+		if err := tmp.Close(); err != nil {
+			ui.runOnUI(func() {
+				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_failed"), ui.Window)
+			})
+			return
+		}
+
+		httpURL, httpsURL, err := apputils.UploadText(tmp.Name())
+		if err != nil {
+			ui.runOnUI(func() {
+				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_failed"), ui.Window)
+			})
+			return
+		}
+
+		shareURL := httpsURL
+		if shareURL == "" {
+			shareURL = httpURL
+		}
+		ui.runOnUI(func() {
+			ui.App.Clipboard().SetContent(shareURL)
+			dialog.ShowInformation(ui.tr("dialog.success"), ui.tr("dialog.share_ok")+shareURL, ui.Window)
+		})
+	}()
 }
 
 // onLogCheckChanged 当日志复选框状态改变时调用

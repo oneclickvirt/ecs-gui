@@ -193,6 +193,14 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		ui.LanguageSelect.SetSelected("中文")
 	}
 
+	ui.ThemeSelect = widget.NewSelect(
+		[]string{ui.tr("theme.light"), ui.tr("theme.dark")},
+		func(value string) {
+			ui.applyThemeMode(ui.themeModeByLabel(value))
+		},
+	)
+	ui.ThemeSelect.SetSelected(ui.themeLabelByMode(ui.themeMode))
+
 	// CPU 配置
 	ui.CpuMethodSelect = widget.NewSelect(
 		[]string{"sysbench", "geekbench", "winsat"},
@@ -296,6 +304,8 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		container.NewGridWithColumns(2,
 			widget.NewLabel(ui.tr("label.language")),
 			ui.LanguageSelect,
+			widget.NewLabel(ui.tr("label.theme")),
+			ui.ThemeSelect,
 			widget.NewLabel(ui.tr("label.output_width")),
 			ui.OutputWidthEntry,
 			widget.NewLabel(ui.tr("label.output_file")),

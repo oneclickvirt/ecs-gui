@@ -6,7 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.7.4
 	github.com/imroc/req/v3 v3.57.0
 	github.com/mattn/go-runewidth v0.0.24
-	github.com/oneclickvirt/UnlockTests v0.0.36-20260527144003
+	github.com/oneclickvirt/UnlockTests v0.0.36-20260602072908
 	github.com/oneclickvirt/backtrace v0.0.9-20260521161358
 	github.com/oneclickvirt/basics v0.0.18-20260521154614
 	github.com/oneclickvirt/cputest v0.0.12-20260509135512
@@ -20,6 +20,7 @@ require (
 	github.com/oneclickvirt/portchecker v0.0.3-20250728015900
 	github.com/oneclickvirt/security v0.0.9-20260521182714
 	github.com/oneclickvirt/speedtest v0.0.12-20260521180111
+	golang.org/x/sys v0.43.0
 )
 
 require (
@@ -148,7 +149,6 @@ require (
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect

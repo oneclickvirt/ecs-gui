@@ -4,6 +4,8 @@ set -e
 
 BUILD_TYPE=${1:-"desktop"}
 FYNE_BUILD_FLAGS_DEFAULT="-trimpath -buildvcs=false -ldflags '-checklinkname=0 -s -w -buildid='"
+APP_ID="com.oneclickvirt.goecs"
+APP_NAME="goecs"
 
 # 检查 Fyne CLI 是否安装
 check_fyne_cli() {
@@ -43,22 +45,36 @@ build_desktop() {
 }
 
 # 获取版本信息
+get_app_version() {
+    local version
+    version=$(tr -d '[:space:]' < VERSION 2>/dev/null || true)
+    if [ -z "$version" ]; then
+        version=$(awk '$1 == "github.com/oneclickvirt/ecs" { print $2; exit }' go.mod | sed 's/^v//')
+    fi
+    if [ -z "$version" ]; then
+        version="0.0.0"
+    fi
+    echo "$version"
+}
+
 get_version() {
-    VERSION="v0.0.1-$(date +%Y%m%d)-$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"
+    VERSION="v$(get_app_version)-$(date +%Y%m%d)-$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"
     echo "$VERSION"
 }
 
 # macOS 构建
 build_macos() {
     VERSION=$(get_version)
+    APP_VERSION=$(get_app_version)
     echo "=========================================="
     echo "  构建 macOS 版本"
     echo "  版本: $VERSION"
+    echo "  应用版本: $APP_VERSION"
     echo "=========================================="
     
     echo ""
     echo "构建 macOS ARM64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin/arm64 -name goecs
+    GOOS=darwin GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.app ] || [ -d goecs.app ]; then
         GZIP=-9 tar -czf goecs-macos-arm64-${VERSION}.tar.gz goecs.app
         rm -rf goecs.app
@@ -70,7 +86,7 @@ build_macos() {
     
     echo ""
     echo "构建 macOS AMD64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin/amd64 -name goecs
+    GOOS=darwin GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.app ] || [ -d goecs.app ]; then
         GZIP=-9 tar -czf goecs-macos-amd64-${VERSION}.tar.gz goecs.app
         rm -rf goecs.app
@@ -84,14 +100,16 @@ build_macos() {
 # Windows 构建
 build_windows() {
     VERSION=$(get_version)
+    APP_VERSION=$(get_app_version)
     echo "=========================================="
     echo "  构建 Windows 版本"
     echo "  版本: $VERSION"
+    echo "  应用版本: $APP_VERSION"
     echo "=========================================="
     
     echo ""
     echo "构建 Windows ARM64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows/arm64 -name goecs
+    GOOS=windows GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.exe ]; then
         mv goecs.exe goecs-windows-arm64-${VERSION}.exe
         echo "✓ Windows ARM64 构建成功"
@@ -102,7 +120,7 @@ build_windows() {
     
     echo ""
     echo "构建 Windows AMD64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows/amd64 -name goecs
+    GOOS=windows GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.exe ]; then
         mv goecs.exe goecs-windows-amd64-${VERSION}.exe
         echo "✓ Windows AMD64 构建成功"
@@ -115,14 +133,16 @@ build_windows() {
 # Linux 构建
 build_linux() {
     VERSION=$(get_version)
+    APP_VERSION=$(get_app_version)
     echo "=========================================="
     echo "  构建 Linux 版本"
     echo "  版本: $VERSION"
+    echo "  应用版本: $APP_VERSION"
     echo "=========================================="
     
     echo ""
     echo "构建 Linux ARM64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux/arm64 -name goecs
+    GOOS=linux GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.tar.xz ]; then
         mv goecs.tar.xz goecs-linux-arm64-${VERSION}.tar.xz
         echo "✓ Linux ARM64 构建成功"
@@ -133,7 +153,7 @@ build_linux() {
     
     echo ""
     echo "构建 Linux AMD64 版本..."
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux/amd64 -name goecs
+    GOOS=linux GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux -name "$APP_NAME" --app-version "$APP_VERSION"
     if [ -f goecs.tar.xz ]; then
         mv goecs.tar.xz goecs-linux-amd64-${VERSION}.tar.xz
         echo "✓ Linux AMD64 构建成功"
@@ -146,9 +166,11 @@ build_linux() {
 # Android 构建
 build_android() {
     VERSION=$(get_version)
+    APP_VERSION=$(get_app_version)
     echo "=========================================="
     echo "  构建 Android 版本"
     echo "  版本: $VERSION"
+    echo "  应用版本: $APP_VERSION"
     echo "=========================================="
     
     if [ -z "$ANDROID_NDK_HOME" ]; then
@@ -163,7 +185,7 @@ build_android() {
     echo "构建 Android APK..."
     
     # 构建包含所有架构的 APK
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os android -appID com.oneclickvirt.goecs -appVersion "$VERSION"
+    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os android --app-id "$APP_ID" --app-version "$APP_VERSION"
     
     if [ -f *.apk ]; then
         mv *.apk ecs-gui-android-${VERSION}.apk

@@ -8,17 +8,66 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-type CustomTheme struct{}
+const (
+	themeModeLight = "light"
+	themeModeDark  = "dark"
+
+	themePreferenceKey = "theme_mode"
+)
+
+type CustomTheme struct {
+	Variant      fyne.ThemeVariant
+	forceVariant bool
+}
 
 var _ fyne.Theme = (*CustomTheme)(nil)
 
+func NewCustomTheme(mode string) *CustomTheme {
+	variant := theme.VariantLight
+	if mode == themeModeDark {
+		variant = theme.VariantDark
+	}
+	return &CustomTheme{Variant: variant, forceVariant: true}
+}
+
+func normalizeThemeMode(mode string) string {
+	if mode == themeModeDark {
+		return themeModeDark
+	}
+	return themeModeLight
+}
+
+func (ui *TestUI) applyThemeMode(mode string) {
+	ui.themeMode = normalizeThemeMode(mode)
+	if ui.App != nil {
+		ui.App.Preferences().SetString(themePreferenceKey, ui.themeMode)
+		ui.App.Settings().SetTheme(NewCustomTheme(ui.themeMode))
+	}
+}
+
+func (ui *TestUI) themeLabelByMode(mode string) string {
+	if normalizeThemeMode(mode) == themeModeDark {
+		return ui.tr("theme.dark")
+	}
+	return ui.tr("theme.light")
+}
+
+func (ui *TestUI) themeModeByLabel(label string) string {
+	if label == ui.tr("theme.dark") || label == "Dark" || label == "深色" {
+		return themeModeDark
+	}
+	return themeModeLight
+}
+
 func (m *CustomTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	if m != nil && m.forceVariant {
+		variant = m.Variant
+	}
 	// 禁用状态的文字也使用深色显示（而不是默认的淡色）
 	if name == theme.ColorNameDisabled {
-		return theme.DefaultTheme().Color(theme.ColorNameForeground, theme.VariantLight)
+		return theme.DefaultTheme().Color(theme.ColorNameForeground, variant)
 	}
-	// 强制使用浅色主题
-	return theme.DefaultTheme().Color(name, theme.VariantLight)
+	return theme.DefaultTheme().Color(name, variant)
 }
 
 func (m *CustomTheme) Icon(name fyne.ThemeIconName) fyne.Resource {

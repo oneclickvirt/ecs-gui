@@ -16,7 +16,7 @@ import (
 	"github.com/oneclickvirt/basics/utils"
 	cputestmodel "github.com/oneclickvirt/cputest/model"
 	disktestmodel "github.com/oneclickvirt/disktest/disk"
-	ecsapi "github.com/oneclickvirt/ecs/api"
+	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
 	gostunmodel "github.com/oneclickvirt/gostun/model"
 	memorytestmodel "github.com/oneclickvirt/memorytest/memory"
 	nt3model "github.com/oneclickvirt/nt3/model"
@@ -26,17 +26,23 @@ import (
 	speedtestmodel "github.com/oneclickvirt/speedtest/model"
 )
 
-const ecsVersion = "v0.1.139"
+var (
+	ecsVersion        = appmeta.UpstreamECSVersion
+	commandExecutorMu sync.Mutex
+)
 
 type CommandExecutor struct {
-	outputCallback func(string)
-	ctx            context.Context
-	cancel         context.CancelFunc
+	outputCallback   func(string)
+	progressCallback func(ProgressUpdate)
+	core             CoreRunner
+	ctx              context.Context
+	cancel           context.CancelFunc
 }
 
 func NewCommandExecutor(outputCallback func(string)) *CommandExecutor {
 	return &CommandExecutor{
 		outputCallback: outputCallback,
+		core:           ecsCoreRunner{},
 	}
 }
 
@@ -45,7 +51,136 @@ func (e *CommandExecutor) SetContext(ctx context.Context) {
 	e.ctx = ctx
 }
 
+func (e *CommandExecutor) SetProgressCallback(callback func(ProgressUpdate)) {
+	e.progressCallback = callback
+}
+
+func (e *CommandExecutor) SetCoreRunner(core CoreRunner) {
+	if core != nil {
+		e.core = core
+	}
+}
+
+type progressTracker struct {
+	callback func(ProgressUpdate)
+	steps    []string
+	current  int
+}
+
+func newProgressTracker(callback func(ProgressUpdate), steps []string) *progressTracker {
+	return &progressTracker{callback: callback, steps: steps}
+}
+
+func (t *progressTracker) start(itemKey string) {
+	if t == nil || t.callback == nil {
+		return
+	}
+	total := len(t.steps)
+	if total == 0 {
+		total = 1
+	}
+	t.callback(ProgressUpdate{
+		ItemKey:  itemKey,
+		Current:  t.current + 1,
+		Total:    total,
+		Fraction: float64(t.current) / float64(total),
+	})
+}
+
+func (t *progressTracker) finish(itemKey string) {
+	if t == nil || t.callback == nil {
+		return
+	}
+	total := len(t.steps)
+	if total == 0 {
+		total = 1
+	}
+	if t.current < total {
+		t.current++
+	}
+	t.callback(ProgressUpdate{
+		ItemKey:  itemKey,
+		Current:  t.current,
+		Total:    total,
+		Fraction: float64(t.current) / float64(total),
+	})
+}
+
+func (t *progressTracker) run(itemKey string, fn func() error) error {
+	t.start(itemKey)
+	if err := fn(); err != nil {
+		return err
+	}
+	t.finish(itemKey)
+	return nil
+}
+
+func buildProgressSteps(config ExecutionConfig, connected bool) []string {
+	selected := config.SelectedOptions
+	pingEnabled := selected["ping"]
+	pingTgdc := config.PingTgdc
+	pingWeb := config.PingWeb
+	unlockEnabled := selected["unlock"]
+
+	if config.ChinaModeEnabled {
+		unlockEnabled = false
+		pingEnabled = true
+		pingTgdc = false
+		pingWeb = false
+	}
+
+	steps := []string{"progress.precheck"}
+	if selected["basic"] || selected["security"] {
+		steps = append(steps, "progress.basic_security")
+	}
+	if selected["cpu"] {
+		steps = append(steps, "progress.cpu")
+	}
+	if selected["memory"] {
+		steps = append(steps, "progress.memory")
+	}
+	if selected["disk"] {
+		steps = append(steps, "progress.disk")
+	}
+	if connected && unlockEnabled {
+		steps = append(steps, "progress.unlock")
+	}
+	if connected && selected["security"] {
+		steps = append(steps, "progress.ip_quality")
+	}
+	if connected && selected["email"] {
+		steps = append(steps, "progress.email")
+	}
+	if connected && selected["backtrace"] {
+		steps = append(steps, "progress.backtrace")
+	}
+	if connected && selected["nt3"] {
+		steps = append(steps, "progress.nt3")
+	}
+	if connected && (pingEnabled || pingTgdc || pingWeb) {
+		steps = append(steps, "progress.ping")
+	}
+	if connected && selected["speed"] {
+		steps = append(steps, "progress.speed")
+	}
+	if config.AnalyzeResult {
+		steps = append(steps, "progress.summary")
+	}
+	if connected && config.EnableUpload {
+		steps = append(steps, "progress.upload")
+	}
+	steps = append(steps, "progress.finish")
+	return steps
+}
+
 func (e *CommandExecutor) Execute(config ExecutionConfig) error {
+	commandExecutorMu.Lock()
+	defer commandExecutorMu.Unlock()
+
+	if e.core == nil {
+		e.core = ecsCoreRunner{}
+	}
+
 	// 设置测试选项
 	selectedOptions := config.SelectedOptions
 	language := config.Language
@@ -82,8 +217,19 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		pingWeb = false
 	}
 
+	if e.progressCallback != nil {
+		e.progressCallback(ProgressUpdate{
+			ItemKey:  "progress.precheck",
+			Current:  1,
+			Total:    1,
+			Fraction: 0.02,
+		})
+	}
+
 	// 检查网络连接
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
+	tracker := newProgressTracker(e.progressCallback, buildProgressSteps(config, preCheck.Connected))
+	tracker.finish("progress.precheck")
 
 	// 初始化变量
 	var (
@@ -198,6 +344,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 
 	// 延迟恢复 stdout 和清理资源
 	defer func() {
+		os.Stdout = oldStdout
 		w.Close()
 
 		// 等待reader goroutine完成，但不要无限等待
@@ -211,7 +358,6 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			}
 		}
 
-		os.Stdout = oldStdout
 	}()
 
 	os.Stdout = w
@@ -233,6 +379,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if basicStatus || securityTestStatus {
+		tracker.start("progress.basic_security")
 		outputMutex.Lock()
 		PrintHead(language, width, ecsVersion)
 		if basicStatus {
@@ -258,6 +405,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			fmt.Printf("%s", basicInfo)
 		}
 		outputMutex.Unlock()
+		tracker.finish("progress.basic_security")
 	}
 
 	// 2. CPU测试
@@ -266,8 +414,9 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if cpuTestStatus {
+		tracker.start("progress.cpu")
 		outputMutex.Lock()
-		realTestMethod, res := ecsapi.CpuTest(language, config.CpuMethod, config.ThreadMode)
+		realTestMethod, res := e.core.CpuTest(language, config.CpuMethod, config.ThreadMode)
 		if language == "zh" {
 			PrintCenteredTitle(fmt.Sprintf("CPU测试-通过%s测试", realTestMethod), width)
 		} else {
@@ -275,6 +424,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 		fmt.Print(res)
 		outputMutex.Unlock()
+		tracker.finish("progress.cpu")
 	}
 
 	// 3. 内存测试
@@ -283,8 +433,9 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if memoryTestStatus {
+		tracker.start("progress.memory")
 		outputMutex.Lock()
-		realTestMethod, res := ecsapi.MemoryTest(language, config.MemoryMethod)
+		realTestMethod, res := e.core.MemoryTest(language, config.MemoryMethod)
 		if language == "zh" {
 			PrintCenteredTitle(fmt.Sprintf("内存测试-通过%s测试", realTestMethod), width)
 		} else {
@@ -292,6 +443,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 		fmt.Print(res)
 		outputMutex.Unlock()
+		tracker.finish("progress.memory")
 	}
 
 	// 4. 磁盘测试
@@ -300,9 +452,10 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if diskTestStatus {
+		tracker.start("progress.disk")
 		outputMutex.Lock()
 		if config.AutoDiskMethod {
-			realTestMethod, res := ecsapi.DiskTest(language, config.DiskMethod, config.DiskPath, config.DiskMulti, true)
+			realTestMethod, res := e.core.DiskTest(language, config.DiskMethod, config.DiskPath, config.DiskMulti, true)
 			if language == "zh" {
 				PrintCenteredTitle(fmt.Sprintf("硬盘测试-通过%s测试", realTestMethod), width)
 			} else {
@@ -315,17 +468,18 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			} else {
 				PrintCenteredTitle("Disk-Test--dd-Method", width)
 			}
-			_, res := ecsapi.DiskTest(language, "dd", config.DiskPath, config.DiskMulti, false)
+			_, res := e.core.DiskTest(language, "dd", config.DiskPath, config.DiskMulti, false)
 			fmt.Print(res)
 			if language == "zh" {
 				PrintCenteredTitle("硬盘测试-通过fio测试", width)
 			} else {
 				PrintCenteredTitle("Disk-Test--fio-Method", width)
 			}
-			_, res = ecsapi.DiskTest(language, "fio", config.DiskPath, config.DiskMulti, false)
+			_, res = e.core.DiskTest(language, "fio", config.DiskPath, config.DiskMulti, false)
 			fmt.Print(res)
 		}
 		outputMutex.Unlock()
+		tracker.finish("progress.disk")
 	}
 
 	// 5. 启动异步测试（流媒体解锁和邮件端口）
@@ -339,7 +493,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			defer wg1.Done()
 			// 检查取消
 			if !checkCancelled() {
-				mediaInfo = ecsapi.MediaTest(language, config.UnlockRegion, config.UnlockIpVersion, config.UnlockShowIP)
+				mediaInfo = e.core.MediaTest(language, config.UnlockRegion, config.UnlockIpVersion, config.UnlockShowIP)
 			}
 		}()
 	}
@@ -357,6 +511,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 
 	// 6. 显示跨国流媒体解锁结果
 	if utTestStatus && preCheck.Connected {
+		tracker.start("progress.unlock")
 		// 使用带超时的等待
 		waitDone := make(chan struct{})
 		go func() {
@@ -382,10 +537,12 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 		fmt.Printf("%s", mediaInfo)
 		outputMutex.Unlock()
+		tracker.finish("progress.unlock")
 	}
 
 	// 8. 显示IP质量检测结果
 	if securityTestStatus && preCheck.Connected {
+		tracker.start("progress.ip_quality")
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("IP质量检测", width)
@@ -394,10 +551,12 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 		fmt.Printf("%s", securityInfo)
 		outputMutex.Unlock()
+		tracker.finish("progress.ip_quality")
 	}
 
 	// 9. 显示邮件端口测试结果
 	if emailTestStatus && preCheck.Connected {
+		tracker.start("progress.email")
 		// 使用带超时的等待
 		waitDone := make(chan struct{})
 		go func() {
@@ -423,6 +582,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 		fmt.Println(emailInfo)
 		outputMutex.Unlock()
+		tracker.finish("progress.email")
 	}
 
 	// 10. 上游及回程线路检测
@@ -431,14 +591,16 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if backtraceStatus && preCheck.Connected {
+		tracker.start("progress.backtrace")
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("上游及回程线路检测", width)
 		} else {
 			PrintCenteredTitle("Upstreams-Backtrace-Check", width)
 		}
-		ecsapi.UpstreamsCheck(language)
+		e.core.UpstreamsCheck(language)
 		outputMutex.Unlock()
+		tracker.finish("progress.backtrace")
 	}
 
 	// 11. 三网回程路由检测
@@ -447,14 +609,16 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if nt3Status && preCheck.Connected {
+		tracker.start("progress.nt3")
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("三网回程路由检测", width)
 		} else {
 			PrintCenteredTitle("NextTrace-3Networks-Check", width)
 		}
-		ecsapi.NextTrace3Check(language, config.Nt3Location, config.Nt3Type)
+		e.core.NextTrace3Check(language, config.Nt3Location, config.Nt3Type)
 		outputMutex.Unlock()
+		tracker.finish("progress.nt3")
 	}
 
 	// 12. PING值测试
@@ -467,6 +631,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if pingTestStatus && preCheck.Connected {
+		tracker.start("progress.ping")
 		outputMutex.Lock()
 
 		// 判断是否为中国模式
@@ -499,10 +664,12 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 
 		outputMutex.Unlock()
+		tracker.finish("progress.ping")
 	}
 
 	// 单独的TGDC和Web测试（当pingTestStatus=false但用户单独启用时）
 	if !pingTestStatus && preCheck.Connected && (pingTgdc || pingWeb) {
+		tracker.start("progress.ping")
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("PING值检测", width)
@@ -518,6 +685,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		}
 
 		outputMutex.Unlock()
+		tracker.finish("progress.ping")
 	}
 
 	// 13. 速度测试
@@ -526,19 +694,21 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}
 
 	if speedTestStatus && preCheck.Connected {
+		tracker.start("progress.speed")
 		outputMutex.Lock()
 		if language == "zh" {
 			PrintCenteredTitle("就近节点测速", width)
 		} else {
 			PrintCenteredTitle("Speed-Test", width)
 		}
-		ecsapi.SpeedTestShowHead(language)
+		e.core.SpeedTestShowHead(language)
 
 		// 根据上传/下载配置进行测试
 		if testUpload || testDownload {
-			runSpeedProfile(config, language)
+			runSpeedProfile(e.core, config, language)
 		}
 		outputMutex.Unlock()
+		tracker.finish("progress.speed")
 	}
 
 	// 打印时间信息
@@ -561,6 +731,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 
 	time.Sleep(200 * time.Millisecond)
 	if config.AnalyzeResult {
+		tracker.start("progress.summary")
 		if summary := BuildResultSummary(language, capturedOutput()); strings.TrimSpace(summary) != "" {
 			outputMutex.Lock()
 			fmt.Print(summary)
@@ -570,17 +741,23 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			outputMutex.Unlock()
 			time.Sleep(100 * time.Millisecond)
 		}
+		tracker.finish("progress.summary")
 	}
 
 	if config.EnableUpload && preCheck.Connected {
+		tracker.start("progress.upload")
 		outputMutex.Lock()
-		uploadConfig := ecsapi.NewConfig(ecsVersion)
+		uploadConfig := e.core.NewConfig(ecsVersion)
 		uploadConfig.Language = language
 		uploadConfig.FilePath = config.FilePath
 		uploadConfig.EnableUpload = true
-		ecsapi.HandleUploadResults(uploadConfig, capturedOutput())
+		e.core.HandleUploadResults(uploadConfig, capturedOutput())
 		outputMutex.Unlock()
+		tracker.finish("progress.upload")
 	}
+
+	tracker.start("progress.finish")
+	tracker.finish("progress.finish")
 
 	return nil
 }
@@ -605,34 +782,34 @@ func setComponentLogging(enabled bool) {
 	speedtestmodel.EnableLoger = enabled
 }
 
-func runSpeedProfile(config ExecutionConfig, language string) {
+func runSpeedProfile(core CoreRunner, config ExecutionConfig, language string) {
 	spNum := config.SpNum
 	if spNum <= 0 {
 		spNum = 2
 	}
 	switch config.PresetKey {
 	case "full":
-		ecsapi.SpeedTestNearby()
-		ecsapi.SpeedTestCustom("net", "global", 2, language)
-		ecsapi.SpeedTestCustom("net", "cu", spNum, language)
-		ecsapi.SpeedTestCustom("net", "ct", spNum, language)
-		ecsapi.SpeedTestCustom("net", "cmcc", spNum, language)
+		core.SpeedTestNearby()
+		core.SpeedTestCustom("net", "global", 2, language)
+		core.SpeedTestCustom("net", "cu", spNum, language)
+		core.SpeedTestCustom("net", "ct", spNum, language)
+		core.SpeedTestCustom("net", "cmcc", spNum, language)
 	case "minimal", "standard", "network_focus", "unlock_focus":
 		if language == "zh" {
-			ecsapi.SpeedTestNearby()
-			ecsapi.SpeedTestCustom("net", "other", 1, language)
-			ecsapi.SpeedTestCustom("net", "cu", 1, language)
-			ecsapi.SpeedTestCustom("net", "ct", 1, language)
-			ecsapi.SpeedTestCustom("net", "cmcc", 1, language)
+			core.SpeedTestNearby()
+			core.SpeedTestCustom("net", "other", 1, language)
+			core.SpeedTestCustom("net", "cu", 1, language)
+			core.SpeedTestCustom("net", "ct", 1, language)
+			core.SpeedTestCustom("net", "cmcc", 1, language)
 		} else {
-			ecsapi.SpeedTestCustom("net", "global", 4, language)
+			core.SpeedTestCustom("net", "global", 4, language)
 		}
 	case "network_only":
-		ecsapi.SpeedTestCustom("net", "global", 11, language)
+		core.SpeedTestCustom("net", "global", 11, language)
 	default:
-		ecsapi.SpeedTestNearby()
-		ecsapi.SpeedTestCustom("net", "cu", spNum, language)
-		ecsapi.SpeedTestCustom("net", "ct", spNum, language)
-		ecsapi.SpeedTestCustom("net", "cmcc", spNum, language)
+		core.SpeedTestNearby()
+		core.SpeedTestCustom("net", "cu", spNum, language)
+		core.SpeedTestCustom("net", "ct", spNum, language)
+		core.SpeedTestCustom("net", "cmcc", spNum, language)
 	}
 }

@@ -18,6 +18,10 @@ func isPrivileged() bool {
 	}
 }
 
+func requestPrivilegeRestart() error {
+	return os.ErrPermission
+}
+
 // needsPrivilege reports whether the given config requires elevated privileges,
 // and returns a human-readable list of affected tests.
 func needsPrivilege(config ExecutionConfig) (needs bool, testsZH string, testsEN string) {

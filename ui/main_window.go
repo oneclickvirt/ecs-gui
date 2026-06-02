@@ -13,11 +13,14 @@ import (
 
 // NewTestUI 创建新的测试UI实例
 func NewTestUI(app fyne.App) *TestUI {
+	themeMode := normalizeThemeMode(app.Preferences().StringWithFallback(themePreferenceKey, themeModeLight))
 	ui := &TestUI{
-		App:    app,
-		uiLang: langZH,
-		Window: app.NewWindow(""),
+		App:       app,
+		uiLang:    langZH,
+		themeMode: themeMode,
+		Window:    app.NewWindow(""),
 	}
+	ui.applyThemeMode(themeMode)
 	ui.Window.SetTitle(ui.tr("app.title"))
 
 	// 移动端使用系统默认窗口行为，桌面端提供较舒适的初始尺寸
@@ -28,6 +31,7 @@ func NewTestUI(app fyne.App) *TestUI {
 	ui.Window.CenterOnScreen()
 
 	ui.buildUI()
+	ui.registerLifecycleHooks()
 
 	// 设置窗口关闭时的清理操作
 	ui.Window.SetOnClosed(func() {
@@ -45,6 +49,22 @@ func NewTestUI(app fyne.App) *TestUI {
 	return ui
 }
 
+func (ui *TestUI) registerLifecycleHooks() {
+	if ui.App == nil {
+		return
+	}
+	ui.App.Lifecycle().SetOnExitedForeground(func() {
+		ui.Mu.Lock()
+		ui.inBackground = true
+		ui.Mu.Unlock()
+	})
+	ui.App.Lifecycle().SetOnEnteredForeground(func() {
+		ui.Mu.Lock()
+		ui.inBackground = false
+		ui.Mu.Unlock()
+	})
+}
+
 // buildUI 构建用户界面 - 使用Tab切换页面
 func (ui *TestUI) buildUI() {
 	// 创建终端输出组件
@@ -53,6 +73,7 @@ func (ui *TestUI) buildUI() {
 	// 创建状态栏
 	ui.StatusLabel = widget.NewLabel(ui.tr("status.ready"))
 	ui.StatusBadge = widget.NewLabel(ui.tr("badge.ready"))
+	ui.CurrentItem = widget.NewLabel(ui.tr("progress.idle"))
 	ui.ProgressBar = widget.NewProgressBar()
 	ui.ProgressBar.Hide()
 
@@ -123,43 +144,6 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 		nil,            // Left
 		nil,            // Right
 		scrollContent,  // Center: 可滚动的选项内容
-	)
-}
-
-// createResultTab 创建测试结果页面
-func (ui *TestUI) createResultTab() fyne.CanvasObject {
-	statusRow := container.NewHBox(
-		ui.StatusLabel,
-		layout.NewSpacer(),
-		ui.StatusBadge,
-	)
-	statusBar := container.NewVBox(statusRow, ui.ProgressBar)
-
-	copyButton := widget.NewButtonWithIcon(ui.tr("button.copy"), theme.ContentCopyIcon(), ui.copyResults)
-	exportButton := widget.NewButtonWithIcon(ui.tr("button.export"), theme.DownloadIcon(), ui.exportResults)
-	clearButton := widget.NewButtonWithIcon(ui.tr("button.clear"), theme.DeleteIcon(), ui.clearResults)
-
-	actions := []fyne.CanvasObject{clearButton, copyButton, exportButton}
-	actionsBar := container.NewHBox(actions...)
-	if isMobilePlatform() {
-		actionsBar = container.NewAdaptiveGrid(2, actions...)
-	} else {
-		actionsBar = container.NewHBox(layout.NewSpacer(), clearButton, copyButton, exportButton)
-	}
-
-	header := widget.NewCard("", "", container.NewVBox(
-		statusBar,
-		actionsBar,
-	))
-
-	terminalScroll := container.NewScroll(container.NewPadded(ui.Terminal))
-
-	return container.NewBorder(
-		header,         // Top: 状态栏和操作按钮
-		nil,            // Bottom
-		nil,            // Left
-		nil,            // Right
-		terminalScroll, // Center: 终端输出
 	)
 }
 

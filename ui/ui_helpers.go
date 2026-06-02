@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"fmt"
 	"runtime"
 	"strconv"
+	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 )
@@ -18,6 +21,7 @@ type uiStateSnapshot struct {
 	activeTab    int
 	statusText   string
 	statusBadge  string
+	themeMode    string
 }
 
 func (ui *TestUI) runOnUI(fn func()) {
@@ -26,6 +30,24 @@ func (ui *TestUI) runOnUI(fn func()) {
 
 func isMobilePlatform() bool {
 	return runtime.GOOS == "android" || runtime.GOOS == "ios"
+}
+
+func formatHumanDuration(d time.Duration, language string) string {
+	if d < 0 {
+		d = 0
+	}
+	minutes := int(d.Minutes())
+	seconds := int(d.Seconds()) % 60
+	if language == langEN {
+		if minutes > 0 {
+			return fmt.Sprintf("%d min %d sec", minutes, seconds)
+		}
+		return fmt.Sprintf("%d sec", seconds)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%d 分 %d 秒", minutes, seconds)
+	}
+	return fmt.Sprintf("%d 秒", seconds)
 }
 
 func optionGridColumns() int {
@@ -56,6 +78,64 @@ func (ui *TestUI) setStatus(statusKey string) {
 	}
 	if ui.StatusBadge != nil {
 		ui.StatusBadge.SetText(ui.statusBadge(statusKey))
+	}
+}
+
+func (ui *TestUI) setProgress(update ProgressUpdate) {
+	if ui.ProgressBar != nil {
+		value := update.Fraction
+		if value < 0 {
+			value = 0
+		}
+		if value > 1 {
+			value = 1
+		}
+		ui.ProgressBar.SetValue(value)
+	}
+	if ui.CurrentItem != nil {
+		item := ui.tr(update.ItemKey)
+		if update.Total > 0 {
+			ui.CurrentItem.SetText(fmt.Sprintf(ui.tr("status.current"), item, update.Current, update.Total))
+		} else {
+			ui.CurrentItem.SetText(item)
+		}
+	}
+}
+
+func (ui *TestUI) notifyTestFinished(statusKey string, duration time.Duration) {
+	if ui.App == nil {
+		return
+	}
+	titleKey := "notify.done_title"
+	body := fmt.Sprintf(ui.tr("notify.done_body"), formatHumanDuration(duration, ui.uiLang))
+	switch statusKey {
+	case "status.failed":
+		titleKey = "notify.failed_title"
+		body = ui.tr("notify.failed_body")
+	case "status.stopped":
+		titleKey = "notify.stopped_title"
+		body = ui.tr("notify.stopped_body")
+	}
+
+	ui.App.SendNotification(fyne.NewNotification(ui.tr(titleKey), body))
+}
+
+func (ui *TestUI) friendlyErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "取消") || strings.Contains(msg, "cancel"):
+		return ui.tr("error.cancelled")
+	case strings.Contains(msg, "permission") || strings.Contains(msg, "权限") || strings.Contains(msg, "denied"):
+		return ui.tr("error.permission")
+	case strings.Contains(msg, "timeout") || strings.Contains(msg, "超时"):
+		return ui.tr("error.timeout")
+	case strings.Contains(msg, "network") || strings.Contains(msg, "connection") || strings.Contains(msg, "联网"):
+		return ui.tr("error.network")
+	default:
+		return ui.tr("error.generic")
 	}
 }
 
@@ -131,6 +211,7 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 		},
 		selections: map[string]string{
 			"language":     ui.LanguageSelect.Selected,
+			"theme":        ui.themeMode,
 			"cpuMethod":    ui.CpuMethodSelect.Selected,
 			"threadMode":   ui.ThreadModeSelect.Selected,
 			"memMethod":    ui.MemoryMethodSelect.Selected,
@@ -151,6 +232,7 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 		logEnabled: ui.LogCheck.Checked,
 		activeTab:  ui.MainTabs.SelectedIndex(),
 		statusText: ui.StatusLabel.Text,
+		themeMode:  ui.themeMode,
 	}
 
 	if ui.StatusBadge != nil {
@@ -194,6 +276,14 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.AnalyzeResultCheck.Checked = state.checks["analysis"]
 
 	ui.LanguageSelect.SetSelected(state.selections["language"])
+	if ui.ThemeSelect != nil {
+		mode := state.themeMode
+		if mode == "" {
+			mode = state.selections["theme"]
+		}
+		ui.applyThemeMode(mode)
+		ui.ThemeSelect.SetSelected(ui.themeLabelByMode(mode))
+	}
 	ui.CpuMethodSelect.SetSelected(state.selections["cpuMethod"])
 	ui.ThreadModeSelect.SetSelected(state.selections["threadMode"])
 	ui.MemoryMethodSelect.SetSelected(state.selections["memMethod"])
@@ -278,6 +368,9 @@ func (ui *TestUI) resetUIState() {
 		ui.StopButton.Disable()
 		ui.ProgressBar.Hide()
 		ui.ProgressBar.SetValue(0)
+		if ui.CurrentItem != nil {
+			ui.CurrentItem.SetText(ui.tr("progress.idle"))
+		}
 
 		if ui.StatusLabel.Text == ui.tr("status.stopping") {
 			ui.setStatus("status.stopped")

@@ -173,8 +173,8 @@ github.com/nicksnyder/go-i18n/v2 v2.5.1 h1:IxtPxYsR9Gp60cGXjfuR/llTqV8aYMsC472zD
 github.com/nicksnyder/go-i18n/v2 v2.5.1/go.mod h1:DrhgsSDZxoAfvVrBVLXoxZn/pN5TXqaDbq7ju94viiQ=
 github.com/nxtrace/NTrace-core v1.5.0 h1:n+a/FObw/+CcqvhuSQiWcm1q+ODtfo7Wt3VmaIx504I=
 github.com/nxtrace/NTrace-core v1.5.0/go.mod h1:/jME48iJ7QaVTzsrTPQyTJ+yExhjeWjax2L6uBd4ckk=
-github.com/oneclickvirt/UnlockTests v0.0.36-20260527144003 h1:i6VsLoNrc8iJXCDqqJIa0T170zWLz+YyOdjtefv5YoE=
-github.com/oneclickvirt/UnlockTests v0.0.36-20260527144003/go.mod h1:4+jviyfeDtM8J14neGA1lBC6bRWsPF9GmNMo+F0pYSs=
+github.com/oneclickvirt/UnlockTests v0.0.36-20260602072908 h1:RoB3HJYYDiQOfOb01aDziIiNgwgRSYSUOM2/9i79B3k=
+github.com/oneclickvirt/UnlockTests v0.0.36-20260602072908/go.mod h1:4+jviyfeDtM8J14neGA1lBC6bRWsPF9GmNMo+F0pYSs=
 github.com/oneclickvirt/backtrace v0.0.9-20260521161358 h1:BKcAzJvub+FBQ3pyf7GZAicsSOI8eXRSpJvwaccEylk=
 github.com/oneclickvirt/backtrace v0.0.9-20260521161358/go.mod h1:mj9TSow7FNszBb3bQj2Hhm41LwBo7HQP6sgaPtovKdM=
 github.com/oneclickvirt/basics v0.0.18-20260521154614 h1:7k19Or9ezHXQCT2k1uvknjx70m3lZNVkc+JT/WFlbiw=

@@ -38,6 +38,13 @@ type ExecutionConfig struct {
 	LogEnabled       bool
 }
 
+type ProgressUpdate struct {
+	ItemKey  string
+	Current  int
+	Total    int
+	Fraction float64
+}
+
 // TestUI 测试界面结构体
 type TestUI struct {
 	App    fyne.App
@@ -66,6 +73,7 @@ type TestUI struct {
 
 	// 配置选项
 	LanguageSelect      *widget.Select
+	ThemeSelect         *widget.Select
 	CpuMethodSelect     *widget.Select
 	MemoryMethodSelect  *widget.Select
 	DiskMethodSelect    *widget.Select
@@ -99,6 +107,7 @@ type TestUI struct {
 	// 结果显示 - 使用终端输出组件
 	Terminal    *TerminalOutput
 	ProgressBar *widget.ProgressBar
+	CurrentItem *widget.Label
 	StatusLabel *widget.Label
 	StatusBadge *widget.Label
 
@@ -117,7 +126,9 @@ type TestUI struct {
 	testChecks []*widget.Check
 
 	uiLang               string
+	themeMode            string
 	presetLabelToKey     map[string]string
 	selectedPresetKey    string
 	suppressPresetChange bool
+	inBackground         bool
 }
