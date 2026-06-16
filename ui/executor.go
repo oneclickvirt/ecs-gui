@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	unlockexecutor "github.com/oneclickvirt/UnlockTests/executor"
 	unlocktestmodel "github.com/oneclickvirt/UnlockTests/model"
 	backtracemodel "github.com/oneclickvirt/backtrace/model"
 	basicmodel "github.com/oneclickvirt/basics/model"
@@ -180,12 +182,11 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	if e.core == nil {
 		e.core = ecsCoreRunner{}
 	}
+	e.resetDetectedNetworkState()
 
 	// 设置测试选项
 	selectedOptions := config.SelectedOptions
 	language := config.Language
-	testUpload := config.TestUpload
-	testDownload := config.TestDownload
 	chinaModeEnabled := config.ChinaModeEnabled
 	width := config.OutputWidth
 	if width <= 0 {
@@ -206,6 +207,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	pingTestStatus := selectedOptions["ping"]
 	pingTgdc := config.PingTgdc
 	pingWeb := config.PingWeb
+	effectiveNt3Type := normalizeNT3Type(config.Nt3Type)
 
 	// 中国模式逻辑：禁用流媒体测试，启用PING测试（只测三网PING）
 	// 对齐主仓库逻辑：中国模式下强制启用ping，但不测TGDC和Web
@@ -228,17 +230,19 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 
 	// 检查网络连接
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
+	effectiveNt3Type = effectiveNT3TypeForStack(effectiveNt3Type, preCheck.StackType)
 	tracker := newProgressTracker(e.progressCallback, buildProgressSteps(config, preCheck.Connected))
 	tracker.finish("progress.precheck")
 
 	// 初始化变量
 	var (
-		wg1, wg2                                      sync.WaitGroup
-		basicInfo, securityInfo, emailInfo, mediaInfo string
-		outputMutex                                   sync.Mutex
-		captureMutex                                  sync.Mutex
-		captured                                      strings.Builder
-		captureTruncated                              bool
+		wg1, wg2                                       sync.WaitGroup
+		ipv4, ipv6, basicInfo, securityInfo, emailInfo string
+		mediaInfo                                      string
+		outputMutex                                    sync.Mutex
+		captureMutex                                   sync.Mutex
+		captured                                       strings.Builder
+		captureTruncated                               bool
 	)
 	startTime := time.Now()
 	captureLimit := resultCaptureLimit()
@@ -276,45 +280,42 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		e.ctx = context.Background()
 	}
 
+	if needsNetworkIdentityProbe(preCheck.Connected, basicStatus, securityTestStatus, utTestStatus, backtraceStatus) {
+		if checkCancelledWithContext(e.ctx) {
+			return fmt.Errorf("测试已取消")
+		}
+		ipv4, ipv6, _ = OnlyBasicsIpInfo(language)
+		e.syncDetectedIPs(ipv4, ipv6)
+	}
+
 	// 重定向输出到回调
 	oldStdout := os.Stdout
+	oldStderr := os.Stderr
 	r, w, err := os.Pipe()
 	if err != nil {
 		return fmt.Errorf("创建管道失败: %v", err)
 	}
 
 	done := make(chan struct{})
-	readerCtx, readerCancel := context.WithCancel(e.ctx)
 
 	go func() {
 		defer close(done)
-		defer readerCancel()
 		defer r.Close()
 
 		buf := make([]byte, 8192) // 增加缓冲区大小
 		var partial string        // 用于保存不完整的行
 		for {
-			// 检查上下文是否取消
-			select {
-			case <-readerCtx.Done():
-				// 输出剩余内容
-				if partial != "" && e.outputCallback != nil {
-					e.outputCallback(partial)
-					appendCaptured(partial)
-				}
-				return
-			default:
-			}
-
 			n, err := r.Read(buf)
-			if n > 0 && e.outputCallback != nil {
+			if n > 0 {
 				text := partial + string(buf[:n])
 				// 找到最后一个换行符
 				lastNewline := strings.LastIndex(text, "\n")
 				if lastNewline >= 0 {
 					// 输出完整的行
 					complete := text[:lastNewline+1]
-					e.outputCallback(complete)
+					if e.outputCallback != nil {
+						e.outputCallback(complete)
+					}
 					appendCaptured(complete)
 					// 保存不完整的部分
 					partial = text[lastNewline+1:]
@@ -326,8 +327,10 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			if err != nil {
 				if err == io.EOF {
 					// 输出剩余的不完整部分
-					if partial != "" && e.outputCallback != nil {
-						e.outputCallback(partial)
+					if partial != "" {
+						if e.outputCallback != nil {
+							e.outputCallback(partial)
+						}
 						appendCaptured(partial)
 					}
 					return
@@ -345,13 +348,14 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	// 延迟恢复 stdout 和清理资源
 	defer func() {
 		os.Stdout = oldStdout
+		os.Stderr = oldStderr
 		w.Close()
 
 		// 等待reader goroutine完成，但不要无限等待
 		select {
 		case <-done:
 		case <-time.After(2 * time.Second):
-			readerCancel()
+			_ = r.Close()
 			select {
 			case <-done:
 			case <-time.After(2 * time.Second):
@@ -361,6 +365,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	}()
 
 	os.Stdout = w
+	os.Stderr = w
 
 	// 检查取消的辅助函数
 	checkCancelled := func() bool {
@@ -390,16 +395,21 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			}
 		}
 		// 根据网络连接状态选择检测类型
-		checkType := config.Nt3Type
+		checkType := effectiveNt3Type
+		var adjustedNt3Type string
 		if preCheck.Connected && preCheck.StackType == "DualStack" {
-			_, _, basicInfo, securityInfo, _ = BasicsAndSecurityCheck(language, checkType, securityTestStatus)
+			ipv4, ipv6, basicInfo, securityInfo, adjustedNt3Type = BasicsAndSecurityCheck(language, checkType, securityTestStatus)
 		} else if preCheck.Connected && preCheck.StackType == "IPv4" {
-			_, _, basicInfo, securityInfo, _ = BasicsAndSecurityCheck(language, "ipv4", securityTestStatus)
+			ipv4, ipv6, basicInfo, securityInfo, adjustedNt3Type = BasicsAndSecurityCheck(language, "ipv4", securityTestStatus)
 		} else if preCheck.Connected && preCheck.StackType == "IPv6" {
-			_, _, basicInfo, securityInfo, _ = BasicsAndSecurityCheck(language, "ipv6", securityTestStatus)
+			ipv4, ipv6, basicInfo, securityInfo, adjustedNt3Type = BasicsAndSecurityCheck(language, "ipv6", securityTestStatus)
 		} else {
-			_, _, basicInfo, securityInfo, _ = BasicsAndSecurityCheck(language, "", false)
+			ipv4, ipv6, basicInfo, securityInfo, adjustedNt3Type = BasicsAndSecurityCheck(language, "", false)
 			securityTestStatus = false
+		}
+		e.syncDetectedIPs(ipv4, ipv6)
+		if adjustedNt3Type != "" {
+			effectiveNt3Type = normalizeNT3Type(adjustedNt3Type)
 		}
 		if basicStatus {
 			fmt.Printf("%s", basicInfo)
@@ -616,7 +626,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		} else {
 			PrintCenteredTitle("NextTrace-3Networks-Check", width)
 		}
-		e.core.NextTrace3Check(language, config.Nt3Location, config.Nt3Type)
+		e.core.NextTrace3Check(language, config.Nt3Location, effectiveNt3Type)
 		outputMutex.Unlock()
 		tracker.finish("progress.nt3")
 	}
@@ -702,11 +712,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 			PrintCenteredTitle("Speed-Test", width)
 		}
 		e.core.SpeedTestShowHead(language)
-
-		// 根据上传/下载配置进行测试
-		if testUpload || testDownload {
-			runSpeedProfile(e.core, config, language)
-		}
+		runSpeedProfile(e.core, config, language)
 		outputMutex.Unlock()
 		tracker.finish("progress.speed")
 	}
@@ -747,11 +753,13 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 	if config.EnableUpload && preCheck.Connected {
 		tracker.start("progress.upload")
 		outputMutex.Lock()
+		uploadPath := safeUploadFilePath(config.FilePath)
 		uploadConfig := e.core.NewConfig(ecsVersion)
 		uploadConfig.Language = language
-		uploadConfig.FilePath = config.FilePath
+		uploadConfig.FilePath = uploadPath
 		uploadConfig.EnableUpload = true
 		e.core.HandleUploadResults(uploadConfig, capturedOutput())
+		_ = os.Remove(uploadPath)
 		outputMutex.Unlock()
 		tracker.finish("progress.upload")
 	}
@@ -767,6 +775,137 @@ func resultCaptureLimit() int {
 		return 2 * 1024 * 1024
 	}
 	return 8 * 1024 * 1024
+}
+
+func normalizeNT3Type(checkType string) string {
+	switch strings.ToLower(strings.TrimSpace(checkType)) {
+	case "ipv6":
+		return "ipv6"
+	case "both":
+		return "both"
+	default:
+		return "ipv4"
+	}
+}
+
+func effectiveNT3TypeForStack(requested, stack string) string {
+	requested = normalizeNT3Type(requested)
+	switch stack {
+	case "IPv4":
+		return "ipv4"
+	case "IPv6":
+		return "ipv6"
+	default:
+		return requested
+	}
+}
+
+func needsNetworkIdentityProbe(connected, basicStatus, securityStatus, unlockStatus, backtraceStatus bool) bool {
+	if !connected || basicStatus || securityStatus {
+		return false
+	}
+	return unlockStatus || backtraceStatus
+}
+
+func checkCancelledWithContext(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *CommandExecutor) resetDetectedNetworkState() {
+	e.syncDetectedIPs("", "")
+}
+
+func (e *CommandExecutor) syncDetectedIPs(ipv4, ipv6 string) {
+	ipv4 = strings.TrimSpace(ipv4)
+	ipv6 = strings.TrimSpace(ipv6)
+	if e.core != nil {
+		e.core.SetIPv4Address(ipv4)
+		e.core.SetIPv6Address(ipv6)
+	}
+	unlockexecutor.IPV4 = ipv4 != ""
+	unlockexecutor.IPV6 = ipv6 != ""
+}
+
+func safeUploadFilePath(input string) string {
+	base := sanitizeUploadFileName(input)
+	return filepath.Join(os.TempDir(), fmt.Sprintf("goecs-gui-%d-%s", os.Getpid(), base))
+}
+
+func sanitizeUploadFileName(input string) string {
+	const fallback = "goecs.md"
+
+	name := strings.TrimSpace(strings.ReplaceAll(input, "\\", "/"))
+	name = filepath.Base(name)
+	if name == "" || name == "." || name == ".." || strings.HasPrefix(name, ".") || isSensitiveUploadFileName(name) {
+		return fallback
+	}
+
+	var b strings.Builder
+	lastDash := false
+	for _, r := range name {
+		allowed := (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '.' || r == '_' || r == '-' || r == ' '
+		if allowed {
+			b.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			b.WriteByte('-')
+			lastDash = true
+		}
+	}
+
+	name = strings.Trim(b.String(), " .-_")
+	if name == "" {
+		return fallback
+	}
+
+	ext := strings.ToLower(filepath.Ext(name))
+	switch ext {
+	case ".md", ".txt":
+	case "":
+		name += ".md"
+	default:
+		name = strings.TrimSuffix(name, filepath.Ext(name)) + ".md"
+	}
+
+	if len(name) > 96 {
+		ext = filepath.Ext(name)
+		stem := strings.TrimSuffix(name, ext)
+		maxStem := 96 - len(ext)
+		if maxStem < 1 {
+			return fallback
+		}
+		name = stem[:maxStem] + ext
+	}
+
+	return name
+}
+
+func isSensitiveUploadFileName(name string) bool {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	stem := strings.TrimSuffix(lower, filepath.Ext(lower))
+	switch stem {
+	case "passwd", "shadow", "id_rsa", "id_ed25519":
+		return true
+	}
+	for _, marker := range []string{"password", "passwd", "secret", "token", "credential", "keystore"} {
+		if strings.Contains(stem, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func setComponentLogging(enabled bool) {

@@ -6,19 +6,41 @@ BUILD_TYPE=${1:-"desktop"}
 FYNE_BUILD_FLAGS_DEFAULT="-trimpath -buildvcs=false -ldflags '-checklinkname=0 -s -w -buildid='"
 APP_ID="com.oneclickvirt.goecs"
 APP_NAME="goecs"
+FYNE_CMD=${FYNE_CMD:-fyne}
 
 # 检查 Fyne CLI 是否安装
 check_fyne_cli() {
-    if ! command -v fyne &> /dev/null; then
-        echo "正在安装 Fyne CLI..."
+    if command -v "$FYNE_CMD" &> /dev/null && "$FYNE_CMD" package --help 2>&1 | grep -q -- "--app-id"; then
+        echo "Fyne CLI 已安装"
+        return
+    fi
+
+    local go_bin
+    go_bin="$(go env GOPATH)/bin"
+    echo "正在安装 Fyne CLI..."
+    go install fyne.io/tools/cmd/fyne@latest
+    if [ $? -ne 0 ]; then
+        echo "Fyne CLI 安装失败"
+        exit 1
+    fi
+
+    FYNE_CMD="${go_bin}/fyne"
+    if ! command -v "$FYNE_CMD" &> /dev/null || ! "$FYNE_CMD" package --help 2>&1 | grep -q -- "--app-id"; then
+        echo "Fyne CLI 安装后仍不可用或不支持 --app-id"
+        exit 1
+    fi
+    export FYNE_CMD
+    echo "Fyne CLI 安装成功"
+}
+
+ensure_fyne_cli() {
+    if ! command -v "$FYNE_CMD" &> /dev/null || ! "$FYNE_CMD" package --help 2>&1 | grep -q -- "--app-id"; then
         go install fyne.io/tools/cmd/fyne@latest
-        if [ $? -ne 0 ]; then
-            echo "Fyne CLI 安装失败"
+        FYNE_CMD="$(go env GOPATH)/bin/fyne"
+        if ! command -v "$FYNE_CMD" &> /dev/null || ! "$FYNE_CMD" package --help 2>&1 | grep -q -- "--app-id"; then
+            echo "Fyne CLI 不可用或不支持 --app-id"
             exit 1
         fi
-        echo "Fyne CLI 安装成功"
-    else
-        echo "Fyne CLI 已安装"
     fi
 }
 
@@ -64,6 +86,7 @@ get_version() {
 
 # macOS 构建
 build_macos() {
+    ensure_fyne_cli
     VERSION=$(get_version)
     APP_VERSION=$(get_app_version)
     echo "=========================================="
@@ -74,7 +97,7 @@ build_macos() {
     
     echo ""
     echo "构建 macOS ARM64 版本..."
-    GOOS=darwin GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=darwin GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os darwin -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.app ] || [ -d goecs.app ]; then
         GZIP=-9 tar -czf goecs-macos-arm64-${VERSION}.tar.gz goecs.app
         rm -rf goecs.app
@@ -86,7 +109,7 @@ build_macos() {
     
     echo ""
     echo "构建 macOS AMD64 版本..."
-    GOOS=darwin GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os darwin -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=darwin GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os darwin -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.app ] || [ -d goecs.app ]; then
         GZIP=-9 tar -czf goecs-macos-amd64-${VERSION}.tar.gz goecs.app
         rm -rf goecs.app
@@ -99,6 +122,7 @@ build_macos() {
 
 # Windows 构建
 build_windows() {
+    ensure_fyne_cli
     VERSION=$(get_version)
     APP_VERSION=$(get_app_version)
     echo "=========================================="
@@ -109,7 +133,7 @@ build_windows() {
     
     echo ""
     echo "构建 Windows ARM64 版本..."
-    GOOS=windows GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=windows GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os windows -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.exe ]; then
         mv goecs.exe goecs-windows-arm64-${VERSION}.exe
         echo "✓ Windows ARM64 构建成功"
@@ -120,7 +144,7 @@ build_windows() {
     
     echo ""
     echo "构建 Windows AMD64 版本..."
-    GOOS=windows GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os windows -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=windows GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os windows -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.exe ]; then
         mv goecs.exe goecs-windows-amd64-${VERSION}.exe
         echo "✓ Windows AMD64 构建成功"
@@ -132,6 +156,7 @@ build_windows() {
 
 # Linux 构建
 build_linux() {
+    ensure_fyne_cli
     VERSION=$(get_version)
     APP_VERSION=$(get_app_version)
     echo "=========================================="
@@ -142,7 +167,7 @@ build_linux() {
     
     echo ""
     echo "构建 Linux ARM64 版本..."
-    GOOS=linux GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=linux GOARCH=arm64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os linux -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.tar.xz ]; then
         mv goecs.tar.xz goecs-linux-arm64-${VERSION}.tar.xz
         echo "✓ Linux ARM64 构建成功"
@@ -153,7 +178,7 @@ build_linux() {
     
     echo ""
     echo "构建 Linux AMD64 版本..."
-    GOOS=linux GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os linux -name "$APP_NAME" --app-version "$APP_VERSION"
+    GOOS=linux GOARCH=amd64 FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os linux -name "$APP_NAME" --app-id "$APP_ID" --app-version "$APP_VERSION"
     if [ -f goecs.tar.xz ]; then
         mv goecs.tar.xz goecs-linux-amd64-${VERSION}.tar.xz
         echo "✓ Linux AMD64 构建成功"
@@ -165,6 +190,7 @@ build_linux() {
 
 # Android 构建
 build_android() {
+    ensure_fyne_cli
     VERSION=$(get_version)
     APP_VERSION=$(get_app_version)
     echo "=========================================="
@@ -185,7 +211,7 @@ build_android() {
     echo "构建 Android APK..."
     
     # 构建包含所有架构的 APK
-    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" fyne package -os android --app-id "$APP_ID" --app-version "$APP_VERSION"
+    FYNE_BUILD_FLAGS="$FYNE_BUILD_FLAGS_DEFAULT" "$FYNE_CMD" package -os android --app-id "$APP_ID" --app-version "$APP_VERSION"
     
     if [ -f *.apk ]; then
         mv *.apk ecs-gui-android-${VERSION}.apk
@@ -249,4 +275,10 @@ echo "  所有构建任务完成"
 echo "=========================================="
 echo ""
 echo "构建产物:"
-ls -lh goecs-* 2>/dev/null || echo "无构建产物"
+ARTIFACTS=$(find . -maxdepth 1 -type f \( -name 'goecs-*' -o -name 'ecs-gui-*' \) -print | sort)
+if [ -n "$ARTIFACTS" ]; then
+    # shellcheck disable=SC2086
+    ls -lh $ARTIFACTS
+else
+    echo "无构建产物"
+fi

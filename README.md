@@ -16,6 +16,28 @@
 - 支持中文/英文界面和深色/浅色主题
 - Android 支持测试完成系统通知，Windows 会在需要时请求 UAC 管理员启动
 
+## 快速开始
+
+1. 安装 Go 1.25.4 或更高版本。
+2. 克隆仓库并进入 `ecs-gui` 目录。
+3. 运行 `go mod download` 下载依赖。
+4. 运行 `go run -ldflags="-checklinkname=0" .` 启动开发版。
+5. 需要本机产物时运行 `./build.sh desktop`。
+
+## 架构概览
+
+```mermaid
+flowchart LR
+  User["用户"] --> App["Fyne App<br/>main.go"]
+  App --> UI["UI 层<br/>ui/"]
+  UI --> Executor["CommandExecutor<br/>进度/取消/输出捕获"]
+  Executor --> Core["CoreRunner 接口"]
+  Core --> ECS["goecs 与测试模块"]
+  Executor --> Terminal["终端结果视图"]
+  Terminal --> Export["复制/导出/分享"]
+  UI --> Build["FyneApp.toml<br/>build.sh / GitHub Actions"]
+```
+
 ## 支持平台
 
 ### Android
@@ -89,6 +111,20 @@ go install fyne.io/tools/cmd/fyne@latest
 - `FyneApp.toml` 的 `Version` 应与 `VERSION` 保持一致
 - GitHub Actions 发布标签使用 `vYYYYMMDD-HHMMSS`
 
+### 环境变量与 CI Secrets
+
+| 名称 | 位置 | 是否必需 | 用途 |
+|------|------|----------|------|
+| `ANDROID_NDK_HOME` | 本地/CI | 仅 Android 构建 | 指向 Android NDK 25.2.9519653 |
+| `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` | CI | 是 | 提前启用 Node 24 Actions 运行时 |
+| `GOPRIVATE` | CI | 私有模块构建必需 | 允许下载 `github.com/oneclickvirt/security` 等私有模块 |
+| `GHT` | GitHub Secret | CI 必需 | 访问私有 Go 模块和签名仓库 |
+| `KEYSTORE_PASSWORD` | GitHub Secret | Android 签名必需 | APK keystore 密码 |
+| `KEY_PASSWORD` | GitHub Secret | Android 签名必需 | APK key alias 密码 |
+| `GITHUB_TOKEN` | GitHub 自动注入 | CI 必需 | 创建 Release 和上传产物 |
+| `APPLE_ID` / `APPLE_TEAM_ID` / `APPLE_APP_PASSWORD` | GitHub Secret | macOS 公证可选 | 参考 macOS 签名文档 |
+| `MACOS_CERTIFICATE_P12` / `MACOS_CERTIFICATE_PASSWORD` | GitHub Secret | macOS 签名可选 | 参考 macOS 签名文档 |
+
 ### 构建产物说明
 
 - Android: APK 安装包
@@ -119,3 +155,14 @@ go mod download
 # 运行桌面版本 (用于开发测试)
 go run -ldflags="-checklinkname=0" .
 ```
+
+## FAQ
+
+- 为什么开发运行需要 `-ldflags="-checklinkname=0"`？
+  上游依赖包含 `linkname` 用法，当前 Go 工具链需要显式放宽检查。
+- 项目是否使用数据库？
+  不使用。当前没有 DB 初始化、迁移或连接池逻辑。
+- 分享链接有什么限制？
+  GUI 会把导出的 Markdown 结果上传到分享服务，单次上传限制为 25KB。
+- macOS 为什么会提示未签名？
+  默认 Actions 产物未签名；生产分发请按 [macOS 签名文档](docs/macos-signing.zh.md) 配置证书和公证。

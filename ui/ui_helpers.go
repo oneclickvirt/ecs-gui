@@ -198,8 +198,6 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"speed":        ui.SpeedCheck.Checked,
 			"ping":         ui.PingCheck.Checked,
 			"diskMulti":    ui.DiskMultiCheck.Checked,
-			"spUp":         ui.SpTestUploadCheck.Checked,
-			"spDown":       ui.SpTestDownloadCheck.Checked,
 			"chinaMode":    ui.ChinaModeCheck.Checked,
 			"pingTgdc":     ui.PingTgdcCheck.Checked,
 			"pingWeb":      ui.PingWebCheck.Checked,
@@ -264,8 +262,6 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.SpeedCheck.Checked = state.checks["speed"]
 	ui.PingCheck.Checked = state.checks["ping"]
 	ui.DiskMultiCheck.Checked = state.checks["diskMulti"]
-	ui.SpTestUploadCheck.Checked = state.checks["spUp"]
-	ui.SpTestDownloadCheck.Checked = state.checks["spDown"]
 	ui.ChinaModeCheck.Checked = state.checks["chinaMode"]
 	ui.PingTgdcCheck.Checked = state.checks["pingTgdc"]
 	ui.PingWebCheck.Checked = state.checks["pingWeb"]
@@ -475,8 +471,6 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 	return ExecutionConfig{
 		SelectedOptions:  ui.GetSelectedOptions(),
 		Language:         language,
-		TestUpload:       ui.SpTestUploadCheck.Checked,
-		TestDownload:     ui.SpTestDownloadCheck.Checked,
 		ChinaModeEnabled: ui.ChinaModeCheck.Checked,
 		AutoDiskMethod:   ui.AutoDiskMethodCheck.Checked,
 		CpuMethod:        cpuMethod,

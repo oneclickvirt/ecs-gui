@@ -6,10 +6,17 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
+permissions:
+  contents: write
+
 jobs:
   prepare:
     name: Prepare Version and Create Release
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-prepare-${{ github.ref }}
+      cancel-in-progress: false
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
       app_version: ${{ steps.version.outputs.APP_VERSION }}
@@ -81,6 +88,10 @@ jobs:
     name: Build Android APK
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: ${{ github.workflow }}-android-${{ github.ref }}
+      cancel-in-progress: false
     
     steps:
       - name: Checkout code
@@ -303,6 +314,10 @@ jobs:
     name: Build Desktop Apps
     needs: prepare
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.ref }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -424,7 +439,7 @@ jobs:
             
             echo "Packaging macOS app with fyne..."
             # 在根目录运行 fyne package，指定编译好的二进制文件路径
-            fyne package -os darwin -name ecs-gui --exe "$BUILD_DIR/ecs-gui-bin" --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            fyne package -os darwin -name ecs-gui --app-id com.oneclickvirt.goecs --exe "$BUILD_DIR/ecs-gui-bin" --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             if [ -d "ecs-gui.app" ]; then
               TARFILE="ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
@@ -455,7 +470,7 @@ jobs:
             
             echo "Packaging Linux app with fyne..."
             # 在根目录运行 fyne package，指定编译好的二进制文件路径
-            fyne package -os linux -name ecs-gui --exe "$BUILD_DIR/ecs-gui" --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            fyne package -os linux -name ecs-gui --app-id com.oneclickvirt.goecs --exe "$BUILD_DIR/ecs-gui" --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             # 查找生成的 tar.xz 文件
             if [ -f "ecs-gui.tar.xz" ]; then
@@ -472,7 +487,7 @@ jobs:
             # Windows 构建
             echo "Building ${{ matrix.platform }} with fyne package..."
             # 在根目录运行 fyne package
-            fyne package -os ${{ matrix.platform }} -name ecs-gui --app-version "${{ needs.prepare.outputs.app_version }}" --release
+            fyne package -os ${{ matrix.platform }} -name ecs-gui --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             if [ "${{ matrix.platform }}" == "windows" ]; then
               if [ -f "ecs-gui.exe" ]; then

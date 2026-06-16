@@ -267,13 +267,6 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.AnalyzeResultCheck = widget.NewCheck(ui.tr("check.analysis"), nil)
 	ui.AnalyzeResultCheck.Checked = false
 
-	// 速度测试上传下载控制
-	ui.SpTestUploadCheck = widget.NewCheck(ui.tr("check.sp_up"), nil)
-	ui.SpTestUploadCheck.Checked = true
-
-	ui.SpTestDownloadCheck = widget.NewCheck(ui.tr("check.sp_down"), nil)
-	ui.SpTestDownloadCheck.Checked = true
-
 	// 中国模式
 	ui.ChinaModeCheck = widget.NewCheck(ui.tr("check.china_mode"), nil)
 	ui.ChinaModeCheck.Checked = false
@@ -355,8 +348,6 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			widget.NewLabel(ui.tr("label.sp_num")),
 			ui.SpNumEntry,
 		),
-		ui.SpTestUploadCheck,
-		ui.SpTestDownloadCheck,
 	)
 
 	unlockContent := container.NewGridWithColumns(2,

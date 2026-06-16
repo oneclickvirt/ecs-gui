@@ -12,8 +12,6 @@ import (
 type ExecutionConfig struct {
 	SelectedOptions  map[string]bool
 	Language         string
-	TestUpload       bool
-	TestDownload     bool
 	ChinaModeEnabled bool
 	AutoDiskMethod   bool
 	CpuMethod        string
@@ -88,9 +86,6 @@ type TestUI struct {
 	OutputFileEntry     *widget.Entry
 	ResultUploadCheck   *widget.Check
 	AnalyzeResultCheck  *widget.Check
-	// 速度测试配置
-	SpTestUploadCheck   *widget.Check // 测试上传速度
-	SpTestDownloadCheck *widget.Check // 测试下载速度
 	// 中国模式
 	ChinaModeCheck *widget.Check // 启用中国专项测试
 

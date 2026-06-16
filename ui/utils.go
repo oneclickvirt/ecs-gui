@@ -110,6 +110,11 @@ func BasicsAndSecurityCheck(language, nt3CheckType string, securityCheckStatus b
 	return utils.BasicsAndSecurityCheck(language, nt3CheckType, securityCheckStatus)
 }
 
+// OnlyBasicsIpInfo detects public IPv4/IPv6 addresses without printing full system details.
+func OnlyBasicsIpInfo(language string) (string, string, string) {
+	return utils.OnlyBasicsIpInfo(language)
+}
+
 // joinStrings joins a slice of strings with the given separator.
 func joinStrings(parts []string, sep string) string {
 	result := ""

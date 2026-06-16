@@ -11,6 +11,42 @@ ecs-gui-*
 *.tar.xz
 dist/
 build-*/
+.cache/
+
+# Local secrets and runtime data
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+*.mobileprovision
+secrets/
+private/
+credentials/
+*.credentials
+*.password
+*.passwd
+*.secret
+*.token
+password.txt
+passwd.txt
+secret.txt
+token.txt
+
+# Local screenshots and manual QA captures
+screenshots/
+screenshot/
+*-screenshot.*
+*.screenshot.*
 
 # Vendor
 vendor/

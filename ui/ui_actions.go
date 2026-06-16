@@ -39,9 +39,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("2")
 	case "minimal":
 		// 对应原goecs.go的选项2: SetMinimalTestStatus
@@ -54,9 +51,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("5")
 	case "standard":
 		// 对应原goecs.go的选项3: SetStandardTestStatus
@@ -71,9 +65,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("5")
 	case "network_focus":
 		// 对应原goecs.go的选项4: SetNetworkFocusedTestStatus
@@ -88,9 +79,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("5")
 	case "unlock_focus":
 		// 对应原goecs.go的选项5: SetUnlockFocusedTestStatus
@@ -105,9 +93,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("5")
 	case "network_only":
 		// 对应原goecs.go的选项6: SetNetworkOnlyTestStatus
@@ -121,9 +106,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：全部启用
-		ui.SpTestUploadCheck.Checked = true
-		ui.SpTestDownloadCheck.Checked = true
 		ui.SpNumEntry.SetText("11")
 	case "unlock_only":
 		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
@@ -133,9 +115,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：禁用
-		ui.SpTestUploadCheck.Checked = false
-		ui.SpTestDownloadCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "hardware_only":
 		// 对应原goecs.go的选项8: SetHardwareOnlyTestStatus
@@ -149,9 +128,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：禁用
-		ui.SpTestUploadCheck.Checked = false
-		ui.SpTestDownloadCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "ip_quality":
 		// 对应原goecs.go的选项9: SetIPQualityTestStatus
@@ -162,9 +138,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：禁用
-		ui.SpTestUploadCheck.Checked = false
-		ui.SpTestDownloadCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "route_only":
 		// 对应原goecs.go的选项10: SetRouteTestStatus + nt3Location = "ALL"
@@ -177,9 +150,6 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingWebCheck.Checked = true
 		ui.Nt3LocationSelect.SetSelected("ALL") // 设置为全部地点
 		ui.ChinaModeCheck.Checked = false
-		// 测速配置：禁用
-		ui.SpTestUploadCheck.Checked = false
-		ui.SpTestDownloadCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	default: // 自定义
 		return
@@ -275,12 +245,6 @@ func (ui *TestUI) refreshAllChecks() {
 
 // refreshSpeedTestChecks 刷新测速配置的显示
 func (ui *TestUI) refreshSpeedTestChecks() {
-	if ui.SpTestUploadCheck != nil {
-		ui.SpTestUploadCheck.Refresh()
-	}
-	if ui.SpTestDownloadCheck != nil {
-		ui.SpTestDownloadCheck.Refresh()
-	}
 	if ui.PingTgdcCheck != nil {
 		ui.PingTgdcCheck.Refresh()
 	}
@@ -361,7 +325,9 @@ func (ui *TestUI) startTests() {
 
 	// 在新 goroutine 中运行测试
 	go ui.runTestsWithExecutor(config)
-} // stopTests 停止正在执行的测试
+}
+
+// stopTests 停止正在执行的测试
 func (ui *TestUI) stopTests() {
 	ui.Mu.Lock()
 	if !ui.IsRunning {

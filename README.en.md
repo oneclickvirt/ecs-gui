@@ -16,6 +16,28 @@ Upstream project: https://github.com/oneclickvirt/ecs
 - Switch between Chinese/English UI and light/dark themes
 - Send completion notifications on Android and request Windows UAC elevation when privileged tests need it
 
+## Quick Start
+
+1. Install Go 1.25.4 or newer.
+2. Clone the repository and enter the `ecs-gui` directory.
+3. Run `go mod download`.
+4. Run `go run -ldflags="-checklinkname=0" .` for a development build.
+5. Run `./build.sh desktop` when you need a local desktop artifact.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  User["User"] --> App["Fyne App<br/>main.go"]
+  App --> UI["UI layer<br/>ui/"]
+  UI --> Executor["CommandExecutor<br/>progress/cancel/output capture"]
+  Executor --> Core["CoreRunner interface"]
+  Core --> ECS["goecs and test modules"]
+  Executor --> Terminal["Terminal result view"]
+  Terminal --> Export["Copy/export/share"]
+  UI --> Build["FyneApp.toml<br/>build.sh / GitHub Actions"]
+```
+
 ## Supported Platforms
 
 ### Android
@@ -79,6 +101,20 @@ Version sources:
 - `FyneApp.toml` `Version` should stay in sync with `VERSION`
 - GitHub Actions release tags use `vYYYYMMDD-HHMMSS`
 
+### Environment Variables and CI Secrets
+
+| Name | Location | Required | Purpose |
+|------|----------|----------|---------|
+| `ANDROID_NDK_HOME` | Local/CI | Android builds only | Points to Android NDK 25.2.9519653 |
+| `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` | CI | Yes | Opts into the Node 24 Actions runtime |
+| `GOPRIVATE` | CI | Private module builds | Allows downloading private modules such as `github.com/oneclickvirt/security` |
+| `GHT` | GitHub Secret | CI | Accesses private Go modules and the signing keystore repository |
+| `KEYSTORE_PASSWORD` | GitHub Secret | Android signing | APK keystore password |
+| `KEY_PASSWORD` | GitHub Secret | Android signing | APK key alias password |
+| `GITHUB_TOKEN` | GitHub-provided | CI | Creates releases and uploads artifacts |
+| `APPLE_ID` / `APPLE_TEAM_ID` / `APPLE_APP_PASSWORD` | GitHub Secret | Optional macOS notarization | See the macOS signing guide |
+| `MACOS_CERTIFICATE_P12` / `MACOS_CERTIFICATE_PASSWORD` | GitHub Secret | Optional macOS signing | See the macOS signing guide |
+
 ## Development
 
 ```bash
@@ -87,3 +123,14 @@ cd ecs-gui
 go mod download
 go run -ldflags="-checklinkname=0" .
 ```
+
+## FAQ
+
+- Why does development use `-ldflags="-checklinkname=0"`?
+  An upstream dependency uses `linkname`; the current Go toolchain requires this check to be relaxed explicitly.
+- Does this project use a database?
+  No. The current app has no DB initialization, migrations, or connection pool logic.
+- What is the share link limit?
+  The GUI uploads the exported Markdown result to the share service, with a 25KB limit per upload.
+- Why are macOS artifacts unsigned?
+  GitHub Actions artifacts are unsigned by default. Configure certificates and notarization with [the macOS signing guide](docs/macos-signing.en.md) for production distribution.

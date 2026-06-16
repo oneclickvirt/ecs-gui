@@ -14,6 +14,8 @@ type CoreRunner interface {
 	SpeedTestCustom(platform, operator string, num int, language string)
 	NewConfig(version string) *ecsapi.Config
 	HandleUploadResults(config *ecsapi.Config, output string)
+	SetIPv4Address(ipv4 string)
+	SetIPv6Address(ipv6 string)
 }
 
 type ecsCoreRunner struct{}
@@ -60,4 +62,12 @@ func (ecsCoreRunner) NewConfig(version string) *ecsapi.Config {
 
 func (ecsCoreRunner) HandleUploadResults(config *ecsapi.Config, output string) {
 	ecsapi.HandleUploadResults(config, output)
+}
+
+func (ecsCoreRunner) SetIPv4Address(ipv4 string) {
+	ecsapi.SetIPv4Address(ipv4)
+}
+
+func (ecsCoreRunner) SetIPv6Address(ipv6 string) {
+	ecsapi.SetIPv6Address(ipv6)
 }

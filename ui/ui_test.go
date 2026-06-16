@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"fyne.io/fyne/v2/test"
 )
@@ -73,6 +77,169 @@ func TestBuildProgressStepsHonorsChinaMode(t *testing.T) {
 	}
 	if !strings.Contains(joined, "progress.ping") {
 		t.Fatal("china mode should force ping progress step")
+	}
+}
+
+func TestEffectiveNT3TypeForStack(t *testing.T) {
+	cases := []struct {
+		requested string
+		stack     string
+		want      string
+	}{
+		{"both", "IPv4", "ipv4"},
+		{"both", "IPv6", "ipv6"},
+		{"ipv6", "IPv4", "ipv4"},
+		{"ipv4", "IPv6", "ipv6"},
+		{"both", "DualStack", "both"},
+		{"unexpected", "DualStack", "ipv4"},
+	}
+
+	for _, tt := range cases {
+		if got := effectiveNT3TypeForStack(tt.requested, tt.stack); got != tt.want {
+			t.Fatalf("effectiveNT3TypeForStack(%q, %q) = %q, want %q", tt.requested, tt.stack, got, tt.want)
+		}
+	}
+}
+
+func TestBuildProgressStepsSkipsNetworkStagesWhenOffline(t *testing.T) {
+	steps := buildProgressSteps(ExecutionConfig{
+		SelectedOptions: map[string]bool{
+			"basic":     true,
+			"unlock":    true,
+			"security":  true,
+			"email":     true,
+			"backtrace": true,
+			"nt3":       true,
+			"speed":     true,
+		},
+		EnableUpload: true,
+	}, false)
+
+	joined := strings.Join(steps, ",")
+	for _, key := range []string{"progress.unlock", "progress.email", "progress.backtrace", "progress.nt3", "progress.speed", "progress.upload"} {
+		if strings.Contains(joined, key) {
+			t.Fatalf("offline progress steps should not include %s: %v", key, steps)
+		}
+	}
+	if !strings.Contains(joined, "progress.basic_security") {
+		t.Fatalf("offline progress should still include local basic/security step: %v", steps)
+	}
+}
+
+func TestNeedsNetworkIdentityProbe(t *testing.T) {
+	cases := []struct {
+		name            string
+		connected       bool
+		basicStatus     bool
+		securityStatus  bool
+		unlockStatus    bool
+		backtraceStatus bool
+		want            bool
+	}{
+		{name: "single unlock needs hidden ip probe", connected: true, unlockStatus: true, want: true},
+		{name: "single backtrace needs hidden ip probe", connected: true, backtraceStatus: true, want: true},
+		{name: "basic already probes ip", connected: true, basicStatus: true, unlockStatus: true, want: false},
+		{name: "security already probes ip", connected: true, securityStatus: true, backtraceStatus: true, want: false},
+		{name: "offline skips probe", connected: false, unlockStatus: true, backtraceStatus: true, want: false},
+		{name: "speed does not need ip identity", connected: true, want: false},
+	}
+
+	for _, tt := range cases {
+		got := needsNetworkIdentityProbe(tt.connected, tt.basicStatus, tt.securityStatus, tt.unlockStatus, tt.backtraceStatus)
+		if got != tt.want {
+			t.Fatalf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestCollectExecutionConfigKeepsManualSpeedSelection(t *testing.T) {
+	ui := newTestUIForTest(t)
+
+	ui.onPresetChanged(ui.presetLabelByKey("hardware_only"))
+	ui.SpeedCheck.Checked = true
+
+	config := ui.collectExecutionConfig()
+	if !config.SelectedOptions["speed"] {
+		t.Fatal("manually selected speed test should remain enabled in execution config")
+	}
+}
+
+func TestSetProgressClampsFractionAndShowsCurrentItem(t *testing.T) {
+	ui := newTestUIForTest(t)
+
+	ui.setProgress(ProgressUpdate{
+		ItemKey:  "progress.cpu",
+		Current:  5,
+		Total:    3,
+		Fraction: 2,
+	})
+
+	if ui.ProgressBar.Value != 1 {
+		t.Fatalf("expected progress to clamp to 1, got %f", ui.ProgressBar.Value)
+	}
+	if !strings.Contains(ui.CurrentItem.Text, "CPU") || !strings.Contains(ui.CurrentItem.Text, "5/3") {
+		t.Fatalf("current item did not render progress details: %q", ui.CurrentItem.Text)
+	}
+
+	ui.setProgress(ProgressUpdate{ItemKey: "progress.memory", Fraction: -1})
+	if ui.ProgressBar.Value != 0 {
+		t.Fatalf("expected progress to clamp to 0, got %f", ui.ProgressBar.Value)
+	}
+}
+
+func TestSafeUploadFilePathUsesTempDirAndSanitizesName(t *testing.T) {
+	path := safeUploadFilePath("/etc/passwd")
+	if filepath.Clean(filepath.Dir(path)) != filepath.Clean(os.TempDir()) {
+		t.Fatalf("upload path should be in temp dir, got %q", path)
+	}
+	if filepath.Base(path) == "passwd" || !strings.HasSuffix(filepath.Base(path), ".md") {
+		t.Fatalf("upload filename should be sanitized and markdown-like, got %q", filepath.Base(path))
+	}
+	if strings.Contains(path, "/etc/") {
+		t.Fatalf("upload path should not preserve unsafe source directories: %q", path)
+	}
+
+	if got := sanitizeUploadFileName(".env"); got != "goecs.md" {
+		t.Fatalf("hidden/sensitive filenames should use fallback, got %q", got)
+	}
+	if got := sanitizeUploadFileName("my-token.txt"); got != "goecs.md" {
+		t.Fatalf("sensitive filenames should use fallback, got %q", got)
+	}
+	if got := sanitizeUploadFileName("report?.html"); got != "report-.md" {
+		t.Fatalf("unexpected sanitized name: %q", got)
+	}
+}
+
+func TestFriendlyErrorMessageBuckets(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.uiLang = langEN
+
+	cases := []struct {
+		err  error
+		want string
+	}{
+		{errors.New("permission denied"), ui.tr("error.permission")},
+		{errors.New("network connection reset"), ui.tr("error.network")},
+		{errors.New("context deadline timeout"), ui.tr("error.timeout")},
+		{errors.New("cancelled by user"), ui.tr("error.cancelled")},
+		{errors.New("unexpected failure"), ui.tr("error.generic")},
+	}
+	for _, tt := range cases {
+		if got := ui.friendlyErrorMessage(tt.err); got != tt.want {
+			t.Fatalf("friendlyErrorMessage(%q) = %q, want %q", tt.err, got, tt.want)
+		}
+	}
+}
+
+func TestFormatHumanDurationLanguages(t *testing.T) {
+	if got := formatHumanDuration(75*time.Second, langEN); got != "1 min 15 sec" {
+		t.Fatalf("unexpected english duration: %q", got)
+	}
+	if got := formatHumanDuration(9*time.Second, langZH); got != "9 秒" {
+		t.Fatalf("unexpected chinese duration: %q", got)
+	}
+	if got := formatHumanDuration(-time.Second, langEN); got != "0 sec" {
+		t.Fatalf("negative duration should clamp to zero, got %q", got)
 	}
 }
 

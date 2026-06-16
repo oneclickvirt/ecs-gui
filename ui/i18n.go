@@ -123,8 +123,6 @@ var i18nText = map[string]map[string]string{
 	"check.log":            {"zh": "启用日志记录", "en": "Enable Logging"},
 	"check.disk_multi":     {"zh": "启用多磁盘检测", "en": "Enable Multi-Disk"},
 	"check.auto_disk":      {"zh": "磁盘方法失败自动切换", "en": "Auto Switch Disk Method"},
-	"check.sp_up":          {"zh": "测试上传速度", "en": "Test Upload"},
-	"check.sp_down":        {"zh": "测试下载速度", "en": "Test Download"},
 	"check.china_mode":     {"zh": "启用中国专项测试", "en": "Enable China Mode"},
 	"check.ping_tgdc":      {"zh": "测试Telegram DC", "en": "Test Telegram DC"},
 	"check.ping_web":       {"zh": "测试流行网站", "en": "Test Popular Sites"},
@@ -171,7 +169,7 @@ var i18nText = map[string]map[string]string{
 	"config.route.title":   {"zh": "回程路由", "en": "Route"},
 	"config.route.sub":     {"zh": "地区与协议栈", "en": "Location and stack"},
 	"config.speed.title":   {"zh": "测速", "en": "Speed"},
-	"config.speed.sub":     {"zh": "节点数量与上传下载开关", "en": "Nodes and upload/download"},
+	"config.speed.sub":     {"zh": "测速节点数量", "en": "Speed test node count"},
 	"config.ping.title":    {"zh": "PING 扩展", "en": "Ping Extensions"},
 	"config.ping.sub":      {"zh": "三网 PING 之外的附加测试", "en": "Additional ping checks"},
 
@@ -188,7 +186,7 @@ var i18nText = map[string]map[string]string{
 	"label.unlock_region": {"zh": "测试地区", "en": "Region"},
 	"label.unlock_ip_ver": {"zh": "IP 版本", "en": "IP Version"},
 	"label.output_width":  {"zh": "输出宽度", "en": "Output Width"},
-	"label.output_file":   {"zh": "结果文件名", "en": "Result File"},
+	"label.output_file":   {"zh": "上传临时文件名", "en": "Upload Temp File"},
 
 	"placeholder.disk_path":    {"zh": "/tmp 或留空自动检测", "en": "/tmp or empty for auto"},
 	"placeholder.sp_num":       {"zh": "每运营商测速节点数", "en": "Nodes per ISP"},
