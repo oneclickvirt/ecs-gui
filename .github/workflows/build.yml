@@ -142,21 +142,21 @@ jobs:
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
           module_ref() {
             case "$1" in
-              ecs) echo "v0.1.150" ;;
-              UnlockTests) echo "v0.0.41-20260720103959" ;;
-              backtrace) echo "v0.0.11-20260720103959" ;;
-              basics) echo "v0.0.20-20260720103959" ;;
-              cputest) echo "v0.0.13-20260720103959" ;;
+              ecs) echo "v0.1.151" ;;
+              UnlockTests) echo "v0.0.42" ;;
+              backtrace) echo "v0.0.13" ;;
+              basics) echo "v0.0.22" ;;
+              cputest) echo "v0.0.14" ;;
               defaultset) echo "v0.0.2-20240624082446" ;;
-              disktest) echo "v0.0.12-20260720103959" ;;
-              gostun) echo "v0.0.7-20260720103959" ;;
-              memorytest) echo "v0.0.11-20260720103959" ;;
-              nt3) echo "v0.0.15-20260720103959" ;;
-              pingtest) echo "v0.0.12-20260720103959" ;;
-              portchecker) echo "v0.0.4-20260720103959" ;;
-              privatespeedtest) echo "v0.0.2-20260720103959" ;;
-              security) echo "v0.0.11-20260720103959" ;;
-              speedtest) echo "v0.0.14-20260720103959" ;;
+              disktest) echo "v0.0.13" ;;
+              gostun) echo "v0.0.8" ;;
+              memorytest) echo "v0.0.12" ;;
+              nt3) echo "v0.0.17" ;;
+              pingtest) echo "v0.0.14" ;;
+              portchecker) echo "v0.0.5" ;;
+              privatespeedtest) echo "v0.0.3" ;;
+              security) echo "v0.0.13" ;;
+              speedtest) echo "v0.0.16" ;;
             esac
           }
           for module in $modules; do
@@ -200,7 +200,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
-          GOFLAGS: -tags=ecs_structured
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid='"
         run: |
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${APP_VERSION}" --release
@@ -217,7 +216,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
-          GOFLAGS: -tags=ecs_structured
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid='"
         run: |
           fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${APP_VERSION}" --release
@@ -452,21 +450,21 @@ jobs:
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
           module_ref() {
             case "$1" in
-              ecs) echo "v0.1.150" ;;
-              UnlockTests) echo "v0.0.41-20260720103959" ;;
-              backtrace) echo "v0.0.11-20260720103959" ;;
-              basics) echo "v0.0.20-20260720103959" ;;
-              cputest) echo "v0.0.13-20260720103959" ;;
+              ecs) echo "v0.1.151" ;;
+              UnlockTests) echo "v0.0.42" ;;
+              backtrace) echo "v0.0.13" ;;
+              basics) echo "v0.0.22" ;;
+              cputest) echo "v0.0.14" ;;
               defaultset) echo "v0.0.2-20240624082446" ;;
-              disktest) echo "v0.0.12-20260720103959" ;;
-              gostun) echo "v0.0.7-20260720103959" ;;
-              memorytest) echo "v0.0.11-20260720103959" ;;
-              nt3) echo "v0.0.15-20260720103959" ;;
-              pingtest) echo "v0.0.12-20260720103959" ;;
-              portchecker) echo "v0.0.4-20260720103959" ;;
-              privatespeedtest) echo "v0.0.2-20260720103959" ;;
-              security) echo "v0.0.11-20260720103959" ;;
-              speedtest) echo "v0.0.14-20260720103959" ;;
+              disktest) echo "v0.0.13" ;;
+              gostun) echo "v0.0.8" ;;
+              memorytest) echo "v0.0.12" ;;
+              nt3) echo "v0.0.17" ;;
+              pingtest) echo "v0.0.14" ;;
+              portchecker) echo "v0.0.5" ;;
+              privatespeedtest) echo "v0.0.3" ;;
+              security) echo "v0.0.13" ;;
+              speedtest) echo "v0.0.16" ;;
             esac
           }
           for module in $modules; do
@@ -537,7 +535,6 @@ jobs:
       - name: Build for ${{ matrix.name }}
         env:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
-          GOFLAGS: -tags=ecs_structured
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid= -checklinkname=0'"
           GOARCH: ${{ matrix.arch }}
         shell: bash

@@ -7,19 +7,19 @@ require (
 	github.com/imroc/req/v3 v3.59.0
 	github.com/mattn/go-runewidth v0.0.24
 	github.com/oneclickvirt/UnlockTests v0.0.42
-	github.com/oneclickvirt/backtrace v0.0.12
-	github.com/oneclickvirt/basics v0.0.21
+	github.com/oneclickvirt/backtrace v0.0.13
+	github.com/oneclickvirt/basics v0.0.22
 	github.com/oneclickvirt/cputest v0.0.14
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.13
-	github.com/oneclickvirt/ecs v0.1.150
+	github.com/oneclickvirt/ecs v0.1.151
 	github.com/oneclickvirt/gostun v0.0.8
 	github.com/oneclickvirt/memorytest v0.0.12
-	github.com/oneclickvirt/nt3 v0.0.16
-	github.com/oneclickvirt/pingtest v0.0.13
+	github.com/oneclickvirt/nt3 v0.0.17
+	github.com/oneclickvirt/pingtest v0.0.14
 	github.com/oneclickvirt/portchecker v0.0.5
-	github.com/oneclickvirt/security v0.0.12
-	github.com/oneclickvirt/speedtest v0.0.15
+	github.com/oneclickvirt/security v0.0.13
+	github.com/oneclickvirt/speedtest v0.0.16
 	golang.org/x/sys v0.46.0
 )
 
