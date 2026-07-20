@@ -12,7 +12,7 @@ require (
 	github.com/oneclickvirt/cputest v0.0.14
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.13
-	github.com/oneclickvirt/ecs v0.1.148
+	github.com/oneclickvirt/ecs v0.1.149
 	github.com/oneclickvirt/gostun v0.0.8
 	github.com/oneclickvirt/memorytest v0.0.12
 	github.com/oneclickvirt/nt3 v0.0.16
