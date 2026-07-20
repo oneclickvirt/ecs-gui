@@ -13,9 +13,10 @@ import (
 
 const (
 	structuredReportSchema = "goecs.report/v1"
-	dataManifestSchema     = "ecs-data/v1"
-	defaultDataCDN         = "https://cdn.spiritlhl.net/https://raw.githubusercontent.com/oneclickvirt/ecs-data/main/data"
-	defaultDataRaw         = "https://raw.githubusercontent.com/oneclickvirt/ecs-data/main/data"
+	dataManifestSchema     = "goecs-data/v1"
+	legacyDataSchema       = "ecs-data/v1"
+	defaultDataCDN         = "https://cdn.spiritlhl.net/https://raw.githubusercontent.com/oneclickvirt/ecs/master/internal/data/snapshot"
+	defaultDataRaw         = "https://raw.githubusercontent.com/oneclickvirt/ecs/master/internal/data/snapshot"
 	maxStructuredJSONBytes = 16 << 20
 )
 
@@ -68,7 +69,7 @@ func resolveDataStatus(ctx context.Context, client *http.Client, bases ...string
 			lastErr = fmt.Errorf("HTTP %d", response.StatusCode)
 			continue
 		}
-		if decodeErr != nil || manifest.Schema != dataManifestSchema || manifest.GeneratedAt.IsZero() || len(manifest.Files) == 0 {
+		if decodeErr != nil || !supportedDataSchema(manifest.Schema) || manifest.GeneratedAt.IsZero() || len(manifest.Files) == 0 {
 			lastErr = fmt.Errorf("invalid manifest")
 			continue
 		}
@@ -234,7 +235,7 @@ func decodeStructuredRun(data []byte) (StructuredRunResult, error) {
 		if strings.TrimSpace(file.File) == "" || !validReportStatus(file.Status) || file.Count < 0 {
 			return StructuredRunResult{}, fmt.Errorf("invalid data file %q", file.File)
 		}
-		if file.Status == "ok" && (file.Schema != dataManifestSchema || file.GeneratedAt.IsZero() || strings.TrimSpace(file.Source) == "") {
+		if file.Status == "ok" && (!supportedDataSchema(file.Schema) || file.GeneratedAt.IsZero() || strings.TrimSpace(file.Source) == "") {
 			return StructuredRunResult{}, fmt.Errorf("incomplete data file %q", file.File)
 		}
 	}
@@ -244,6 +245,10 @@ func decodeStructuredRun(data []byte) (StructuredRunResult, error) {
 		}
 	}
 	return result, nil
+}
+
+func supportedDataSchema(schema string) bool {
+	return schema == dataManifestSchema || schema == legacyDataSchema
 }
 
 func validReportStatus(status string) bool {

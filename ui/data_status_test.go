@@ -14,12 +14,30 @@ func TestResolveDataStatusFallsBackToRaw(t *testing.T) {
 	bad := httptest.NewServer(http.NotFoundHandler())
 	defer bad.Close()
 	good := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"schema":"ecs-data/v1","generated_at":"2026-07-19T00:00:00Z","files":{"tcp-targets.json":{"sha256":"abc","count":1}}}`))
+		_, _ = w.Write([]byte(`{"schema":"goecs-data/v1","generated_at":"2026-07-19T00:00:00Z","files":{"tcp-targets.json":{"sha256":"abc","count":1}}}`))
 	}))
 	defer good.Close()
 	status := resolveDataStatus(context.Background(), good.Client(), bad.URL, good.URL)
-	if status.Source != "GitHub Raw" || !status.Fallback || status.Schema != "ecs-data/v1" {
+	if status.Source != "GitHub Raw" || !status.Fallback || status.Schema != dataManifestSchema {
 		t.Fatalf("unexpected fallback status: %#v", status)
+	}
+}
+
+func TestDefaultDataSourcesUseECSRepositorySnapshot(t *testing.T) {
+	const snapshotPath = "oneclickvirt/ecs/master/internal/data/snapshot"
+	if !strings.Contains(defaultDataCDN, snapshotPath) || !strings.Contains(defaultDataRaw, snapshotPath) {
+		t.Fatalf("unexpected default data sources: CDN=%q Raw=%q", defaultDataCDN, defaultDataRaw)
+	}
+}
+
+func TestResolveDataStatusAcceptsLegacySchema(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"schema":"ecs-data/v1","generated_at":"2026-07-19T00:00:00Z","files":{"tcp-targets.json":{"sha256":"abc","count":1}}}`))
+	}))
+	defer server.Close()
+	status := resolveDataStatus(context.Background(), server.Client(), server.URL)
+	if status.Source != "CDN" || status.Schema != legacyDataSchema {
+		t.Fatalf("unexpected legacy-schema status: %#v", status)
 	}
 }
 
@@ -51,7 +69,7 @@ func TestSummarizeStructuredRun(t *testing.T) {
 		{Name: "basics", Enabled: true, Status: "ok"},
 	}}
 	result.Data = &StructuredDataVersion{
-		Schema: "ecs-data/v1", GeneratedAt: time.Date(2026, 7, 19, 0, 0, 0, 0, time.UTC),
+		Schema: dataManifestSchema, GeneratedAt: time.Date(2026, 7, 19, 0, 0, 0, 0, time.UTC),
 		Source: "raw", Fallback: "raw", File: "tcp-targets.json", Count: 1,
 	}
 	result.SchemaVersion = structuredReportSchema

@@ -142,7 +142,7 @@ jobs:
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
           module_ref() {
             case "$1" in
-              ecs) echo "v0.1.147" ;;
+              ecs) echo "v0.1.148" ;;
               UnlockTests) echo "v0.0.41-20260720103959" ;;
               backtrace) echo "v0.0.11-20260720103959" ;;
               basics) echo "v0.0.20-20260720103959" ;;
@@ -452,7 +452,7 @@ jobs:
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
           module_ref() {
             case "$1" in
-              ecs) echo "v0.1.147" ;;
+              ecs) echo "v0.1.148" ;;
               UnlockTests) echo "v0.0.41-20260720103959" ;;
               backtrace) echo "v0.0.11-20260720103959" ;;
               basics) echo "v0.0.20-20260720103959" ;;
