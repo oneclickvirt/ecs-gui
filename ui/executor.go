@@ -39,6 +39,8 @@ type CommandExecutor struct {
 	core             CoreRunner
 	ctx              context.Context
 	cancel           context.CancelFunc
+	structuredMu     sync.RWMutex
+	structuredResult *StructuredRunResult
 }
 
 func NewCommandExecutor(outputCallback func(string)) *CommandExecutor {
@@ -63,18 +65,43 @@ func (e *CommandExecutor) SetCoreRunner(core CoreRunner) {
 	}
 }
 
+func (e *CommandExecutor) StructuredResult() (*StructuredRunResult, bool) {
+	e.structuredMu.RLock()
+	defer e.structuredMu.RUnlock()
+	if e.structuredResult == nil {
+		return nil, false
+	}
+	copy := *e.structuredResult
+	return &copy, true
+}
+
+func (e *CommandExecutor) setStructuredResult(result StructuredRunResult) {
+	e.structuredMu.Lock()
+	e.structuredResult = &result
+	e.structuredMu.Unlock()
+}
+
 type progressTracker struct {
 	callback func(ProgressUpdate)
 	steps    []string
 	current  int
+	started  map[string]bool
+	finished map[string]bool
 }
 
 func newProgressTracker(callback func(ProgressUpdate), steps []string) *progressTracker {
-	return &progressTracker{callback: callback, steps: steps}
+	return &progressTracker{callback: callback, steps: steps, started: make(map[string]bool), finished: make(map[string]bool)}
 }
 
 func (t *progressTracker) start(itemKey string) {
-	if t == nil || t.callback == nil {
+	if t == nil {
+		return
+	}
+	if t.started[itemKey] || t.finished[itemKey] {
+		return
+	}
+	t.started[itemKey] = true
+	if t.callback == nil {
 		return
 	}
 	total := len(t.steps)
@@ -90,7 +117,14 @@ func (t *progressTracker) start(itemKey string) {
 }
 
 func (t *progressTracker) finish(itemKey string) {
-	if t == nil || t.callback == nil {
+	if t == nil {
+		return
+	}
+	if t.finished[itemKey] {
+		return
+	}
+	t.finished[itemKey] = true
+	if t.callback == nil {
 		return
 	}
 	total := len(t.steps)
@@ -144,6 +178,9 @@ func buildProgressSteps(config ExecutionConfig, connected bool) []string {
 	if selected["disk"] {
 		steps = append(steps, "progress.disk")
 	}
+	if config.DeepMode {
+		steps = append(steps, "progress.deep_hardware")
+	}
 	if connected && unlockEnabled {
 		steps = append(steps, "progress.unlock")
 	}
@@ -159,8 +196,14 @@ func buildProgressSteps(config ExecutionConfig, connected bool) []string {
 	if connected && selected["nt3"] {
 		steps = append(steps, "progress.nt3")
 	}
-	if connected && (pingEnabled || pingTgdc || pingWeb) {
+	if connected && pingEnabled {
 		steps = append(steps, "progress.ping")
+	}
+	if connected && pingTgdc {
+		steps = append(steps, "progress.tgdc")
+	}
+	if connected && pingWeb {
+		steps = append(steps, "progress.web")
 	}
 	if connected && selected["speed"] {
 		steps = append(steps, "progress.speed")
@@ -171,14 +214,20 @@ func buildProgressSteps(config ExecutionConfig, connected bool) []string {
 	if connected && config.EnableUpload {
 		steps = append(steps, "progress.upload")
 	}
+	if connected {
+		steps = append(steps, "progress.nat", "progress.tcp")
+	}
 	steps = append(steps, "progress.finish")
 	return steps
 }
 
-func (e *CommandExecutor) Execute(config ExecutionConfig) error {
+func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	commandExecutorMu.Lock()
 	defer commandExecutorMu.Unlock()
 
+	e.structuredMu.Lock()
+	e.structuredResult = nil
+	e.structuredMu.Unlock()
 	if e.core == nil {
 		e.core = ecsCoreRunner{}
 	}
@@ -245,6 +294,13 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) error {
 		captureTruncated                               bool
 	)
 	startTime := time.Now()
+	defer func() {
+		ctx := e.ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		e.setStructuredResult(buildGUIStructuredReport(config, preCheck.Connected, tracker, runErr, ctx, startTime, time.Now()))
+	}()
 	captureLimit := resultCaptureLimit()
 	appendCaptured := func(text string) {
 		cleanText := ansiRegex.ReplaceAllString(text, "")
@@ -784,7 +840,7 @@ func normalizeNT3Type(checkType string) string {
 	case "both":
 		return "both"
 	default:
-		return "ipv4"
+		return "both"
 	}
 }
 

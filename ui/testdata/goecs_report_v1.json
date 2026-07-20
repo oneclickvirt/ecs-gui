@@ -1,0 +1,64 @@
+{
+  "schema_version": "goecs.report/v1",
+  "ecs_version": "v0.1.146",
+  "status": "partial",
+  "started_at": "2026-07-19T00:00:00Z",
+  "finished_at": "2026-07-19T00:00:01Z",
+  "duration_ms": 1000,
+  "deep_mode": false,
+  "privacy_mode": true,
+  "data": {
+    "schema": "ecs-data/v1",
+    "generated_at": "2026-07-19T00:00:00Z",
+    "source": "raw",
+    "fallback": "raw",
+    "file": "tcp-targets.json",
+    "count": 1
+  },
+  "data_files": [
+    {
+      "file": "tcp-targets.json",
+      "schema": "ecs-data/v1",
+      "generated_at": "2026-07-19T00:00:00Z",
+      "source": "raw",
+      "fallback": "raw",
+      "count": 1,
+      "status": "ok"
+    },
+    {
+      "file": "dnsbl-zones.json",
+      "schema": "ecs-data/v1",
+      "generated_at": "2026-07-19T00:00:00Z",
+      "source": "raw",
+      "fallback": "raw",
+      "count": 436,
+      "status": "ok"
+    }
+  ],
+  "sections": [
+    {
+      "name": "basics",
+      "enabled": true,
+      "status": "ok"
+    },
+    {
+      "name": "tcp",
+      "enabled": true,
+      "status": "unavailable",
+      "reason": "network unavailable"
+    }
+  ],
+  "components": [
+    {
+      "name": "basics",
+      "schema_version": "goecs.system/v1",
+      "status": "partial",
+      "reason": "temperature unavailable",
+      "duration_ms": 10,
+      "payload": {
+        "availability": "partial"
+      }
+    }
+  ],
+  "text": ""
+}

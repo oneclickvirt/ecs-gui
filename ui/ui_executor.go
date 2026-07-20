@@ -24,20 +24,18 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 		ui.resetUIState()
 	}()
 
-	// 创建命令执行器
-	executor := NewCommandExecutor(func(text string) {
+	// The build-specific runner owns the single execution. Legacy builds wrap
+	// CommandExecutor; ecs_structured builds call ecs/api directly.
+	output := func(text string) {
 		// 这个回调会从 executor 的 goroutine 调用
 		// TerminalOutput 的 AppendText 已经是线程安全的
 		ui.Terminal.AppendText(text)
-	})
-	executor.SetProgressCallback(func(update ProgressUpdate) {
+	}
+	progress := func(update ProgressUpdate) {
 		ui.runOnUI(func() {
 			ui.setProgress(update)
 		})
-	})
-
-	// 设置执行上下文
-	executor.SetContext(ui.CancelCtx)
+	}
 
 	// 更新进度
 	ui.runOnUI(func() {
@@ -45,46 +43,101 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 		ui.setStatus("status.executing")
 	})
 
-	// 执行测试（输出会实时显示在terminal widget中）
-	err := executor.Execute(config)
-
-	// 显示结束信息
-	endTime := time.Now()
-	duration := endTime.Sub(startTime)
-	_ = duration // 避免未使用警告
-
+	// Execute exactly once through the selected build backend. Structured
+	// builds receive the same cancellation context all the way into goecs/api.
+	outcome := executeWithRunner(ui.CancelCtx, newExecutionRunner(), config, output, progress)
+	err := outcome.Err
+	var reportReason string
+	structuredStatus := ""
+	if outcome.Report != nil {
+		structuredStatus = outcome.Report.Status
+		_, reportReason = summarizeStructuredRun(*outcome.Report)
+		report := *outcome.Report
+		ui.runOnUI(func() { ui.ApplyStructuredReport(report) })
+	}
+	if err != nil && reportReason == "" {
+		ui.runOnUI(func() { ui.updatePartialReason(ui.friendlyErrorMessage(err)) })
+	}
 	if err != nil {
 		ui.Terminal.AppendText(fmt.Sprintf("%s%s\n", ui.tr("log.error_prefix"), ui.friendlyErrorMessage(err)))
+	}
 
-		// 检查是否是取消导致的
-		if ui.isCancelled() {
+	// A structured status is authoritative. Do not replace a partial report
+	// with a generic "done" status merely because the API returned no error.
+	if structuredStatus != "" {
+		switch structuredStatus {
+		case "timeout":
+			ui.runOnUI(func() { ui.setStatus("status.timeout") })
+			ui.notifyTestFinished("status.failed", durationSince(startTime))
+		case "canceled":
+			ui.runOnUI(func() { ui.setStatus("status.stopped") })
+			ui.notifyTestFinished("status.stopped", durationSince(startTime))
+		case "error":
+			ui.runOnUI(func() { ui.setStatus("status.failed") })
+			ui.notifyTestFinished("status.failed", durationSince(startTime))
+		case "partial", "unavailable":
+			ui.runOnUI(func() {
+				ui.setStatus("status.partial")
+				ui.ProgressBar.SetValue(1)
+			})
+			ui.notifyTestFinished("status.done", durationSince(startTime))
+		default:
+			ui.runOnUI(func() {
+				ui.setStatus("status.done")
+				ui.ProgressBar.SetValue(1.0)
+			})
+			ui.notifyTestFinished("status.done", durationSince(startTime))
+		}
+	} else if err != nil {
+		// Legacy execution normally supplies a partial/error report. This branch
+		// remains for startup failures before a compatibility report exists.
+		// 区分手工取消、15 分钟硬超时和普通失败。
+		if ui.isTimedOut() {
+			ui.runOnUI(func() {
+				ui.setStatus("status.timeout")
+			})
+			ui.notifyTestFinished("status.failed", durationSince(startTime))
+		} else if ui.isCancelled() {
 			ui.runOnUI(func() {
 				ui.setStatus("status.stopped")
 			})
-			ui.notifyTestFinished("status.stopped", duration)
+			ui.notifyTestFinished("status.stopped", durationSince(startTime))
 		} else {
 			ui.runOnUI(func() {
 				ui.setStatus("status.failed")
 			})
-			ui.notifyTestFinished("status.failed", duration)
+			ui.notifyTestFinished("status.failed", durationSince(startTime))
 		}
+	} else if ui.isTimedOut() {
+		ui.runOnUI(func() {
+			ui.setStatus("status.timeout")
+		})
+		ui.notifyTestFinished("status.failed", durationSince(startTime))
 	} else if ui.isCancelled() {
 		ui.Terminal.AppendText(ui.tr("log.interrupted_short"))
 		ui.runOnUI(func() {
 			ui.setStatus("status.stopped")
 		})
-		ui.notifyTestFinished("status.stopped", duration)
+		ui.notifyTestFinished("status.stopped", durationSince(startTime))
 	} else {
 		ui.runOnUI(func() {
 			ui.setStatus("status.done")
 			ui.ProgressBar.SetValue(1.0)
 		})
-		ui.notifyTestFinished("status.done", duration)
-
-		// 如果启用了日志，自动刷新日志内容
-		if config.LogEnabled {
-			time.Sleep(500 * time.Millisecond) // 等待日志文件写入完成
-			ui.refreshLogFromFile()
-		}
+		ui.notifyTestFinished("status.done", durationSince(startTime))
 	}
+
+	// Structured and legacy backends use the same component log file. Refresh
+	// after every terminal state so partial and failed runs remain inspectable.
+	if config.LogEnabled {
+		time.Sleep(500 * time.Millisecond)
+		ui.refreshLogFromFile()
+	}
+}
+
+func durationSince(start time.Time) time.Duration {
+	if start.IsZero() {
+		return 0
+	}
+	return time.Since(start)
 }

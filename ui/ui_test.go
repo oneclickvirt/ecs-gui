@@ -43,6 +43,80 @@ func TestCollectExecutionConfigClampsNumericValues(t *testing.T) {
 	}
 }
 
+func TestCollectExecutionConfigDeepDefaultsAreDisabledAndEmpty(t *testing.T) {
+	ui := newTestUIForTest(t)
+	if !ui.DeepDiskPathsEntry.Disabled() || !ui.DeepSMARTEntry.Disabled() || !ui.DeepBurnEntry.Disabled() || !ui.DeepGPUEntry.Disabled() {
+		t.Fatal("deep target inputs must be disabled by default")
+	}
+	ui.DeepDiskPathsEntry.SetText("/must/not/run")
+	ui.DeepSMARTEntry.SetText("/dev/must-not-run")
+	ui.DeepBurnEntry.SetText("1m")
+	ui.DeepGPUEntry.SetText("must-not-run")
+	config := ui.collectExecutionConfig()
+	if config.DeepMode || config.DeepDiskPaths != "" || config.DeepSMARTDevices != "" || config.DeepBurnDuration != 0 || config.DeepGPUDevice != "" {
+		t.Fatalf("unexpected deep defaults: %#v", config)
+	}
+}
+
+func TestCollectExecutionConfigParsesExplicitDeepInputs(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.DeepModeCheck.SetChecked(true)
+	if ui.DeepDiskPathsEntry.Disabled() || ui.DeepSMARTEntry.Disabled() || ui.DeepBurnEntry.Disabled() || ui.DeepGPUEntry.Disabled() {
+		t.Fatal("deep target inputs must be enabled after explicit opt-in")
+	}
+	ui.DeepDiskPathsEntry.SetText("  /mnt/a,/mnt/b  ")
+	ui.DeepSMARTEntry.SetText(" /dev/sda ")
+	ui.DeepBurnEntry.SetText("45s")
+	ui.DeepGPUEntry.SetText(" gpu0 ")
+
+	config := ui.collectExecutionConfig()
+	if !config.DeepMode || config.DeepDiskPaths != "/mnt/a,/mnt/b" || config.DeepSMARTDevices != "/dev/sda" || config.DeepBurnDuration != 45*time.Second || config.DeepGPUDevice != "gpu0" {
+		t.Fatalf("unexpected explicit deep config: %#v", config)
+	}
+	ui.DeepBurnEntry.SetText("invalid")
+	if got := ui.collectExecutionConfig().DeepBurnDuration; got != 0 {
+		t.Fatalf("invalid burn duration = %s, want disabled", got)
+	}
+}
+
+func TestCollectExecutionConfigParsesUnlockNetworkInputs(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.UnlockInterfaceEntry.SetText("eth0")
+	ui.UnlockDNSEntry.SetText("1.1.1.1,2606:4700:4700::1111")
+	ui.UnlockHTTPProxyEntry.SetText("http://127.0.0.1:8080")
+	ui.UnlockSOCKSProxyEntry.SetText("socks5://127.0.0.1:1080")
+	ui.UnlockConcurrencyEntry.SetText("150")
+	config := ui.collectExecutionConfig()
+	if config.UnlockInterface != "eth0" || config.UnlockDNS == "" || config.UnlockHTTPProxy == "" || config.UnlockSOCKSProxy == "" {
+		t.Fatalf("unlock network inputs were not preserved: %#v", config)
+	}
+	if config.UnlockConcurrency != 100 {
+		t.Fatalf("unlock concurrency = %d, want clamp to 100", config.UnlockConcurrency)
+	}
+}
+
+func TestCollectExecutionConfigParsesRuntimeDataAndPrivacyInputs(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.MaxDurationEntry.SetText("9m")
+	ui.HardwareBudgetEntry.SetText("90s")
+	ui.DataCDNEntry.SetText("https://cdn.example.test/data/")
+	ui.JSONPathEntry.SetText(" result.json ")
+	ui.DataOfflineCheck.SetChecked(true)
+	ui.ResultUploadCheck.SetChecked(true)
+	ui.PrivacyModeCheck.SetChecked(true)
+
+	config := ui.collectExecutionConfig()
+	if config.MaxDuration != 9*time.Minute || config.HardwareBudget != 90*time.Second {
+		t.Fatalf("runtime budgets were not parsed: %#v", config)
+	}
+	if config.DataCDNBase != "https://cdn.example.test/data" || !config.DataOffline || config.JSONPath != "result.json" {
+		t.Fatalf("data/JSON inputs were not preserved: %#v", config)
+	}
+	if !config.PrivacyMode || config.EnableUpload {
+		t.Fatalf("privacy mode must fail closed for uploads: %#v", config)
+	}
+}
+
 func TestStandardPresetSelectsExpectedOptions(t *testing.T) {
 	ui := newTestUIForTest(t)
 
@@ -80,6 +154,20 @@ func TestBuildProgressStepsHonorsChinaMode(t *testing.T) {
 	}
 }
 
+func TestBuildProgressStepsKeepsTelegramAndWebsiteSeparate(t *testing.T) {
+	steps := buildProgressSteps(ExecutionConfig{
+		SelectedOptions: map[string]bool{"ping": true},
+		PingTgdc:        true,
+		PingWeb:         true,
+	}, true)
+	joined := strings.Join(steps, ",")
+	for _, key := range []string{"progress.ping", "progress.tgdc", "progress.web"} {
+		if !strings.Contains(joined, key) {
+			t.Fatalf("structured progress is missing %s: %v", key, steps)
+		}
+	}
+}
+
 func TestEffectiveNT3TypeForStack(t *testing.T) {
 	cases := []struct {
 		requested string
@@ -91,13 +179,21 @@ func TestEffectiveNT3TypeForStack(t *testing.T) {
 		{"ipv6", "IPv4", "ipv4"},
 		{"ipv4", "IPv6", "ipv6"},
 		{"both", "DualStack", "both"},
-		{"unexpected", "DualStack", "ipv4"},
+		{"unexpected", "DualStack", "both"},
 	}
 
 	for _, tt := range cases {
 		if got := effectiveNT3TypeForStack(tt.requested, tt.stack); got != tt.want {
 			t.Fatalf("effectiveNT3TypeForStack(%q, %q) = %q, want %q", tt.requested, tt.stack, got, tt.want)
 		}
+	}
+}
+
+func TestCollectExecutionConfigDefaultsNT3ToBoth(t *testing.T) {
+	ui := newTestUIForTest(t)
+	config := ui.collectExecutionConfig()
+	if config.Nt3Type != "both" {
+		t.Fatalf("default NT3 type = %q, want both", config.Nt3Type)
 	}
 }
 

@@ -1,26 +1,26 @@
 module github.com/oneclickvirt/ecs-gui
 
-go 1.25.4
+go 1.26.4
 
 require (
 	fyne.io/fyne/v2 v2.7.4
-	github.com/imroc/req/v3 v3.57.0
+	github.com/imroc/req/v3 v3.59.0
 	github.com/mattn/go-runewidth v0.0.24
-	github.com/oneclickvirt/UnlockTests v0.0.36-20260602072908
-	github.com/oneclickvirt/backtrace v0.0.9-20260521161358
-	github.com/oneclickvirt/basics v0.0.18-20260521154614
-	github.com/oneclickvirt/cputest v0.0.12-20260509135512
+	github.com/oneclickvirt/UnlockTests v0.0.41-20260720103959
+	github.com/oneclickvirt/backtrace v0.0.11-20260720103959
+	github.com/oneclickvirt/basics v0.0.20-20260720103959
+	github.com/oneclickvirt/cputest v0.0.13-20260720103959
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
-	github.com/oneclickvirt/disktest v0.0.11-20260521162552
-	github.com/oneclickvirt/ecs v0.1.139
-	github.com/oneclickvirt/gostun v0.0.6-20260509043509
-	github.com/oneclickvirt/memorytest v0.0.10-20251218032900
-	github.com/oneclickvirt/nt3 v0.0.11-20260112140912
-	github.com/oneclickvirt/pingtest v0.0.10-20260521161204
-	github.com/oneclickvirt/portchecker v0.0.3-20250728015900
-	github.com/oneclickvirt/security v0.0.9-20260521182714
-	github.com/oneclickvirt/speedtest v0.0.12-20260521180111
-	golang.org/x/sys v0.43.0
+	github.com/oneclickvirt/disktest v0.0.12-20260720103959
+	github.com/oneclickvirt/ecs v0.1.147
+	github.com/oneclickvirt/gostun v0.0.7-20260720103959
+	github.com/oneclickvirt/memorytest v0.0.11-20260720103959
+	github.com/oneclickvirt/nt3 v0.0.15-20260720103959
+	github.com/oneclickvirt/pingtest v0.0.12-20260720103959
+	github.com/oneclickvirt/portchecker v0.0.4-20260720103959
+	github.com/oneclickvirt/security v0.0.11-20260720103959
+	github.com/oneclickvirt/speedtest v0.0.14-20260720103959
+	golang.org/x/sys v0.46.0
 )
 
 require (
@@ -84,7 +84,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
-	github.com/mattn/go-rl v0.0.0-20260413075423-3ae726920de8 // indirect
 	github.com/miekg/dns v1.1.61 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -95,11 +94,11 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
-	github.com/nxtrace/NTrace-core v1.5.0 // indirect
+	github.com/nxtrace/NTrace-core v1.7.1 // indirect
 	github.com/oneclickvirt/dd v0.0.2-20250808062818 // indirect
 	github.com/oneclickvirt/fio v0.0.2-20250808045755 // indirect
 	github.com/oneclickvirt/mbw v0.0.1-20250808061222 // indirect
-	github.com/oneclickvirt/privatespeedtest v0.0.1-20260112130218 // indirect
+	github.com/oneclickvirt/privatespeedtest v0.0.2-20260720103959 // indirect
 	github.com/oneclickvirt/stream v0.0.2-20250924154001 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -113,8 +112,8 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus-community/pro-bing v0.4.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.57.1 // indirect
-	github.com/refraction-networking/utls v1.8.1 // indirect
+	github.com/quic-go/quic-go v0.60.0 // indirect
+	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rodaine/table v1.3.1 // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
@@ -131,27 +130,29 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
+	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.9.0 // indirect
-	github.com/tsosunchia/powclient v0.2.0 // indirect
+	github.com/tsosunchia/powclient v0.3.0 // indirect
 	github.com/xjasonlyu/windivert-go v0.0.0-20201010013527-4239d0afa76f // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	github.com/xqdoo00o/go-rl v0.0.0-20260610092421-c28c22d8f18f // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.50.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/image v0.24.0 // indirect
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/term v0.42.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
-	golang.org/x/tools v0.43.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/term v0.44.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.0 // indirect
 )

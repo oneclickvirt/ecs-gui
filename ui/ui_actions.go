@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -321,7 +322,7 @@ func (ui *TestUI) startTests() {
 	}
 
 	// 创建新的取消上下文
-	ui.CancelCtx, ui.CancelFn = context.WithCancel(context.Background())
+	ui.CancelCtx, ui.CancelFn = context.WithTimeout(context.Background(), 15*time.Minute)
 
 	// 在新 goroutine 中运行测试
 	go ui.runTestsWithExecutor(config)
@@ -356,11 +357,20 @@ func (ui *TestUI) clearResults() {
 	if ui.Terminal != nil {
 		ui.Terminal.Clear()
 	}
+	ui.Mu.Lock()
+	ui.StructuredResult = nil
+	ui.Mu.Unlock()
 	ui.runOnUI(func() {
 		ui.setStatus("status.ready")
 		ui.ProgressBar.SetValue(0)
 		if ui.CurrentItem != nil {
 			ui.CurrentItem.SetText(ui.tr("progress.idle"))
+		}
+		if ui.DataStatusLabel != nil {
+			ui.DataStatusLabel.SetText(ui.tr("data.pending"))
+		}
+		if ui.StructuredDetailsView != nil {
+			ui.StructuredDetailsView.SetText(ui.tr("result.structured.empty"))
 		}
 	})
 }

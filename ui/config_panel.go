@@ -236,6 +236,22 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.AutoDiskMethodCheck = widget.NewCheck(ui.tr("check.auto_disk"), nil)
 	ui.AutoDiskMethodCheck.Checked = true
 
+	// Deep mode is always explicit. Potentially destructive or long-running
+	// targets stay empty until the user enters them.
+	ui.DeepDiskPathsEntry = widget.NewEntry()
+	ui.DeepDiskPathsEntry.SetPlaceHolder(ui.tr("placeholder.deep_disk_paths"))
+	ui.DeepSMARTEntry = widget.NewEntry()
+	ui.DeepSMARTEntry.SetPlaceHolder(ui.tr("placeholder.deep_smart_devices"))
+	ui.DeepBurnEntry = widget.NewEntry()
+	ui.DeepBurnEntry.SetPlaceHolder(ui.tr("placeholder.deep_burn_duration"))
+	ui.DeepGPUEntry = widget.NewEntry()
+	ui.DeepGPUEntry.SetPlaceHolder(ui.tr("placeholder.deep_gpu_device"))
+	ui.DeepModeCheck = widget.NewCheck(ui.tr("check.deep_mode"), func(enabled bool) {
+		ui.setDeepInputsEnabled(enabled)
+	})
+	ui.DeepModeCheck.Checked = false
+	ui.setDeepInputsEnabled(false)
+
 	// NT3 配置
 	ui.Nt3LocationSelect = widget.NewSelect(
 		[]string{"GZ", "SH", "BJ", "CD", "ALL"},
@@ -247,7 +263,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		[]string{"ipv4", "ipv6", "both"},
 		func(value string) {},
 	)
-	ui.Nt3TypeSelect.Selected = "ipv4"
+	ui.Nt3TypeSelect.Selected = "both"
 
 	// 测速配置
 	ui.SpNumEntry = widget.NewEntry()
@@ -260,6 +276,19 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.OutputFileEntry = widget.NewEntry()
 	ui.OutputFileEntry.SetText("goecs.md")
 	ui.OutputFileEntry.SetPlaceHolder(ui.tr("placeholder.output_file"))
+	ui.JSONPathEntry = widget.NewEntry()
+	ui.JSONPathEntry.SetPlaceHolder(ui.tr("placeholder.json_path"))
+	ui.MaxDurationEntry = widget.NewEntry()
+	ui.MaxDurationEntry.SetText("15m")
+	ui.MaxDurationEntry.SetPlaceHolder(ui.tr("placeholder.max_duration"))
+	ui.HardwareBudgetEntry = widget.NewEntry()
+	ui.HardwareBudgetEntry.SetText("2m")
+	ui.HardwareBudgetEntry.SetPlaceHolder(ui.tr("placeholder.hardware_budget"))
+	ui.DataCDNEntry = widget.NewEntry()
+	ui.DataCDNEntry.SetText(defaultDataCDN)
+	ui.DataCDNEntry.SetPlaceHolder(ui.tr("placeholder.data_cdn"))
+	ui.DataOfflineCheck = widget.NewCheck(ui.tr("check.data_offline"), nil)
+	ui.PrivacyModeCheck = widget.NewCheck(ui.tr("check.privacy_mode"), nil)
 
 	ui.ResultUploadCheck = widget.NewCheck(ui.tr("check.result_upload"), nil)
 	ui.ResultUploadCheck.Checked = false
@@ -292,6 +321,17 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.UnlockIpVersionSelect.SetSelected("auto")
 	ui.UnlockShowIPCheck = widget.NewCheck(ui.tr("check.unlock_show_ip"), nil)
 	ui.UnlockShowIPCheck.Checked = false
+	ui.UnlockInterfaceEntry = widget.NewEntry()
+	ui.UnlockInterfaceEntry.SetPlaceHolder(ui.tr("placeholder.unlock_interface"))
+	ui.UnlockDNSEntry = widget.NewEntry()
+	ui.UnlockDNSEntry.SetPlaceHolder(ui.tr("placeholder.unlock_dns"))
+	ui.UnlockHTTPProxyEntry = widget.NewEntry()
+	ui.UnlockHTTPProxyEntry.SetPlaceHolder(ui.tr("placeholder.unlock_http_proxy"))
+	ui.UnlockSOCKSProxyEntry = widget.NewEntry()
+	ui.UnlockSOCKSProxyEntry.SetPlaceHolder(ui.tr("placeholder.unlock_socks_proxy"))
+	ui.UnlockConcurrencyEntry = widget.NewEntry()
+	ui.UnlockConcurrencyEntry.SetText("20")
+	ui.UnlockConcurrencyEntry.SetPlaceHolder(ui.tr("placeholder.unlock_concurrency"))
 
 	generalContent := container.NewVBox(
 		container.NewGridWithColumns(2,
@@ -303,7 +343,17 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			ui.OutputWidthEntry,
 			widget.NewLabel(ui.tr("label.output_file")),
 			ui.OutputFileEntry,
+			widget.NewLabel(ui.tr("label.json_path")),
+			ui.JSONPathEntry,
+			widget.NewLabel(ui.tr("label.max_duration")),
+			ui.MaxDurationEntry,
+			widget.NewLabel(ui.tr("label.hardware_budget")),
+			ui.HardwareBudgetEntry,
+			widget.NewLabel(ui.tr("label.data_cdn")),
+			ui.DataCDNEntry,
 		),
+		ui.DataOfflineCheck,
+		ui.PrivacyModeCheck,
 		ui.LogCheck,
 		ui.ResultUploadCheck,
 		ui.AnalyzeResultCheck,
@@ -336,6 +386,20 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		ui.AutoDiskMethodCheck,
 	)
 
+	deepContent := container.NewVBox(
+		ui.DeepModeCheck,
+		container.NewGridWithColumns(2,
+			widget.NewLabel(ui.tr("label.deep_disk_paths")),
+			ui.DeepDiskPathsEntry,
+			widget.NewLabel(ui.tr("label.deep_smart_devices")),
+			ui.DeepSMARTEntry,
+			widget.NewLabel(ui.tr("label.deep_burn_duration")),
+			ui.DeepBurnEntry,
+			widget.NewLabel(ui.tr("label.deep_gpu_device")),
+			ui.DeepGPUEntry,
+		),
+	)
+
 	routeContent := container.NewGridWithColumns(2,
 		widget.NewLabel(ui.tr("label.nt3_location")),
 		ui.Nt3LocationSelect,
@@ -355,6 +419,16 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		ui.UnlockRegionSelect,
 		widget.NewLabel(ui.tr("label.unlock_ip_ver")),
 		ui.UnlockIpVersionSelect,
+		widget.NewLabel(ui.tr("label.unlock_interface")),
+		ui.UnlockInterfaceEntry,
+		widget.NewLabel(ui.tr("label.unlock_dns")),
+		ui.UnlockDNSEntry,
+		widget.NewLabel(ui.tr("label.unlock_http_proxy")),
+		ui.UnlockHTTPProxyEntry,
+		widget.NewLabel(ui.tr("label.unlock_socks_proxy")),
+		ui.UnlockSOCKSProxyEntry,
+		widget.NewLabel(ui.tr("label.unlock_concurrency")),
+		ui.UnlockConcurrencyEntry,
 		widget.NewLabel(""),
 		ui.UnlockShowIPCheck,
 	)
@@ -371,6 +445,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			widget.NewAccordionItem(ui.tr("config.cpu.title"), cpuContent),
 			widget.NewAccordionItem(ui.tr("config.mem.title"), memoryContent),
 			widget.NewAccordionItem(ui.tr("config.disk.title"), diskContent),
+			widget.NewAccordionItem(ui.tr("config.deep.title"), deepContent),
 			widget.NewAccordionItem(ui.tr("config.unlock.title"), unlockContent),
 			widget.NewAccordionItem(ui.tr("config.route.title"), routeContent),
 			widget.NewAccordionItem(ui.tr("config.speed.title"), speedContent),
@@ -386,6 +461,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	cpuCard := ui.newIconCard(ui.tr("config.cpu.title"), ui.tr("config.cpu.sub"), theme.SettingsIcon(), cpuContent)
 	memoryCard := ui.newIconCard(ui.tr("config.mem.title"), ui.tr("config.mem.sub"), theme.SettingsIcon(), memoryContent)
 	diskCard := ui.newIconCard(ui.tr("config.disk.title"), ui.tr("config.disk.sub"), theme.StorageIcon(), diskContent)
+	deepCard := ui.newIconCard(ui.tr("config.deep.title"), ui.tr("config.deep.sub"), theme.WarningIcon(), deepContent)
 	unlockCard := ui.newIconCard(ui.tr("config.unlock.title"), ui.tr("config.unlock.sub"), theme.InfoIcon(), unlockContent)
 	routeCard := ui.newIconCard(ui.tr("config.route.title"), ui.tr("config.route.sub"), theme.SearchIcon(), routeContent)
 	speedCard := ui.newIconCard(ui.tr("config.speed.title"), ui.tr("config.speed.sub"), theme.DownloadIcon(), speedContent)
@@ -397,6 +473,7 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		cpuCard,
 		memoryCard,
 		diskCard,
+		deepCard,
 		unlockCard,
 		routeCard,
 		speedCard,

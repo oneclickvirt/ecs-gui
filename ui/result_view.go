@@ -15,7 +15,7 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 		layout.NewSpacer(),
 		ui.StatusBadge,
 	)
-	statusBar := container.NewVBox(statusRow, ui.CurrentItem, ui.ProgressBar)
+	statusBar := container.NewVBox(statusRow, ui.CurrentItem, ui.ProgressBar, ui.DataStatusLabel, ui.PartialReasonLabel)
 
 	copyButton := widget.NewButtonWithIcon(ui.tr("button.copy"), theme.ContentCopyIcon(), ui.copyResults)
 	exportButton := widget.NewButtonWithIcon(ui.tr("button.export"), theme.DownloadIcon(), ui.exportResults)
@@ -36,12 +36,16 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 	))
 
 	terminalScroll := container.NewScroll(container.NewPadded(ui.Terminal))
+	structuredCaption := widget.NewLabelWithStyle(ui.tr("result.structured.title"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	structuredPanel := container.NewBorder(structuredCaption, nil, nil, nil, container.NewPadded(ui.StructuredDetailsView))
+	resultsSplit := container.NewVSplit(terminalScroll, structuredPanel)
+	resultsSplit.Offset = 0.68
 
 	return container.NewBorder(
 		header,
 		nil,
 		nil,
 		nil,
-		terminalScroll,
+		resultsSplit,
 	)
 }

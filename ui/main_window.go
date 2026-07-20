@@ -74,6 +74,15 @@ func (ui *TestUI) buildUI() {
 	ui.StatusLabel = widget.NewLabel(ui.tr("status.ready"))
 	ui.StatusBadge = widget.NewLabel(ui.tr("badge.ready"))
 	ui.CurrentItem = widget.NewLabel(ui.tr("progress.idle"))
+	ui.DataStatusLabel = widget.NewLabel(ui.tr("data.pending"))
+	ui.PartialReasonLabel = widget.NewLabel("")
+	ui.PartialReasonLabel.Wrapping = fyne.TextWrapWord
+	ui.PartialReasonLabel.Hide()
+	ui.StructuredDetailsView = widget.NewMultiLineEntry()
+	ui.StructuredDetailsView.Wrapping = fyne.TextWrapWord
+	ui.StructuredDetailsView.TextStyle = fyne.TextStyle{Monospace: true}
+	ui.StructuredDetailsView.SetText(ui.tr("result.structured.empty"))
+	ui.StructuredDetailsView.Disable()
 	ui.ProgressBar = widget.NewProgressBar()
 	ui.ProgressBar.Hide()
 

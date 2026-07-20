@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -8,6 +10,7 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
 )
 
 type uiStateSnapshot struct {
@@ -22,6 +25,20 @@ type uiStateSnapshot struct {
 	statusText   string
 	statusBadge  string
 	themeMode    string
+}
+
+func (ui *TestUI) setDeepInputsEnabled(enabled bool) {
+	entries := []*widget.Entry{ui.DeepDiskPathsEntry, ui.DeepSMARTEntry, ui.DeepBurnEntry, ui.DeepGPUEntry}
+	for _, entry := range entries {
+		if entry == nil {
+			continue
+		}
+		if enabled {
+			entry.Enable()
+		} else {
+			entry.Disable()
+		}
+	}
 }
 
 func (ui *TestUI) runOnUI(fn func()) {
@@ -65,6 +82,10 @@ func (ui *TestUI) statusBadge(statusKey string) string {
 		return ui.tr("badge.stopped")
 	case "status.failed":
 		return ui.tr("badge.failed")
+	case "status.partial":
+		return ui.tr("badge.partial")
+	case "status.timeout":
+		return ui.tr("badge.timeout")
 	case "status.done":
 		return ui.tr("badge.done")
 	default:
@@ -198,6 +219,7 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"speed":        ui.SpeedCheck.Checked,
 			"ping":         ui.PingCheck.Checked,
 			"diskMulti":    ui.DiskMultiCheck.Checked,
+			"deepMode":     ui.DeepModeCheck.Checked,
 			"chinaMode":    ui.ChinaModeCheck.Checked,
 			"pingTgdc":     ui.PingTgdcCheck.Checked,
 			"pingWeb":      ui.PingWebCheck.Checked,
@@ -206,6 +228,8 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"unlockShowIP": ui.UnlockShowIPCheck.Checked,
 			"resultUpload": ui.ResultUploadCheck.Checked,
 			"analysis":     ui.AnalyzeResultCheck.Checked,
+			"dataOffline":  ui.DataOfflineCheck.Checked,
+			"privacyMode":  ui.PrivacyModeCheck.Checked,
 		},
 		selections: map[string]string{
 			"language":     ui.LanguageSelect.Selected,
@@ -220,10 +244,23 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"unlockIpVer":  ui.UnlockIpVersionSelect.Selected,
 		},
 		entries: map[string]string{
-			"diskPath":    ui.DiskPathEntry.Text,
-			"spNum":       ui.SpNumEntry.Text,
-			"outputWidth": ui.OutputWidthEntry.Text,
-			"outputFile":  ui.OutputFileEntry.Text,
+			"diskPath":          ui.DiskPathEntry.Text,
+			"deepDiskPaths":     ui.DeepDiskPathsEntry.Text,
+			"deepSMART":         ui.DeepSMARTEntry.Text,
+			"deepBurn":          ui.DeepBurnEntry.Text,
+			"deepGPU":           ui.DeepGPUEntry.Text,
+			"spNum":             ui.SpNumEntry.Text,
+			"outputWidth":       ui.OutputWidthEntry.Text,
+			"outputFile":        ui.OutputFileEntry.Text,
+			"jsonPath":          ui.JSONPathEntry.Text,
+			"maxDuration":       ui.MaxDurationEntry.Text,
+			"hardwareBudget":    ui.HardwareBudgetEntry.Text,
+			"dataCDN":           ui.DataCDNEntry.Text,
+			"unlockInterface":   ui.UnlockInterfaceEntry.Text,
+			"unlockDNS":         ui.UnlockDNSEntry.Text,
+			"unlockHTTPProxy":   ui.UnlockHTTPProxyEntry.Text,
+			"unlockSOCKSProxy":  ui.UnlockSOCKSProxyEntry.Text,
+			"unlockConcurrency": ui.UnlockConcurrencyEntry.Text,
 		},
 		presetKey:  ui.selectedPresetKey,
 		logContent: ui.LogContent,
@@ -262,6 +299,8 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.SpeedCheck.Checked = state.checks["speed"]
 	ui.PingCheck.Checked = state.checks["ping"]
 	ui.DiskMultiCheck.Checked = state.checks["diskMulti"]
+	ui.DeepModeCheck.Checked = state.checks["deepMode"]
+	ui.setDeepInputsEnabled(ui.DeepModeCheck.Checked)
 	ui.ChinaModeCheck.Checked = state.checks["chinaMode"]
 	ui.PingTgdcCheck.Checked = state.checks["pingTgdc"]
 	ui.PingWebCheck.Checked = state.checks["pingWeb"]
@@ -270,6 +309,8 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.UnlockShowIPCheck.Checked = state.checks["unlockShowIP"]
 	ui.ResultUploadCheck.Checked = state.checks["resultUpload"]
 	ui.AnalyzeResultCheck.Checked = state.checks["analysis"]
+	ui.DataOfflineCheck.Checked = state.checks["dataOffline"]
+	ui.PrivacyModeCheck.Checked = state.checks["privacyMode"]
 
 	ui.LanguageSelect.SetSelected(state.selections["language"])
 	if ui.ThemeSelect != nil {
@@ -294,9 +335,22 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	}
 
 	ui.DiskPathEntry.SetText(state.entries["diskPath"])
+	ui.DeepDiskPathsEntry.SetText(state.entries["deepDiskPaths"])
+	ui.DeepSMARTEntry.SetText(state.entries["deepSMART"])
+	ui.DeepBurnEntry.SetText(state.entries["deepBurn"])
+	ui.DeepGPUEntry.SetText(state.entries["deepGPU"])
 	ui.SpNumEntry.SetText(state.entries["spNum"])
 	ui.OutputWidthEntry.SetText(state.entries["outputWidth"])
 	ui.OutputFileEntry.SetText(state.entries["outputFile"])
+	ui.JSONPathEntry.SetText(state.entries["jsonPath"])
+	ui.MaxDurationEntry.SetText(state.entries["maxDuration"])
+	ui.HardwareBudgetEntry.SetText(state.entries["hardwareBudget"])
+	ui.DataCDNEntry.SetText(state.entries["dataCDN"])
+	ui.UnlockInterfaceEntry.SetText(state.entries["unlockInterface"])
+	ui.UnlockDNSEntry.SetText(state.entries["unlockDNS"])
+	ui.UnlockHTTPProxyEntry.SetText(state.entries["unlockHTTPProxy"])
+	ui.UnlockSOCKSProxyEntry.SetText(state.entries["unlockSOCKSProxy"])
+	ui.UnlockConcurrencyEntry.SetText(state.entries["unlockConcurrency"])
 
 	ui.refreshAllChecks()
 	ui.refreshSpeedTestChecks()
@@ -347,6 +401,13 @@ func (ui *TestUI) isCancelled() bool {
 	}
 }
 
+func (ui *TestUI) isTimedOut() bool {
+	if ui.CancelCtx == nil {
+		return false
+	}
+	return errors.Is(ui.CancelCtx.Err(), context.DeadlineExceeded)
+}
+
 func (ui *TestUI) isRunning() bool {
 	ui.Mu.Lock()
 	defer ui.Mu.Unlock()
@@ -357,7 +418,13 @@ func (ui *TestUI) isRunning() bool {
 func (ui *TestUI) resetUIState() {
 	ui.Mu.Lock()
 	ui.IsRunning = false
+	cancel := ui.CancelFn
+	ui.CancelFn = nil
+	ui.CancelCtx = nil
 	ui.Mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 
 	ui.runOnUI(func() {
 		ui.StartButton.Enable()
@@ -424,7 +491,7 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 
 	nt3Type := ui.Nt3TypeSelect.Selected
 	if nt3Type == "" {
-		nt3Type = "ipv4"
+		nt3Type = "both"
 	}
 
 	spNum := 2
@@ -463,35 +530,91 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 	if unlockIpVersion == "" {
 		unlockIpVersion = "auto"
 	}
+	unlockConcurrency := 20
+	if value := strings.TrimSpace(ui.UnlockConcurrencyEntry.Text); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			unlockConcurrency = parsed
+		}
+	}
+	if unlockConcurrency > 100 {
+		unlockConcurrency = 100
+	}
 	filePath := ui.OutputFileEntry.Text
 	if filePath == "" {
 		filePath = "goecs.md"
 	}
+	deepMode := ui.DeepModeCheck.Checked
+	deepDiskPaths, deepSMARTDevices, deepGPUDevice := "", "", ""
+	deepBurnDuration := time.Duration(0)
+	if deepMode {
+		deepDiskPaths = strings.TrimSpace(ui.DeepDiskPathsEntry.Text)
+		deepSMARTDevices = strings.TrimSpace(ui.DeepSMARTEntry.Text)
+		deepGPUDevice = strings.TrimSpace(ui.DeepGPUEntry.Text)
+		if value := strings.TrimSpace(ui.DeepBurnEntry.Text); value != "" {
+			if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 {
+				deepBurnDuration = parsed
+			}
+		}
+	}
+	maxDuration := 15 * time.Minute
+	if value := strings.TrimSpace(ui.MaxDurationEntry.Text); value != "" {
+		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 && parsed <= 15*time.Minute {
+			maxDuration = parsed
+		}
+	}
+	hardwareBudgetLimit := min(2*time.Minute, maxDuration)
+	if deepMode {
+		hardwareBudgetLimit = maxDuration
+	}
+	hardwareBudget := hardwareBudgetLimit
+	if value := strings.TrimSpace(ui.HardwareBudgetEntry.Text); value != "" {
+		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 && parsed <= hardwareBudgetLimit {
+			hardwareBudget = parsed
+		}
+	}
+	privacyMode := ui.PrivacyModeCheck.Checked
+	enableUpload := ui.ResultUploadCheck.Checked && !privacyMode
 
 	return ExecutionConfig{
-		SelectedOptions:  ui.GetSelectedOptions(),
-		Language:         language,
-		ChinaModeEnabled: ui.ChinaModeCheck.Checked,
-		AutoDiskMethod:   ui.AutoDiskMethodCheck.Checked,
-		CpuMethod:        cpuMethod,
-		ThreadMode:       threadMode,
-		MemoryMethod:     memoryMethod,
-		DiskMethod:       diskMethod,
-		DiskPath:         ui.DiskPathEntry.Text,
-		DiskMulti:        ui.DiskMultiCheck.Checked,
-		Nt3Location:      nt3Location,
-		Nt3Type:          nt3Type,
-		SpNum:            spNum,
-		PingTgdc:         pingTgdc,
-		PingWeb:          pingWeb,
-		UnlockRegion:     unlockRegion,
-		UnlockIpVersion:  unlockIpVersion,
-		UnlockShowIP:     ui.UnlockShowIPCheck.Checked,
-		EnableUpload:     ui.ResultUploadCheck.Checked,
-		AnalyzeResult:    ui.AnalyzeResultCheck.Checked,
-		FilePath:         filePath,
-		OutputWidth:      outputWidth,
-		PresetKey:        ui.selectedPresetKey,
-		LogEnabled:       logEnabled,
+		SelectedOptions:   ui.GetSelectedOptions(),
+		Language:          language,
+		ChinaModeEnabled:  ui.ChinaModeCheck.Checked,
+		DeepMode:          deepMode,
+		DeepDiskPaths:     deepDiskPaths,
+		DeepSMARTDevices:  deepSMARTDevices,
+		DeepBurnDuration:  deepBurnDuration,
+		DeepGPUDevice:     deepGPUDevice,
+		AutoDiskMethod:    ui.AutoDiskMethodCheck.Checked,
+		CpuMethod:         cpuMethod,
+		ThreadMode:        threadMode,
+		MemoryMethod:      memoryMethod,
+		DiskMethod:        diskMethod,
+		DiskPath:          ui.DiskPathEntry.Text,
+		DiskMulti:         ui.DiskMultiCheck.Checked,
+		Nt3Location:       nt3Location,
+		Nt3Type:           nt3Type,
+		SpNum:             spNum,
+		PingTgdc:          pingTgdc,
+		PingWeb:           pingWeb,
+		UnlockRegion:      unlockRegion,
+		UnlockIpVersion:   unlockIpVersion,
+		UnlockShowIP:      ui.UnlockShowIPCheck.Checked,
+		UnlockInterface:   strings.TrimSpace(ui.UnlockInterfaceEntry.Text),
+		UnlockDNS:         strings.TrimSpace(ui.UnlockDNSEntry.Text),
+		UnlockHTTPProxy:   strings.TrimSpace(ui.UnlockHTTPProxyEntry.Text),
+		UnlockSOCKSProxy:  strings.TrimSpace(ui.UnlockSOCKSProxyEntry.Text),
+		UnlockConcurrency: unlockConcurrency,
+		EnableUpload:      enableUpload,
+		AnalyzeResult:     ui.AnalyzeResultCheck.Checked,
+		FilePath:          filePath,
+		JSONPath:          strings.TrimSpace(ui.JSONPathEntry.Text),
+		OutputWidth:       outputWidth,
+		MaxDuration:       maxDuration,
+		HardwareBudget:    hardwareBudget,
+		DataCDNBase:       strings.TrimRight(strings.TrimSpace(ui.DataCDNEntry.Text), "/"),
+		DataOffline:       ui.DataOfflineCheck.Checked,
+		PrivacyMode:       privacyMode,
+		PresetKey:         ui.selectedPresetKey,
+		LogEnabled:        logEnabled,
 	}
 }

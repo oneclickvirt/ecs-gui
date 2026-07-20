@@ -3,7 +3,7 @@ package ui
 // unlockRegionCodes maps Select option index to the region code string passed to MediaTest.
 var unlockRegionCodes = []string{
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-	"10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+	"10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
 }
 
 // unlockRegionLabelsZH are the display labels shown in the Chinese UI, parallel to unlockRegionCodes.
@@ -29,6 +29,7 @@ var unlockRegionLabelsZH = []string{
 	"18: 仅大洋洲",
 	"19: 仅体育",
 	"20: 全部平台",
+	"21: 仅 AI 平台",
 }
 
 // unlockRegionLabelsEN are the display labels shown in the English UI, parallel to unlockRegionCodes.
@@ -54,6 +55,7 @@ var unlockRegionLabelsEN = []string{
 	"18: Oceania only",
 	"19: Sports only",
 	"20: All platforms",
+	"21: AI only",
 }
 
 // unlockRegionLabelsForLang returns the label slice for the given UI language.
