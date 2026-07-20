@@ -193,6 +193,8 @@ github.com/oneclickvirt/ecs v0.1.150 h1:JqWx6u4rooUvTwRsGhXfEqXYLFpyxenIOYnctc6h
 github.com/oneclickvirt/ecs v0.1.150/go.mod h1:cpJrqHy8XoPgUB2hl4MdFwx0LyG7KGNrIWeCgsElwdI=
 github.com/oneclickvirt/ecs v0.1.151 h1:494H2CYKlfGgXks1X7/X0fAR6VtcIXT5x7dUtnlry4E=
 github.com/oneclickvirt/ecs v0.1.151/go.mod h1:nDyvFpRliI17V4Gbkdlt6CcRUXM6IckbNdteSPwGXJI=
+github.com/oneclickvirt/ecs v0.1.153 h1:HDwHhVhrsQdFQ3PxgU1/3O2GceZCsq+EYBiXAZPfOlY=
+github.com/oneclickvirt/ecs v0.1.153/go.mod h1:nDyvFpRliI17V4Gbkdlt6CcRUXM6IckbNdteSPwGXJI=
 github.com/oneclickvirt/fio v0.0.2-20250808045755 h1:eWihCRWcalJjPIdrF8dMe68ZiPnMkSfHC8ENvElp/xE=
 github.com/oneclickvirt/fio v0.0.2-20250808045755/go.mod h1:NIq+XYTey68KNERGIy/oRDlzpwLzBVoHOCiqX8didsE=
 github.com/oneclickvirt/gostun v0.0.8 h1:lvLTej7iyTvbL5/35M3wPEialNlSVajgcDcwDkLFNzs=
