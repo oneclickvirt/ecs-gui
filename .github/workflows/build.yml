@@ -2,6 +2,9 @@ name: Build All UI APP
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -50,9 +53,12 @@ jobs:
         id: version
         run: |
           GUI_VERSION="${{ steps.sync_version.outputs.GUI_VERSION }}"
-          # 使用当前日期时间生成tag (格式: v20260202-HHMMSS)
-          CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M%S')
-          RELEASE_TAG="v${CURRENT_DATE}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          else
+            CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M%S')
+            RELEASE_TAG="v${CURRENT_DATE}"
+          fi
           APP_VERSION="${GUI_VERSION}"
           
           echo "VERSION=${RELEASE_TAG}" >> $GITHUB_OUTPUT
