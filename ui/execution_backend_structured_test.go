@@ -104,13 +104,13 @@ func TestStructuredAPIConfigMapsRuntimeDataAndPrivacyInputs(t *testing.T) {
 	config := structuredAPIConfig(ExecutionConfig{
 		SelectedOptions: map[string]bool{"basic": true},
 		MaxDuration:     9 * time.Minute, HardwareBudget: 90 * time.Second,
-		DataCDNBase: "https://cdn.example.test/data/", DataOffline: true,
+		DataOffline: true,
 		PrivacyMode: true, JSONPath: "result.json", EnableUpload: true,
 	})
 	if config.MaxDuration != 9*time.Minute || config.HardwareBudget != 90*time.Second {
 		t.Fatalf("runtime budgets were not mapped: %#v", config)
 	}
-	if config.DataCDNBase != "https://cdn.example.test/data" || !config.DataOffline || !config.PrivacyMode || config.JSONPath != "result.json" || config.EnableUpload {
+	if !config.DataOffline || !config.PrivacyMode || config.JSONPath != "result.json" || config.EnableUpload {
 		t.Fatalf("data/privacy options were not mapped: %#v", config)
 	}
 }

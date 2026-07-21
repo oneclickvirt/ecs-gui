@@ -1,22 +1,15 @@
 package ui
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"sort"
 	"strings"
 	"time"
 )
 
 const (
 	structuredReportSchema = "goecs.report/v1"
-	dataManifestSchema     = "goecs-data/v1"
-	legacyDataSchema       = "ecs-data/v1"
-	defaultDataCDN         = "https://cdn.spiritlhl.net/https://raw.githubusercontent.com/oneclickvirt/ecs/master/internal/data/snapshot"
-	defaultDataRaw         = "https://raw.githubusercontent.com/oneclickvirt/ecs/master/internal/data/snapshot"
 	maxStructuredJSONBytes = 16 << 20
 )
 
@@ -29,82 +22,6 @@ type dataStatus struct {
 	File        string
 	Count       int
 	Error       string
-}
-
-func resolveDataStatus(ctx context.Context, client *http.Client, bases ...string) dataStatus {
-	if client == nil {
-		client = &http.Client{Timeout: 5 * time.Second}
-	}
-	if len(bases) == 0 {
-		bases = []string{defaultDataCDN, defaultDataRaw}
-	}
-	var lastErr error
-	for index, base := range bases {
-		base = strings.TrimRight(strings.TrimSpace(base), "/")
-		if base == "" {
-			continue
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/manifest.json", nil)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-		req.Header.Set("User-Agent", "oneclickvirt-ecs-gui-data/1")
-		response, err := client.Do(req)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-		var manifest struct {
-			Schema      string    `json:"schema"`
-			GeneratedAt time.Time `json:"generated_at"`
-			Files       map[string]struct {
-				SHA256 string `json:"sha256"`
-				Count  int    `json:"count"`
-			} `json:"files"`
-		}
-		decodeErr := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&manifest)
-		response.Body.Close()
-		if response.StatusCode != http.StatusOK {
-			lastErr = fmt.Errorf("HTTP %d", response.StatusCode)
-			continue
-		}
-		if decodeErr != nil || !supportedDataSchema(manifest.Schema) || manifest.GeneratedAt.IsZero() || len(manifest.Files) == 0 {
-			lastErr = fmt.Errorf("invalid manifest")
-			continue
-		}
-		fileName, count := firstManifestFile(manifest.Files)
-		source := "CDN"
-		if index > 0 {
-			source = "GitHub Raw"
-		}
-		status := dataStatus{Schema: manifest.Schema, GeneratedAt: manifest.GeneratedAt, Source: source, Fallback: index > 0, File: fileName, Count: count}
-		if index > 0 {
-			status.FallbackTo = "raw"
-		}
-		return status
-	}
-	result := dataStatus{Source: "unavailable"}
-	if lastErr != nil {
-		result.Error = lastErr.Error()
-	}
-	return result
-}
-
-func firstManifestFile(files map[string]struct {
-	SHA256 string `json:"sha256"`
-	Count  int    `json:"count"`
-}) (string, int) {
-	names := make([]string, 0, len(files))
-	for name := range files {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	if len(names) > 0 {
-		name := names[0]
-		return name, files[name].Count
-	}
-	return "", 0
 }
 
 func (ui *TestUI) updateDataStatus(status dataStatus) {
@@ -141,7 +58,23 @@ func displayDataSource(source string) string {
 
 func summarizeStructuredRun(result StructuredRunResult) (dataStatus, string) {
 	status := dataStatus{Source: "unavailable"}
-	if result.Data != nil {
+	if len(result.DataFiles) > 0 {
+		status.Source = "components"
+		status.Schema = "component-registries/v1"
+		for _, file := range result.DataFiles {
+			if file.Status != "ok" {
+				continue
+			}
+			status.Count += file.Count
+			if file.GeneratedAt.After(status.GeneratedAt) {
+				status.GeneratedAt = file.GeneratedAt
+			}
+			if file.Fallback != "" {
+				status.Fallback = true
+				status.FallbackTo = file.Fallback
+			}
+		}
+	} else if result.Data != nil {
 		status.Schema = result.Data.Schema
 		status.GeneratedAt = result.Data.GeneratedAt
 		status.Source = result.Data.Source
@@ -248,7 +181,8 @@ func decodeStructuredRun(data []byte) (StructuredRunResult, error) {
 }
 
 func supportedDataSchema(schema string) bool {
-	return schema == dataManifestSchema || schema == legacyDataSchema
+	schema = strings.TrimSpace(schema)
+	return schema != "" && strings.Contains(schema, "/")
 }
 
 func validReportStatus(status string) bool {

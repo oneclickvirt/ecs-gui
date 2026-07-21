@@ -255,7 +255,6 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"jsonPath":          ui.JSONPathEntry.Text,
 			"maxDuration":       ui.MaxDurationEntry.Text,
 			"hardwareBudget":    ui.HardwareBudgetEntry.Text,
-			"dataCDN":           ui.DataCDNEntry.Text,
 			"unlockInterface":   ui.UnlockInterfaceEntry.Text,
 			"unlockDNS":         ui.UnlockDNSEntry.Text,
 			"unlockHTTPProxy":   ui.UnlockHTTPProxyEntry.Text,
@@ -345,7 +344,6 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.JSONPathEntry.SetText(state.entries["jsonPath"])
 	ui.MaxDurationEntry.SetText(state.entries["maxDuration"])
 	ui.HardwareBudgetEntry.SetText(state.entries["hardwareBudget"])
-	ui.DataCDNEntry.SetText(state.entries["dataCDN"])
 	ui.UnlockInterfaceEntry.SetText(state.entries["unlockInterface"])
 	ui.UnlockDNSEntry.SetText(state.entries["unlockDNS"])
 	ui.UnlockHTTPProxyEntry.SetText(state.entries["unlockHTTPProxy"])
@@ -611,7 +609,6 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		OutputWidth:       outputWidth,
 		MaxDuration:       maxDuration,
 		HardwareBudget:    hardwareBudget,
-		DataCDNBase:       strings.TrimRight(strings.TrimSpace(ui.DataCDNEntry.Text), "/"),
 		DataOffline:       ui.DataOfflineCheck.Checked,
 		PrivacyMode:       privacyMode,
 		PresetKey:         ui.selectedPresetKey,

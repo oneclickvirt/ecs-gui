@@ -215,7 +215,6 @@ var i18nText = map[string]map[string]string{
 	"label.json_path":          {"zh": "JSON 结果路径", "en": "JSON Result Path"},
 	"label.max_duration":       {"zh": "全局截止时间", "en": "Global Deadline"},
 	"label.hardware_budget":    {"zh": "硬件阶段预算", "en": "Hardware Budget"},
-	"label.data_cdn":           {"zh": "数据 CDN 地址", "en": "Data CDN Base"},
 
 	"placeholder.disk_path":          {"zh": "/tmp 或留空自动检测", "en": "/tmp or empty for auto"},
 	"placeholder.deep_disk_paths":    {"zh": "留空关闭；多个目录用逗号分隔", "en": "Empty disables; comma-separated directories"},
@@ -228,7 +227,6 @@ var i18nText = map[string]map[string]string{
 	"placeholder.json_path":          {"zh": "留空关闭，例如 goecs.json", "en": "Empty disables, e.g. goecs.json"},
 	"placeholder.max_duration":       {"zh": "最长 15m", "en": "Up to 15m"},
 	"placeholder.hardware_budget":    {"zh": "标准模式最长 2m", "en": "Up to 2m in standard mode"},
-	"placeholder.data_cdn":           {"zh": "ecs-data 的 CDN 基础地址", "en": "CDN base for ecs-data"},
 	"placeholder.unlock_interface":   {"zh": "留空使用默认路由", "en": "Empty uses the default route"},
 	"placeholder.unlock_dns":         {"zh": "留空使用系统 DNS，多个用逗号分隔", "en": "Empty uses system DNS; comma-separated"},
 	"placeholder.unlock_http_proxy":  {"zh": "留空关闭", "en": "Empty disables"},

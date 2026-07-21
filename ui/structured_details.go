@@ -54,11 +54,15 @@ func formatStructuredDetails(report StructuredRunResult, languages ...string) st
 					source += " -> " + fallback
 				}
 			}
-			value := fmt.Sprintf("%s | %d | %s", source, file.Count, overviewStatus(file.Status, zh))
+			updated := "-"
+			if !file.GeneratedAt.IsZero() {
+				updated = file.GeneratedAt.Local().Format("01-02 15:04")
+			}
+			value := fmt.Sprintf("%s | %d | %s", source, file.Count, updated)
+			if file.Status != "ok" {
+				value = fmt.Sprintf("%s | %s", overviewStatus(file.Status, zh), file.Reason)
+			}
 			overviewRow(&builder, strings.TrimSuffix(file.File, ".json"), value)
-		}
-		if !report.DataFiles[0].GeneratedAt.IsZero() {
-			overviewRow(&builder, overviewPick(zh, "同步时间", "Synced At"), report.DataFiles[0].GeneratedAt.Local().Format("2006-01-02 15:04:05"))
 		}
 	}
 

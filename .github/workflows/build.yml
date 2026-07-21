@@ -61,9 +61,11 @@ jobs:
           fi
           APP_VERSION="${GUI_VERSION}"
           
-          echo "VERSION=${RELEASE_TAG}" >> $GITHUB_OUTPUT
-          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_OUTPUT
-          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          {
+            echo "VERSION=${RELEASE_TAG}"
+            echo "APP_VERSION=${APP_VERSION}"
+            echo "RELEASE_TAG=${RELEASE_TAG}"
+          } >> "$GITHUB_OUTPUT"
           echo "Building version: ${RELEASE_TAG}"
           echo "App version: ${APP_VERSION}"
       
@@ -127,7 +129,7 @@ jobs:
       - name: Install Android NDK
         run: |
           sdkmanager --install "ndk;25.2.9519653"
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> "$GITHUB_ENV"
       
       - name: Install Android Build Tools
         run: |
@@ -210,8 +212,10 @@ jobs:
           FYNE_BUILD_FLAGS: "-trimpath -buildvcs=false -ldflags '-s -w -buildid='"
         run: |
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${APP_VERSION}" --release
-          if [ -f *.apk ]; then
-            mv *.apk ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
+          shopt -s nullglob
+          apks=( *.apk )
+          if ((${#apks[@]} > 0)); then
+            mv "${apks[0]}" ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
             echo "ARM64 APK 构建成功"
             ls -lh ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
           else
@@ -253,7 +257,7 @@ jobs:
               unzip -q "$apk" -d "${apk%.apk}_extracted"
               
               # 对 lib 目录下的 .so 文件使用 UPX 压缩
-              find "${apk%.apk}_extracted/lib" -name "*.so" -type f | while read so_file; do
+              find "${apk%.apk}_extracted/lib" -name "*.so" -type f | while IFS= read -r so_file; do
                 echo "正在压缩: $so_file"
                 upx --best --lzma "$so_file" || echo "警告: $so_file 压缩失败，继续处理"
               done
@@ -318,9 +322,7 @@ jobs:
                 "$apk"
               
               # 验证签名
-              $APKSIGNER verify "$SIGNED_APK"
-              
-              if [ $? -eq 0 ]; then
+              if "$APKSIGNER" verify "$SIGNED_APK"; then
                 echo "✓ $apk 签名成功"
                 # 替换原始 APK
                 mv "$SIGNED_APK" "$apk"
@@ -689,7 +691,7 @@ jobs:
                 tar -xJf "$file" -C ecs-gui-extracted
                 
                 # 查找并压缩 Linux 可执行文件
-                find ecs-gui-extracted -type f -executable | while read binary; do
+                find ecs-gui-extracted -type f -executable | while IFS= read -r binary; do
                   if file "$binary" | grep -q "ELF"; then
                     echo "正在压缩 Linux 二进制: $binary"
                     upx --best --lzma "$binary" || echo "警告: $binary 压缩失败"

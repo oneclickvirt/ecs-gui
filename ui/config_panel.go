@@ -284,9 +284,6 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	ui.HardwareBudgetEntry = widget.NewEntry()
 	ui.HardwareBudgetEntry.SetText("2m")
 	ui.HardwareBudgetEntry.SetPlaceHolder(ui.tr("placeholder.hardware_budget"))
-	ui.DataCDNEntry = widget.NewEntry()
-	ui.DataCDNEntry.SetText(defaultDataCDN)
-	ui.DataCDNEntry.SetPlaceHolder(ui.tr("placeholder.data_cdn"))
 	ui.DataOfflineCheck = widget.NewCheck(ui.tr("check.data_offline"), nil)
 	ui.PrivacyModeCheck = widget.NewCheck(ui.tr("check.privacy_mode"), nil)
 
@@ -349,8 +346,6 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			ui.MaxDurationEntry,
 			widget.NewLabel(ui.tr("label.hardware_budget")),
 			ui.HardwareBudgetEntry,
-			widget.NewLabel(ui.tr("label.data_cdn")),
-			ui.DataCDNEntry,
 		),
 		ui.DataOfflineCheck,
 		ui.PrivacyModeCheck,

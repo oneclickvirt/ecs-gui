@@ -47,7 +47,6 @@ type ExecutionConfig struct {
 	OutputWidth       int
 	MaxDuration       time.Duration
 	HardwareBudget    time.Duration
-	DataCDNBase       string
 	DataOffline       bool
 	PrivacyMode       bool
 	PresetKey         string
@@ -167,7 +166,6 @@ type TestUI struct {
 	JSONPathEntry       *widget.Entry
 	MaxDurationEntry    *widget.Entry
 	HardwareBudgetEntry *widget.Entry
-	DataCDNEntry        *widget.Entry
 	DataOfflineCheck    *widget.Check
 	PrivacyModeCheck    *widget.Check
 	ResultUploadCheck   *widget.Check

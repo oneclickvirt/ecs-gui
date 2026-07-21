@@ -99,7 +99,6 @@ func TestCollectExecutionConfigParsesRuntimeDataAndPrivacyInputs(t *testing.T) {
 	ui := newTestUIForTest(t)
 	ui.MaxDurationEntry.SetText("9m")
 	ui.HardwareBudgetEntry.SetText("90s")
-	ui.DataCDNEntry.SetText("https://cdn.example.test/data/")
 	ui.JSONPathEntry.SetText(" result.json ")
 	ui.DataOfflineCheck.SetChecked(true)
 	ui.ResultUploadCheck.SetChecked(true)
@@ -109,7 +108,7 @@ func TestCollectExecutionConfigParsesRuntimeDataAndPrivacyInputs(t *testing.T) {
 	if config.MaxDuration != 9*time.Minute || config.HardwareBudget != 90*time.Second {
 		t.Fatalf("runtime budgets were not parsed: %#v", config)
 	}
-	if config.DataCDNBase != "https://cdn.example.test/data" || !config.DataOffline || config.JSONPath != "result.json" {
+	if !config.DataOffline || config.JSONPath != "result.json" {
 		t.Fatalf("data/JSON inputs were not preserved: %#v", config)
 	}
 	if !config.PrivacyMode || config.EnableUpload {

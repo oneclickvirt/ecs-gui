@@ -177,7 +177,6 @@ func structuredAPIConfig(config ExecutionConfig) *ecsapi.Config {
 	apiConfig.EnableUpload = config.EnableUpload && !config.PrivacyMode
 	apiConfig.AnalyzeResult = config.AnalyzeResult
 	apiConfig.PrivacyMode = config.PrivacyMode
-	apiConfig.DataCDNBase = strings.TrimRight(strings.TrimSpace(config.DataCDNBase), "/")
 	apiConfig.DataOffline = config.DataOffline
 	apiConfig.DeepMode = config.DeepMode
 	if config.DeepMode {
