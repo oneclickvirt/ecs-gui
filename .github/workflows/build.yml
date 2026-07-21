@@ -420,6 +420,36 @@ jobs:
       
       - name: Install Fyne CLI
         run: go install fyne.io/tools/cmd/fyne@latest
+
+      - name: Install Windows ARM64 C toolchain
+        if: matrix.name == 'windows-arm64'
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod `
+            -Headers @{ Accept = "application/vnd.github+json" } `
+            -Uri "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest"
+          $asset = $release.assets |
+            Where-Object { $_.name -match '^llvm-mingw-[0-9]+-ucrt-x86_64\.zip$' } |
+            Select-Object -First 1
+          if (-not $asset) {
+            throw "Unable to locate the latest x86_64-host llvm-mingw UCRT archive"
+          }
+          $archive = Join-Path $env:RUNNER_TEMP $asset.name
+          $destination = Join-Path $env:RUNNER_TEMP "llvm-mingw"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archive
+          Expand-Archive -Path $archive -DestinationPath $destination
+          $compiler = Get-ChildItem -Path $destination -Recurse `
+            -Filter "aarch64-w64-mingw32-clang.exe" |
+            Select-Object -First 1
+          if (-not $compiler) {
+            throw "ARM64 llvm-mingw compiler was not found after extraction"
+          }
+          $bin = $compiler.Directory.FullName
+          $bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "CC=aarch64-w64-mingw32-clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=aarch64-w64-mingw32-clang++" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CGO_ENABLED=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $compiler.FullName --version
       
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'

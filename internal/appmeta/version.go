@@ -3,7 +3,7 @@ package appmeta
 var (
 	AppID              = "com.oneclickvirt.goecs"
 	AppName            = "goecs"
-	Version            = "0.1.159"
+	Version            = "0.1.160"
 	UpstreamECSVersion = "v0.1.157"
 )
 
