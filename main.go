@@ -10,18 +10,6 @@ import (
 	"github.com/oneclickvirt/ecs-gui/ui"
 )
 
-var (
-	showVersion bool
-	showHelp    bool
-)
-
-func init() {
-	flag.BoolVar(&showVersion, "version", false, "显示版本信息")
-	flag.BoolVar(&showVersion, "v", false, "显示版本信息")
-	flag.BoolVar(&showHelp, "help", false, "显示帮助信息")
-	flag.BoolVar(&showHelp, "h", false, "显示帮助信息")
-}
-
 func main() {
 	// 添加全局错误恢复
 	defer func() {
@@ -31,7 +19,10 @@ func main() {
 		}
 	}()
 
-	flag.Parse()
+	showVersion, showHelp, err := parseGUIFlags(os.Args[1:])
+	if err != nil {
+		os.Exit(2)
+	}
 
 	if showVersion {
 		fmt.Printf("%s %s (upstream ecs %s)\n", appmeta.AppName, appmeta.Version, appmeta.UpstreamECSVersion)
@@ -45,6 +36,17 @@ func main() {
 
 	// 启动图形界面
 	runGUIMode()
+}
+
+func parseGUIFlags(args []string) (showVersion, showHelp bool, err error) {
+	flags := flag.NewFlagSet("ecs-gui", flag.ContinueOnError)
+	flags.SetOutput(os.Stderr)
+	flags.BoolVar(&showVersion, "version", false, "显示版本信息")
+	flags.BoolVar(&showVersion, "v", false, "显示版本信息")
+	flags.BoolVar(&showHelp, "help", false, "显示帮助信息")
+	flags.BoolVar(&showHelp, "h", false, "显示帮助信息")
+	err = flags.Parse(args)
+	return
 }
 
 func runGUIMode() {

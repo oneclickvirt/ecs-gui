@@ -25,35 +25,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7.0.0
 
-      - name: Sync VERSION from go.mod
+      - name: Validate GUI and upstream versions
         id: sync_version
         shell: bash
         run: |
+          set -euo pipefail
           MODULE_ECS_VERSION="$(awk '$1 == "github.com/oneclickvirt/ecs" { print $2; exit }' go.mod)"
-          BASE_VERSION="${MODULE_ECS_VERSION#v}"
-          if [ -z "$BASE_VERSION" ]; then
+          ECS_VERSION="${MODULE_ECS_VERSION#v}"
+          if [[ ! "$ECS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Unable to detect github.com/oneclickvirt/ecs version from go.mod"
             exit 1
           fi
 
-          CURRENT_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
-          if [ "$CURRENT_VERSION" != "$BASE_VERSION" ]; then
-            printf '%s\n' "$BASE_VERSION" > VERSION
-            echo "VERSION synchronized from ${CURRENT_VERSION:-<empty>} to $BASE_VERSION"
-          else
-            echo "VERSION already synchronized: $BASE_VERSION"
+          GUI_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
+          if [[ ! "$GUI_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid GUI VERSION: ${GUI_VERSION:-<empty>}"
+            exit 1
           fi
 
-          echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "GUI_VERSION=${GUI_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "ECS_VERSION=${ECS_VERSION}" >> "$GITHUB_OUTPUT"
       
       - name: Get version info
         id: version
         run: |
-          BASE_VERSION="${{ steps.sync_version.outputs.BASE_VERSION }}"
+          GUI_VERSION="${{ steps.sync_version.outputs.GUI_VERSION }}"
           # 使用当前日期时间生成tag (格式: v20260202-HHMMSS)
           CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M%S')
           RELEASE_TAG="v${CURRENT_DATE}"
-          APP_VERSION="${BASE_VERSION}"
+          APP_VERSION="${GUI_VERSION}"
           
           echo "VERSION=${RELEASE_TAG}" >> $GITHUB_OUTPUT
           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_OUTPUT
@@ -174,7 +174,7 @@ jobs:
             echo "Unable to detect ecs version from checked out source: $ECS_VERSION"
             exit 1
           fi
-          APP_VERSION="${ECS_VERSION#v}"
+          APP_VERSION="${{ needs.prepare.outputs.app_version }}"
           sed -i "s/Version[[:space:]]*= \"[^\"]*\"/Version            = \"${APP_VERSION}\"/" internal/appmeta/version.go
           sed -i "s/UpstreamECSVersion[[:space:]]*= \"[^\"]*\"/UpstreamECSVersion = \"${ECS_VERSION}\"/" internal/appmeta/version.go
           echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
@@ -479,7 +479,7 @@ jobs:
             echo "Unable to detect ecs version from checked out source: $ECS_VERSION"
             exit 1
           fi
-          APP_VERSION="${ECS_VERSION#v}"
+          APP_VERSION="${{ needs.prepare.outputs.app_version }}"
           if [ "${{ runner.os }}" == "macOS" ]; then
             sed -i '' "s/Version[[:space:]]*= \"[^\"]*\"/Version            = \"${APP_VERSION}\"/" internal/appmeta/version.go
             sed -i '' "s/UpstreamECSVersion[[:space:]]*= \"[^\"]*\"/UpstreamECSVersion = \"${ECS_VERSION}\"/" internal/appmeta/version.go
