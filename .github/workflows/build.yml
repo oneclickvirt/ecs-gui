@@ -137,36 +137,33 @@ jobs:
       - name: Prepare structured component workspace
         shell: bash
         run: |
+          set -euo pipefail
           rm -rf deps go.work go.work.sum
           mkdir -p deps
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
-          module_ref() {
-            case "$1" in
-              ecs) echo "v0.1.153" ;;
-              UnlockTests) echo "v0.0.42" ;;
-              backtrace) echo "v0.0.13" ;;
-              basics) echo "v0.0.22" ;;
-              cputest) echo "v0.0.14" ;;
-              defaultset) echo "v0.0.2-20240624082446" ;;
-              disktest) echo "v0.0.13" ;;
-              gostun) echo "v0.0.8" ;;
-              memorytest) echo "v0.0.12" ;;
-              nt3) echo "v0.0.17" ;;
-              pingtest) echo "v0.0.14" ;;
-              portchecker) echo "v0.0.5" ;;
-              privatespeedtest) echo "v0.0.3" ;;
-              security) echo "v0.0.13" ;;
-              speedtest) echo "v0.0.16" ;;
-            esac
-          }
           for module in $modules; do
-            ref="$(module_ref "$module")"
+            module_path="github.com/oneclickvirt/${module}"
+            ref="$(GOWORK=off go list -m -f '{{.Version}}' "$module_path")"
+            if [[ -z "$ref" ]]; then
+              echo "Unable to resolve ${module_path} from go.mod" >&2
+              exit 1
+            fi
+            echo "${module_path} -> ${ref}"
             git clone --branch "$ref" --single-branch --depth 1 "https://github.com/oneclickvirt/${module}.git" "deps/${module}"
           done
           printf '/deps/\n/go.work\n/go.work.sum\n' >> .git/info/exclude
           go work init .
           for module in $modules; do
             go work use "deps/${module}"
+          done
+          export GOWORK="$PWD/go.work"
+          for module in $modules; do
+            resolved="$(go list -m -f '{{.Dir}}' "github.com/oneclickvirt/${module}")"
+            expected="$PWD/deps/${module}"
+            if [[ "$resolved" != "$expected" ]]; then
+              echo "Workspace did not select ${module}: expected ${expected}, got ${resolved:-<empty>}" >&2
+              exit 1
+            fi
           done
 
       - name: Sync build metadata from checked out ecs
@@ -445,36 +442,33 @@ jobs:
       - name: Prepare structured component workspace
         shell: bash
         run: |
+          set -euo pipefail
           rm -rf deps go.work go.work.sum
           mkdir -p deps
           modules="ecs UnlockTests backtrace basics cputest defaultset disktest gostun memorytest nt3 pingtest portchecker privatespeedtest security speedtest"
-          module_ref() {
-            case "$1" in
-              ecs) echo "v0.1.153" ;;
-              UnlockTests) echo "v0.0.42" ;;
-              backtrace) echo "v0.0.13" ;;
-              basics) echo "v0.0.22" ;;
-              cputest) echo "v0.0.14" ;;
-              defaultset) echo "v0.0.2-20240624082446" ;;
-              disktest) echo "v0.0.13" ;;
-              gostun) echo "v0.0.8" ;;
-              memorytest) echo "v0.0.12" ;;
-              nt3) echo "v0.0.17" ;;
-              pingtest) echo "v0.0.14" ;;
-              portchecker) echo "v0.0.5" ;;
-              privatespeedtest) echo "v0.0.3" ;;
-              security) echo "v0.0.13" ;;
-              speedtest) echo "v0.0.16" ;;
-            esac
-          }
           for module in $modules; do
-            ref="$(module_ref "$module")"
+            module_path="github.com/oneclickvirt/${module}"
+            ref="$(GOWORK=off go list -m -f '{{.Version}}' "$module_path")"
+            if [[ -z "$ref" ]]; then
+              echo "Unable to resolve ${module_path} from go.mod" >&2
+              exit 1
+            fi
+            echo "${module_path} -> ${ref}"
             git clone --branch "$ref" --single-branch --depth 1 "https://github.com/oneclickvirt/${module}.git" "deps/${module}"
           done
           printf '/deps/\n/go.work\n/go.work.sum\n' >> .git/info/exclude
           go work init .
           for module in $modules; do
             go work use "deps/${module}"
+          done
+          export GOWORK="$PWD/go.work"
+          for module in $modules; do
+            resolved="$(go list -m -f '{{.Dir}}' "github.com/oneclickvirt/${module}")"
+            expected="$PWD/deps/${module}"
+            if [[ "$resolved" != "$expected" ]]; then
+              echo "Workspace did not select ${module}: expected ${expected}, got ${resolved:-<empty>}" >&2
+              exit 1
+            fi
           done
 
       - name: Sync build metadata from checked out ecs
