@@ -165,7 +165,11 @@ jobs:
           export GOWORK="$PWD/go.work"
           for module in $modules; do
             resolved="$(go list -m -f '{{.Dir}}' "github.com/oneclickvirt/${module}")"
-            expected="$PWD/deps/${module}"
+            expected="$(cd "deps/${module}" && pwd -P)"
+            if [[ "${RUNNER_OS}" == "Windows" ]]; then
+              resolved="$(cygpath -m "$resolved")"
+              expected="$(cygpath -m "$expected")"
+            fi
             if [[ "$resolved" != "$expected" ]]; then
               echo "Workspace did not select ${module}: expected ${expected}, got ${resolved:-<empty>}" >&2
               exit 1
@@ -470,7 +474,11 @@ jobs:
           export GOWORK="$PWD/go.work"
           for module in $modules; do
             resolved="$(go list -m -f '{{.Dir}}' "github.com/oneclickvirt/${module}")"
-            expected="$PWD/deps/${module}"
+            expected="$(cd "deps/${module}" && pwd -P)"
+            if [[ "${RUNNER_OS}" == "Windows" ]]; then
+              resolved="$(cygpath -m "$resolved")"
+              expected="$(cygpath -m "$expected")"
+            fi
             if [[ "$resolved" != "$expected" ]]; then
               echo "Workspace did not select ${module}: expected ${expected}, got ${resolved:-<empty>}" >&2
               exit 1
