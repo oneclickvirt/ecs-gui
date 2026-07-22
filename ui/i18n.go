@@ -187,7 +187,7 @@ var i18nText = map[string]map[string]string{
 	"config.speed.title":   {"zh": "测速", "en": "Speed"},
 	"config.speed.sub":     {"zh": "测速节点数量", "en": "Speed test node count"},
 	"config.ping.title":    {"zh": "PING 扩展", "en": "Ping Extensions"},
-	"config.ping.sub":      {"zh": "三网 PING 之外的附加测试", "en": "Additional ping checks"},
+	"config.ping.sub":      {"zh": "排序、目标与附加探针", "en": "Order, targets, and probes"},
 
 	"label.language":           {"zh": "语言", "en": "Language"},
 	"label.theme":              {"zh": "主题", "en": "Theme"},
@@ -203,6 +203,9 @@ var i18nText = map[string]map[string]string{
 	"label.nt3_location":       {"zh": "测试地点", "en": "Location"},
 	"label.nt3_type":           {"zh": "测试类型", "en": "IP Stack"},
 	"label.sp_num":             {"zh": "节点数/运营商", "en": "Nodes/ISP"},
+	"label.ping_sort":          {"zh": "Ping 排序", "en": "Ping Order"},
+	"label.ping_scope":         {"zh": "Ping 目标", "en": "Ping Targets"},
+	"label.tcp_sort":           {"zh": "TCP 排序", "en": "TCP Order"},
 	"label.unlock_region":      {"zh": "测试地区", "en": "Region"},
 	"label.unlock_ip_ver":      {"zh": "IP 版本", "en": "IP Version"},
 	"label.unlock_interface":   {"zh": "源接口或 IP", "en": "Source Interface or IP"},

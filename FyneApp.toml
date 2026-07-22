@@ -4,7 +4,7 @@ Website = "https://github.com/oneclickvirt/ecs-gui"
 Icon = "assets/icons/logo.png"
 Name = "goecs"
 ID = "com.oneclickvirt.goecs"
-Version = "0.1.160"
+Version = "0.1.166"
 Build = 1
 
 [Android]

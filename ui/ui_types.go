@@ -30,6 +30,9 @@ type ExecutionConfig struct {
 	Nt3Location       string
 	Nt3Type           string
 	SpNum             int
+	PingSortOrder     string
+	PingScope         string
+	TCPSortOrder      string
 	PingTgdc          bool
 	PingWeb           bool
 	UnlockRegion      string
@@ -177,6 +180,9 @@ type TestUI struct {
 	// 注：PingCheck控制三网PING测试，以下两个单独控制TGDC和Web测试
 	PingTgdcCheck     *widget.Check // 是否测试TGDC
 	PingWebCheck      *widget.Check // 是否测试流行网站
+	PingSortSelect    *widget.Select
+	PingScopeSelect   *widget.Select
+	TCPSortSelect     *widget.Select
 	UnlockShowIPCheck *widget.Check // 是否显示解锁测试IP标签
 
 	// 控制按钮

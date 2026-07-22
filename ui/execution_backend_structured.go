@@ -161,6 +161,9 @@ func structuredAPIConfig(config ExecutionConfig) *ecsapi.Config {
 	apiConfig.Nt3Status = selected["nt3"] && !config.ChinaModeEnabled
 	apiConfig.SpeedTestStatus = selected["speed"]
 	apiConfig.PingTestStatus = selected["ping"] || config.ChinaModeEnabled
+	apiConfig.PingSortOrder = config.PingSortOrder
+	apiConfig.PingScope = config.PingScope
+	apiConfig.TCPSortOrder = config.TCPSortOrder
 	apiConfig.TgdcTestStatus = config.PingTgdc && !config.ChinaModeEnabled
 	apiConfig.WebTestStatus = config.PingWeb && !config.ChinaModeEnabled
 	apiConfig.OnlyChinaTest = config.ChinaModeEnabled

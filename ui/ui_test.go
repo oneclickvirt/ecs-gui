@@ -24,6 +24,24 @@ func newTestUIForTest(t *testing.T) *TestUI {
 	return ui
 }
 
+func TestDesktopConfigSectionStaysWithinDefaultWindow(t *testing.T) {
+	if isMobilePlatform() {
+		t.Skip("desktop layout only")
+	}
+
+	ui := newTestUIForTest(t)
+	for _, language := range []string{langZH, langEN} {
+		ui.uiLang = language
+		size := ui.createConfigSection().MinSize()
+		if size.Width > 900 {
+			t.Fatalf("%s config minimum width = %.1f, want <= 900", language, size.Width)
+		}
+		if size.Height > 1900 {
+			t.Fatalf("%s config minimum height = %.1f, want <= 1900", language, size.Height)
+		}
+	}
+}
+
 func TestCollectExecutionConfigClampsNumericValues(t *testing.T) {
 	ui := newTestUIForTest(t)
 
@@ -132,6 +150,39 @@ func TestStandardPresetSelectsExpectedOptions(t *testing.T) {
 	}
 	if ui.SpNumEntry.Text != "5" {
 		t.Fatalf("standard preset should set speed node count to 5, got %q", ui.SpNumEntry.Text)
+	}
+}
+
+func TestFullPresetMatchesGoECSOptionOneEnhancements(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.onPresetChanged(ui.presetLabelByKey("full"))
+
+	config := ui.collectExecutionConfig()
+	if !config.SelectedOptions["ping"] || !config.DiskMulti || !config.DeepMode || config.DeepBurnDuration != 20*time.Second {
+		t.Fatalf("full preset did not enable Ping/deep hardware defaults: %#v", config)
+	}
+	if !config.PingTgdc || !config.PingWeb || !config.UnlockShowIP {
+		t.Fatalf("full preset did not enable network enhancements: %#v", config)
+	}
+	if config.PingSortOrder != "latency" || config.PingScope != "auto" || config.TCPSortOrder != "name" {
+		t.Fatalf("full preset ordering defaults are inconsistent: %#v", config)
+	}
+
+	ui.onPresetChanged(ui.presetLabelByKey("standard"))
+	standard := ui.collectExecutionConfig()
+	if standard.DeepMode || standard.DiskMulti || standard.DeepBurnDuration != 0 {
+		t.Fatalf("standard preset retained full-only enhancements: %#v", standard)
+	}
+}
+
+func TestCollectExecutionConfigKeepsNetworkOrderingSelections(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.PingSortSelect.SetSelected("name")
+	ui.PingScopeSelect.SetSelected("international")
+	ui.TCPSortSelect.SetSelected("latency")
+	config := ui.collectExecutionConfig()
+	if config.PingSortOrder != "name" || config.PingScope != "international" || config.TCPSortOrder != "latency" {
+		t.Fatalf("network ordering selections were not retained: %#v", config)
 	}
 }
 

@@ -708,7 +708,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 			} else {
 				PrintCenteredTitle("PING-Test", width)
 			}
-			pingResult := pt.PingTest()
+			pingResult := runPingProfile(config, language)
 			fmt.Println(pingResult)
 		} else {
 			// 非中国模式：根据配置测试
@@ -717,7 +717,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 			} else {
 				PrintCenteredTitle("PING-Test", width)
 			}
-			pingResult := pt.PingTest()
+			pingResult := runPingProfile(config, language)
 			fmt.Println(pingResult)
 
 			// 根据用户配置决定是否测试TGDC和Web
@@ -984,11 +984,15 @@ func runSpeedProfile(core CoreRunner, config ExecutionConfig, language string) {
 	}
 	switch config.PresetKey {
 	case "full":
-		core.SpeedTestNearby()
-		core.SpeedTestCustom("net", "global", 2, language)
-		core.SpeedTestCustom("net", "cu", spNum, language)
-		core.SpeedTestCustom("net", "ct", spNum, language)
-		core.SpeedTestCustom("net", "cmcc", spNum, language)
+		if language == "zh" {
+			core.SpeedTestNearby()
+			core.SpeedTestCustom("net", "global", 2, language)
+			core.SpeedTestCustom("net", "cu", spNum, language)
+			core.SpeedTestCustom("net", "ct", spNum, language)
+			core.SpeedTestCustom("net", "cmcc", spNum, language)
+		} else {
+			core.SpeedTestCustom("net", "global", 4, language)
+		}
 	case "minimal", "standard", "network_focus", "unlock_focus":
 		if language == "zh" {
 			core.SpeedTestNearby()
@@ -1002,9 +1006,25 @@ func runSpeedProfile(core CoreRunner, config ExecutionConfig, language string) {
 	case "network_only":
 		core.SpeedTestCustom("net", "global", 11, language)
 	default:
-		core.SpeedTestNearby()
-		core.SpeedTestCustom("net", "cu", spNum, language)
-		core.SpeedTestCustom("net", "ct", spNum, language)
-		core.SpeedTestCustom("net", "cmcc", spNum, language)
+		if language == "zh" {
+			core.SpeedTestNearby()
+			core.SpeedTestCustom("net", "cu", spNum, language)
+			core.SpeedTestCustom("net", "ct", spNum, language)
+			core.SpeedTestCustom("net", "cmcc", spNum, language)
+		} else {
+			core.SpeedTestCustom("net", "global", 4, language)
+		}
 	}
+}
+
+func runPingProfile(config ExecutionConfig, language string) string {
+	scope := ptmodel.PingScope(config.PingScope)
+	if strings.EqualFold(language, "en") {
+		scope = ptmodel.PingScopeInternational
+	}
+	return pt.PingTestWithOptions(pt.PingOptions{
+		Language: language,
+		Scope:    scope,
+		Sort:     ptmodel.PingSort(config.PingSortOrder),
+	})
 }

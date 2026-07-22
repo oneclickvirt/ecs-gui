@@ -30,15 +30,36 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		key = "custom"
 	}
 	ui.selectedPresetKey = key
+	if key != "custom" {
+		ui.DiskMultiCheck.SetChecked(false)
+		ui.DeepModeCheck.SetChecked(false)
+		ui.DeepDiskPathsEntry.SetText("")
+		ui.DeepSMARTEntry.SetText("")
+		ui.DeepBurnEntry.SetText("")
+		ui.DeepGPUEntry.SetText("")
+		ui.UnlockShowIPCheck.SetChecked(false)
+		ui.PingSortSelect.SetSelected("latency")
+		ui.PingScopeSelect.SetSelected("auto")
+		ui.TCPSortSelect.SetSelected("name")
+	}
 
 	switch key {
 	case "full":
 		// 对应原goecs.go的选项1: SetFullTestStatus
 		ui.setAllChecks(true)
-		// 注意：原goecs.go的完全体包括TGDC和Web测试，不包括三网ping测试
-		ui.PingCheck.Checked = false
+		ui.PingCheck.Checked = true
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
+		ui.DiskMultiCheck.SetChecked(true)
+		ui.DeepModeCheck.SetChecked(true)
+		ui.DeepDiskPathsEntry.SetText("")
+		ui.DeepSMARTEntry.SetText("")
+		ui.DeepBurnEntry.SetText("20s")
+		ui.DeepGPUEntry.SetText("")
+		ui.UnlockShowIPCheck.SetChecked(true)
+		ui.PingSortSelect.SetSelected("latency")
+		ui.PingScopeSelect.SetSelected("auto")
+		ui.TCPSortSelect.SetSelected("name")
 		ui.ChinaModeCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "minimal":

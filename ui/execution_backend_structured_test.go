@@ -43,6 +43,7 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 		DiskMethod: "fio", DeepMode: true,
 		DeepDiskPaths: "/mnt/a,/mnt/b", DeepSMARTDevices: "/dev/sda",
 		DeepBurnDuration: 45 * time.Second, DeepGPUDevice: "gpu0",
+		PingSortOrder: "name", PingScope: "international", TCPSortOrder: "latency",
 	}, func(value string) { output += value }, func(update ProgressUpdate) { progressUpdates = append(progressUpdates, update) })
 	if outcome.Err != nil || outcome.Report == nil {
 		t.Fatalf("unexpected outcome: %#v", outcome)
@@ -55,6 +56,9 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 	}
 	if !gotConfig.DeepMode || gotConfig.DeepDiskPaths != "/mnt/a,/mnt/b" || gotConfig.DeepSMARTDevices != "/dev/sda" || gotConfig.DeepBurnDuration != 45*time.Second || gotConfig.DeepGPUDevice != "gpu0" {
 		t.Fatalf("deep config was not mapped: %#v", gotConfig)
+	}
+	if gotConfig.PingSortOrder != "name" || gotConfig.PingScope != "international" || gotConfig.TCPSortOrder != "latency" {
+		t.Fatalf("network ordering config was not mapped: %#v", gotConfig)
 	}
 	if output != "fixture output\n" || len(outcome.Report.Components) != 1 || outcome.Report.Components[0].Name != "basics" {
 		t.Fatalf("fixture was not propagated: output=%q report=%#v", output, outcome.Report)

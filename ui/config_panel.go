@@ -17,7 +17,6 @@ func (ui *TestUI) newIconCard(title, subtitle string, icon fyne.Resource, body f
 	return widget.NewCard("", "", container.NewVBox(
 		head,
 		widget.NewLabel(subtitle),
-		layout.NewSpacer(),
 		body,
 	))
 }
@@ -303,6 +302,12 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 
 	ui.PingWebCheck = widget.NewCheck(ui.tr("check.ping_web"), nil)
 	ui.PingWebCheck.Checked = false
+	ui.PingSortSelect = widget.NewSelect([]string{"latency", "name"}, nil)
+	ui.PingSortSelect.SetSelected("latency")
+	ui.PingScopeSelect = widget.NewSelect([]string{"auto", "china", "international"}, nil)
+	ui.PingScopeSelect.SetSelected("auto")
+	ui.TCPSortSelect = widget.NewSelect([]string{"name", "latency"}, nil)
+	ui.TCPSortSelect.SetSelected("name")
 
 	// 流媒体解锁配置
 	ui.UnlockRegionSelect = widget.NewSelect(
@@ -429,6 +434,14 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	)
 
 	pingContent := container.NewVBox(
+		container.NewGridWithColumns(2,
+			widget.NewLabel(ui.tr("label.ping_sort")),
+			ui.PingSortSelect,
+			widget.NewLabel(ui.tr("label.ping_scope")),
+			ui.PingScopeSelect,
+			widget.NewLabel(ui.tr("label.tcp_sort")),
+			ui.TCPSortSelect,
+		),
 		ui.PingTgdcCheck,
 		ui.PingWebCheck,
 	)
@@ -462,17 +475,12 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	speedCard := ui.newIconCard(ui.tr("config.speed.title"), ui.tr("config.speed.sub"), theme.DownloadIcon(), speedContent)
 	pingCard := ui.newIconCard(ui.tr("config.ping.title"), ui.tr("config.ping.sub"), theme.InfoIcon(), pingContent)
 
-	configGrid := container.NewAdaptiveGrid(optionGridColumns(),
-		generalCard,
-		chinaCard,
-		cpuCard,
-		memoryCard,
-		diskCard,
-		deepCard,
-		unlockCard,
-		routeCard,
-		speedCard,
-		pingCard,
+	configGrid := container.NewVBox(
+		container.NewGridWithColumns(2, generalCard, unlockCard),
+		container.NewGridWithColumns(2, cpuCard, memoryCard),
+		container.NewGridWithColumns(2, diskCard, deepCard),
+		container.NewGridWithColumns(2, routeCard, pingCard),
+		container.NewGridWithColumns(2, chinaCard, speedCard),
 	)
 
 	return widget.NewCard(ui.tr("config.card.title"), ui.tr("config.card.sub"), configGrid)

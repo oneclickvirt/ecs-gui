@@ -184,6 +184,13 @@ func (ui *TestUI) selectedLanguageCode() string {
 	return langZH
 }
 
+func selectedOrDefault(selectWidget *widget.Select, fallback string) string {
+	if selectWidget == nil || strings.TrimSpace(selectWidget.Selected) == "" {
+		return fallback
+	}
+	return strings.ToLower(strings.TrimSpace(selectWidget.Selected))
+}
+
 func (ui *TestUI) rebuildPresetMappings() []string {
 	labels := make([]string, 0, len(presetDefs))
 	ui.presetLabelToKey = make(map[string]string, len(presetDefs))
@@ -240,6 +247,9 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"diskMethod":   ui.DiskMethodSelect.Selected,
 			"nt3Loc":       ui.Nt3LocationSelect.Selected,
 			"nt3Type":      ui.Nt3TypeSelect.Selected,
+			"pingSort":     ui.PingSortSelect.Selected,
+			"pingScope":    ui.PingScopeSelect.Selected,
+			"tcpSort":      ui.TCPSortSelect.Selected,
 			"unlockRegion": unlockRegionLabelToCode(ui.UnlockRegionSelect.Selected, ui.uiLang),
 			"unlockIpVer":  ui.UnlockIpVersionSelect.Selected,
 		},
@@ -326,6 +336,15 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.DiskMethodSelect.SetSelected(state.selections["diskMethod"])
 	ui.Nt3LocationSelect.SetSelected(state.selections["nt3Loc"])
 	ui.Nt3TypeSelect.SetSelected(state.selections["nt3Type"])
+	if value := state.selections["pingSort"]; value != "" {
+		ui.PingSortSelect.SetSelected(value)
+	}
+	if value := state.selections["pingScope"]; value != "" {
+		ui.PingScopeSelect.SetSelected(value)
+	}
+	if value := state.selections["tcpSort"]; value != "" {
+		ui.TCPSortSelect.SetSelected(value)
+	}
 	if code := state.selections["unlockRegion"]; code != "" {
 		ui.UnlockRegionSelect.SetSelected(unlockRegionCodeToLabel(code, ui.uiLang))
 	}
@@ -519,6 +538,9 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 
 	pingTgdc := ui.PingTgdcCheck.Checked
 	pingWeb := ui.PingWebCheck.Checked
+	pingSortOrder := selectedOrDefault(ui.PingSortSelect, "latency")
+	pingScope := selectedOrDefault(ui.PingScopeSelect, "auto")
+	tcpSortOrder := selectedOrDefault(ui.TCPSortSelect, "name")
 
 	unlockRegion := unlockRegionLabelToCode(ui.UnlockRegionSelect.Selected, language)
 	if unlockRegion == "" {
@@ -592,6 +614,9 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		Nt3Location:       nt3Location,
 		Nt3Type:           nt3Type,
 		SpNum:             spNum,
+		PingSortOrder:     pingSortOrder,
+		PingScope:         pingScope,
+		TCPSortOrder:      tcpSortOrder,
 		PingTgdc:          pingTgdc,
 		PingWeb:           pingWeb,
 		UnlockRegion:      unlockRegion,
