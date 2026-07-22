@@ -187,6 +187,8 @@ github.com/oneclickvirt/disktest v0.0.15 h1:QSFjNv2rtxRAFh/CXJeMIyD7lX05UTMXrONa
 github.com/oneclickvirt/disktest v0.0.15/go.mod h1:Vp3iMVBD4ccReDJz5n5SlzUdq0kDuVhpRklQk21KT+8=
 github.com/oneclickvirt/ecs v0.1.163 h1:wpiPS6SGRb1x5Er2ZXWKjlbRfMuE0D7Urva+G8lL+GY=
 github.com/oneclickvirt/ecs v0.1.163/go.mod h1:DRHKwBDbJZcSSaKS83q6j3EK4XmqAAYfX8b59g6fBHo=
+github.com/oneclickvirt/ecs v0.1.164 h1:03xBePiuPwcYOkxdWCFZ9/5kJtfFDNWz1uxj2guc2nw=
+github.com/oneclickvirt/ecs v0.1.164/go.mod h1:Dm879dvpAFv+gc8TjKDQ2Ej44owTKnjKutxYJJBfXwY=
 github.com/oneclickvirt/fio v0.0.2-20250808045755 h1:eWihCRWcalJjPIdrF8dMe68ZiPnMkSfHC8ENvElp/xE=
 github.com/oneclickvirt/fio v0.0.2-20250808045755/go.mod h1:NIq+XYTey68KNERGIy/oRDlzpwLzBVoHOCiqX8didsE=
 github.com/oneclickvirt/gostun v0.0.10 h1:bMjwng5v6UKEcFrg1BSYijS5DAU5aYiSt5+0LmKXKMI=
@@ -199,6 +201,8 @@ github.com/oneclickvirt/nt3 v0.0.21 h1:yhlSlxGN033TU+/2QmVBYIcpabdJWiuuTVlefHj7Z
 github.com/oneclickvirt/nt3 v0.0.21/go.mod h1:x00j26DPiVjSQfYdFHJyvLHBH8MTIR9nMHqJ5stTwZs=
 github.com/oneclickvirt/pingtest v0.0.22 h1:mMWa5XCu2JTmiMDZ5FDVRZ4iHFQQLdHmXMA6O1F0TAA=
 github.com/oneclickvirt/pingtest v0.0.22/go.mod h1:IjYd7dJGby/VqGpNVpbjJ5Jbw27muLLgO0zv2dkiAn4=
+github.com/oneclickvirt/pingtest v0.0.23 h1:MKKoYh94urtPRf/ghCuctl1rxuCVPr6GSyPgtVpGe/g=
+github.com/oneclickvirt/pingtest v0.0.23/go.mod h1:IjYd7dJGby/VqGpNVpbjJ5Jbw27muLLgO0zv2dkiAn4=
 github.com/oneclickvirt/portchecker v0.0.7 h1:D3Q01FZgjGTrTBJgWqRoeFbBWViJl4gE+v8alIlUeAM=
 github.com/oneclickvirt/portchecker v0.0.7/go.mod h1:9sjMDPCd4Z40wkYB0S9gQPGH8YPtnNE1ZJthVIuHUzA=
 github.com/oneclickvirt/privatespeedtest v0.0.8 h1:Z5YUl0BCYEdq7c4Oah66Wf8HDFsp7uUMnAR5BbsQnh8=

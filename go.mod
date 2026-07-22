@@ -12,11 +12,11 @@ require (
 	github.com/oneclickvirt/cputest v0.0.17
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.15
-	github.com/oneclickvirt/ecs v0.1.163
+	github.com/oneclickvirt/ecs v0.1.164
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.21
-	github.com/oneclickvirt/pingtest v0.0.22
+	github.com/oneclickvirt/pingtest v0.0.23
 	github.com/oneclickvirt/portchecker v0.0.7
 	github.com/oneclickvirt/security v0.0.18
 	github.com/oneclickvirt/speedtest v0.0.18
