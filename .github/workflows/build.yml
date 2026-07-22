@@ -181,7 +181,7 @@ jobs:
       - name: Sync build metadata from checked out ecs
         shell: bash
         run: |
-          ECS_VERSION="$(awk -F'"' '/ecsVersion[[:space:]]*=/{print $2; exit}' deps/ecs/goecs.go)"
+          ECS_VERSION="$(awk -F'"' '/DefaultVersion[[:space:]]*=/{print $2; exit}' deps/ecs/api/api.go)"
           if [[ ! "$ECS_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Unable to detect ecs version from checked out source: $ECS_VERSION"
             exit 1
@@ -520,7 +520,7 @@ jobs:
       - name: Sync build metadata from checked out ecs
         shell: bash
         run: |
-          ECS_VERSION="$(awk -F'"' '/ecsVersion[[:space:]]*=/{print $2; exit}' deps/ecs/goecs.go)"
+          ECS_VERSION="$(awk -F'"' '/DefaultVersion[[:space:]]*=/{print $2; exit}' deps/ecs/api/api.go)"
           if [[ ! "$ECS_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Unable to detect ecs version from checked out source: $ECS_VERSION"
             exit 1
