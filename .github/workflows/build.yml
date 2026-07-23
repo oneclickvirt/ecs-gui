@@ -26,7 +26,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.RELEASE_TAG }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
 
       - name: Validate GUI and upstream versions
         id: sync_version
@@ -103,7 +103,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
       
       - name: Set up Go
         uses: actions/setup-go@v6.5.0
@@ -412,7 +412,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
       
       - name: Set up Go
         uses: actions/setup-go@v6.5.0
