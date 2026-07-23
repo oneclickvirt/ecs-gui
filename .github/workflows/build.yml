@@ -544,13 +544,17 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
-      - name: Verify structured GUI and component adapters
+      - name: Verify release GUI path
         if: matrix.name == 'linux-amd64'
-        env:
-          GOFLAGS: -tags=ecs_structured
         run: |
           go test -race ./ui
           go vet ./...
+
+      - name: Verify structured GUI and component adapters
+        if: matrix.name == 'linux-amd64'
+        run: |
+          go test -race -tags=ecs_structured ./ui
+          go vet -tags=ecs_structured ./...
       
       - name: Update FyneApp.toml version
         shell: bash

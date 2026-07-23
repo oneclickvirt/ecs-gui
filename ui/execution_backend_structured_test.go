@@ -89,6 +89,16 @@ func TestStructuredAPIConfigKeepsStandardHardwareBudget(t *testing.T) {
 	}
 }
 
+func TestStructuredAPIConfigPreservesEnglishDDSelection(t *testing.T) {
+	config := structuredAPIConfig(ExecutionConfig{
+		Language: "en", SelectedOptions: map[string]bool{"disk": true},
+		DiskMethod: "dd", DiskPath: "/fixture", DiskMulti: true, AutoDiskMethod: false,
+	})
+	if config.Language != "en" || config.DiskTestMethod != "dd" || config.DiskTestPath != "/fixture" || !config.DiskMultiCheck || config.AutoChangeDiskMethod {
+		t.Fatalf("English DD options were not preserved: %#v", config)
+	}
+}
+
 func TestStructuredAPIConfigMapsUnlockNetworkInputs(t *testing.T) {
 	config := structuredAPIConfig(ExecutionConfig{
 		SelectedOptions: map[string]bool{"unlock": true},

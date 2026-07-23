@@ -527,7 +527,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 			} else {
 				PrintCenteredTitle(fmt.Sprintf("Disk-Test--%s-Method", realTestMethod), width)
 			}
-			fmt.Print(res)
+			fmt.Print(diskResultText(language, res))
 		} else {
 			if language == "zh" {
 				PrintCenteredTitle("硬盘测试-通过dd测试", width)
@@ -535,14 +535,14 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 				PrintCenteredTitle("Disk-Test--dd-Method", width)
 			}
 			_, res := e.core.DiskTest(language, "dd", config.DiskPath, config.DiskMulti, false)
-			fmt.Print(res)
+			fmt.Print(diskResultText(language, res))
 			if language == "zh" {
 				PrintCenteredTitle("硬盘测试-通过fio测试", width)
 			} else {
 				PrintCenteredTitle("Disk-Test--fio-Method", width)
 			}
 			_, res = e.core.DiskTest(language, "fio", config.DiskPath, config.DiskMulti, false)
-			fmt.Print(res)
+			fmt.Print(diskResultText(language, res))
 		}
 		outputMutex.Unlock()
 		tracker.finish("progress.disk")
@@ -824,6 +824,16 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	tracker.finish("progress.finish")
 
 	return nil
+}
+
+func diskResultText(language, result string) string {
+	if strings.TrimSpace(result) != "" {
+		return result
+	}
+	if strings.EqualFold(strings.TrimSpace(language), "en") {
+		return " Disk test unavailable\n"
+	}
+	return " 硬盘测试不可用\n"
 }
 
 func resultCaptureLimit() int {
