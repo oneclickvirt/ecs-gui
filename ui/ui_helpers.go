@@ -576,20 +576,19 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 			}
 		}
 	}
-	maxDuration := 15 * time.Minute
+	maxDuration := time.Duration(0)
 	if value := strings.TrimSpace(ui.MaxDurationEntry.Text); value != "" {
-		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 && parsed <= 15*time.Minute {
+		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 {
 			maxDuration = parsed
 		}
 	}
-	hardwareBudgetLimit := min(2*time.Minute, maxDuration)
-	if deepMode {
-		hardwareBudgetLimit = maxDuration
-	}
-	hardwareBudget := hardwareBudgetLimit
+	hardwareBudget := time.Duration(0)
 	if value := strings.TrimSpace(ui.HardwareBudgetEntry.Text); value != "" {
-		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 && parsed <= hardwareBudgetLimit {
+		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 {
 			hardwareBudget = parsed
+			if maxDuration > 0 {
+				hardwareBudget = min(hardwareBudget, maxDuration)
+			}
 		}
 	}
 	privacyMode := ui.PrivacyModeCheck.Checked

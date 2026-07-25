@@ -77,11 +77,26 @@ func formatStructuredDetails(report StructuredRunResult, languages ...string) st
 			value += " | " + overviewDuration(component.DurationMS)
 		}
 		if component.Reason != "" {
-			value += " | " + component.Reason
+			value += " | " + overviewReason(component.Reason, zh)
 		}
 		overviewRow(&builder, overviewComponentName(component.Name, zh), value)
 	}
 	return builder.String()
+}
+
+func overviewReason(reason string, zh bool) string {
+	translations := map[string][2]string{
+		"fio_output_empty":      {"FIO未返回可用指标", "FIO returned no benchmark metrics"},
+		"dd_output_unavailable": {"DD未返回可用指标", "DD returned no benchmark metrics"},
+		"dd_partial_failure":    {"部分DD操作失败", "One or more DD operations failed"},
+	}
+	if value, ok := translations[strings.TrimSpace(reason)]; ok {
+		if zh {
+			return value[0]
+		}
+		return value[1]
+	}
+	return reason
 }
 
 func overviewSection(builder *strings.Builder, title string) {

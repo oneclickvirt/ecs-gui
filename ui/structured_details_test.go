@@ -46,3 +46,17 @@ func TestFormatStructuredDetailsSupportsEnglish(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatStructuredDetailsLocalizesDiskFailureReason(t *testing.T) {
+	report := StructuredRunResult{Status: "partial", Components: []StructuredComponent{{
+		Name: "disktest", Status: "unavailable", Reason: "fio_output_empty",
+	}}}
+	english := formatStructuredDetails(report, langEN)
+	if !strings.Contains(english, "FIO returned...") || overviewReason("fio_output_empty", false) != "FIO returned no benchmark metrics" {
+		t.Fatalf("English disk reason = %q", english)
+	}
+	chinese := formatStructuredDetails(report, langZH)
+	if !strings.Contains(chinese, "FIO未返回可用指标") || overviewReason("fio_output_empty", true) != "FIO未返回可用指标" {
+		t.Fatalf("Chinese disk reason = %q", chinese)
+	}
+}

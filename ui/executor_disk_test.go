@@ -3,7 +3,7 @@ package ui
 import "testing"
 
 func TestDiskResultTextNeverLeavesAnEmptyEnglishSection(t *testing.T) {
-	if got := diskResultText(" EN ", "\n\t"); got != " Disk test unavailable\n" {
+	if got := diskResultText(" EN ", "\n\t"); got != " Disk benchmark returned no usable data.\n" {
 		t.Fatalf("English empty disk result = %q", got)
 	}
 }
@@ -16,7 +16,7 @@ func TestDiskResultTextKeepsExistingOutputUnchanged(t *testing.T) {
 }
 
 func TestDiskResultTextUsesChineseFallback(t *testing.T) {
-	if got := diskResultText("zh", ""); got != " 硬盘测试不可用\n" {
+	if got := diskResultText("zh", ""); got != " 磁盘测试未返回可用的性能数据。\n" {
 		t.Fatalf("Chinese empty disk result = %q", got)
 	}
 }

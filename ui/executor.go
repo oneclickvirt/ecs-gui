@@ -578,7 +578,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	// 6. 显示跨国流媒体解锁结果
 	if utTestStatus && preCheck.Connected {
 		tracker.start("progress.unlock")
-		// 使用带超时的等待
+		// 等待组件自然结束；显式全局截止或用户取消通过 e.ctx 传播。
 		waitDone := make(chan struct{})
 		go func() {
 			wg1.Wait()
@@ -591,9 +591,6 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 		case <-e.ctx.Done():
 			// 被取消
 			return fmt.Errorf("测试已取消")
-		case <-time.After(5 * time.Minute):
-			// 超时
-			mediaInfo = "\n流媒体测试超时\n"
 		}
 		outputMutex.Lock()
 		if language == "zh" {
@@ -623,7 +620,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	// 9. 显示邮件端口测试结果
 	if emailTestStatus && preCheck.Connected {
 		tracker.start("progress.email")
-		// 使用带超时的等待
+		// 等待组件自然结束；显式全局截止或用户取消通过 e.ctx 传播。
 		waitDone := make(chan struct{})
 		go func() {
 			wg2.Wait()
@@ -636,9 +633,6 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 		case <-e.ctx.Done():
 			// 被取消
 			return fmt.Errorf("测试已取消")
-		case <-time.After(3 * time.Minute):
-			// 超时
-			emailInfo = "\n邮件端口测试超时\n"
 		}
 		outputMutex.Lock()
 		if language == "zh" {
@@ -831,9 +825,9 @@ func diskResultText(language, result string) string {
 		return result
 	}
 	if strings.EqualFold(strings.TrimSpace(language), "en") {
-		return " Disk test unavailable\n"
+		return " Disk benchmark returned no usable data.\n"
 	}
-	return " 硬盘测试不可用\n"
+	return " 磁盘测试未返回可用的性能数据。\n"
 }
 
 func resultCaptureLimit() int {

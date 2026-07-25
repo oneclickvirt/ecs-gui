@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -342,8 +341,11 @@ func (ui *TestUI) startTests() {
 		ui.Terminal.Clear()
 	}
 
-	// 创建新的取消上下文
-	ui.CancelCtx, ui.CancelFn = context.WithTimeout(context.Background(), 15*time.Minute)
+	// 默认不设置截止时间；显式配置时才让全局上下文负责取消。
+	ui.CancelCtx, ui.CancelFn = context.WithCancel(context.Background())
+	if config.MaxDuration > 0 {
+		ui.CancelCtx, ui.CancelFn = context.WithTimeout(context.Background(), config.MaxDuration)
+	}
 
 	// 在新 goroutine 中运行测试
 	go ui.runTestsWithExecutor(config)

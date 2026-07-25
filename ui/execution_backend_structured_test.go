@@ -51,7 +51,7 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 	if checkCalls != 1 || runCalls != 1 || gotCtx == nil || gotCtx.Err() != nil {
 		t.Fatalf("calls/context: check=%d run=%d ctx=%v", checkCalls, runCalls, gotCtx)
 	}
-	if gotConfig == nil || gotConfig.MaxDuration != 15*time.Minute || gotConfig.HardwareBudget != 15*time.Minute || !gotConfig.BasicStatus || gotConfig.CpuTestStatus {
+	if gotConfig == nil || gotConfig.MaxDuration != 0 || gotConfig.HardwareBudget != 0 || !gotConfig.BasicStatus || gotConfig.CpuTestStatus {
 		t.Fatalf("unexpected mapped config: %#v", gotConfig)
 	}
 	if !gotConfig.DeepMode || gotConfig.DeepDiskPaths != "/mnt/a,/mnt/b" || gotConfig.DeepSMARTDevices != "/dev/sda" || gotConfig.DeepBurnDuration != 45*time.Second || gotConfig.DeepGPUDevice != "gpu0" {
@@ -75,13 +75,13 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 	}
 }
 
-func TestStructuredAPIConfigKeepsStandardHardwareBudget(t *testing.T) {
+func TestStructuredAPIConfigUsesGlobalDeadlineByDefault(t *testing.T) {
 	config := structuredAPIConfig(ExecutionConfig{
 		SelectedOptions: map[string]bool{"disk": true},
 		DeepDiskPaths:   "/must/not/run", DeepSMARTDevices: "/dev/must-not-run",
 		DeepBurnDuration: time.Minute, DeepGPUDevice: "must-not-run",
 	})
-	if config.DeepMode || config.HardwareBudget != 2*time.Minute || config.MaxDuration != 15*time.Minute {
+	if config.DeepMode || config.HardwareBudget != 0 || config.MaxDuration != 0 {
 		t.Fatalf("unexpected standard budgets: %#v", config)
 	}
 	if config.DeepDiskPaths != "" || config.DeepSMARTDevices != "" || config.DeepBurnDuration != 0 || config.DeepGPUDevice != "" {

@@ -190,16 +190,15 @@ func structuredAPIConfig(config ExecutionConfig) *ecsapi.Config {
 	}
 	apiConfig.TCPProbeStatus = true
 	apiConfig.MaxDuration = config.MaxDuration
-	if apiConfig.MaxDuration <= 0 || apiConfig.MaxDuration > 15*time.Minute {
-		apiConfig.MaxDuration = 15 * time.Minute
-	}
-	hardwareLimit := min(2*time.Minute, apiConfig.MaxDuration)
-	if config.DeepMode {
-		hardwareLimit = apiConfig.MaxDuration
+	if apiConfig.MaxDuration < 0 {
+		apiConfig.MaxDuration = 0
 	}
 	apiConfig.HardwareBudget = config.HardwareBudget
-	if apiConfig.HardwareBudget <= 0 || apiConfig.HardwareBudget > hardwareLimit {
-		apiConfig.HardwareBudget = hardwareLimit
+	if apiConfig.HardwareBudget < 0 {
+		apiConfig.HardwareBudget = 0
+	}
+	if apiConfig.MaxDuration > 0 && apiConfig.HardwareBudget > apiConfig.MaxDuration {
+		apiConfig.HardwareBudget = apiConfig.MaxDuration
 	}
 	apiConfig.JSONPath = strings.TrimSpace(config.JSONPath)
 	return apiConfig
