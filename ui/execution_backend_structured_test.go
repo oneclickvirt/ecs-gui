@@ -38,7 +38,7 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 	var output string
 	var progressUpdates []ProgressUpdate
 	outcome := runner.Run(ctx, ExecutionConfig{
-		Language: "zh", SelectedOptions: map[string]bool{"basic": true},
+		Language: "zh", SelectedOptions: map[string]bool{"basic": true, "tcp": true},
 		CpuMethod: "sysbench", ThreadMode: "multi", MemoryMethod: "stream",
 		DiskMethod: "fio", DeepMode: true,
 		DeepDiskPaths: "/mnt/a,/mnt/b", DeepSMARTDevices: "/dev/sda",
@@ -59,6 +59,9 @@ func TestStructuredExecutionRunnerUsesOfflineFixtureAndSingleAPICall(t *testing.
 	}
 	if gotConfig.PingSortOrder != "name" || gotConfig.PingScope != "international" || gotConfig.TCPSortOrder != "latency" {
 		t.Fatalf("network ordering config was not mapped: %#v", gotConfig)
+	}
+	if !gotConfig.TCPProbeStatus {
+		t.Fatalf("TCP selection was not mapped: %#v", gotConfig)
 	}
 	if output != "fixture output\n" || len(outcome.Report.Components) != 1 || outcome.Report.Components[0].Name != "basics" {
 		t.Fatalf("fixture was not propagated: output=%q report=%#v", output, outcome.Report)

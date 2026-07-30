@@ -47,6 +47,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		// 对应原goecs.go的选项1: SetFullTestStatus
 		ui.setAllChecks(true)
 		ui.PingCheck.Checked = true
+		ui.TCPProbeCheck.Checked = false
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.DiskMultiCheck.SetChecked(true)
@@ -83,6 +84,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.UnlockCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.SpeedCheck.Checked = true
+		ui.TCPProbeCheck.Checked = true
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
@@ -97,6 +99,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.SpeedCheck.Checked = true
+		ui.TCPProbeCheck.Checked = true
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
@@ -124,6 +127,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.PingCheck.Checked = true
+		ui.TCPProbeCheck.Checked = true
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.ChinaModeCheck.Checked = false
@@ -167,6 +171,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.PingCheck.Checked = true
+		ui.TCPProbeCheck.Checked = true
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.Nt3LocationSelect.SetSelected("ALL") // 设置为全部地点
@@ -235,6 +240,8 @@ func (ui *TestUI) applySingleSelection(keys ...string) {
 			ui.SpeedCheck.Checked = true
 		case "ping":
 			ui.PingCheck.Checked = true
+		case "tcp":
+			ui.TCPProbeCheck.Checked = true
 		case "tgdc":
 			ui.PingTgdcCheck.Checked = true
 		case "web":

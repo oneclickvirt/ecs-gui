@@ -184,6 +184,7 @@ func buildGUIStructuredSections(config ExecutionConfig, connected bool, tracker 
 		{"ping", "progress.ping", pingEnabled, true},
 		{"tgdc", "progress.tgdc", tgdcEnabled, true},
 		{"web", "progress.web", webEnabled, true},
+		{"tcp", "progress.tcp", selected["tcp"], true},
 		{"speed", "progress.speed", selected["speed"], true},
 	}
 	sections := make([]StructuredSection, 0, len(definitions))

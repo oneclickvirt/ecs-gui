@@ -188,7 +188,7 @@ func structuredAPIConfig(config ExecutionConfig) *ecsapi.Config {
 		apiConfig.DeepBurnDuration = config.DeepBurnDuration
 		apiConfig.DeepGPUDevice = config.DeepGPUDevice
 	}
-	apiConfig.TCPProbeStatus = true
+	apiConfig.TCPProbeStatus = selected["tcp"]
 	apiConfig.MaxDuration = config.MaxDuration
 	if apiConfig.MaxDuration < 0 {
 		apiConfig.MaxDuration = 0

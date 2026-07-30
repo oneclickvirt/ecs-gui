@@ -225,6 +225,7 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 			"nt3":          ui.Nt3Check.Checked,
 			"speed":        ui.SpeedCheck.Checked,
 			"ping":         ui.PingCheck.Checked,
+			"tcp":          ui.TCPProbeCheck.Checked,
 			"diskMulti":    ui.DiskMultiCheck.Checked,
 			"deepMode":     ui.DeepModeCheck.Checked,
 			"chinaMode":    ui.ChinaModeCheck.Checked,
@@ -307,6 +308,7 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 	ui.Nt3Check.Checked = state.checks["nt3"]
 	ui.SpeedCheck.Checked = state.checks["speed"]
 	ui.PingCheck.Checked = state.checks["ping"]
+	ui.TCPProbeCheck.Checked = state.checks["tcp"]
 	ui.DiskMultiCheck.Checked = state.checks["diskMulti"]
 	ui.DeepModeCheck.Checked = state.checks["deepMode"]
 	ui.setDeepInputsEnabled(ui.DeepModeCheck.Checked)
@@ -472,6 +474,7 @@ func (ui *TestUI) GetSelectedOptions() map[string]bool {
 		"nt3":       ui.Nt3Check.Checked,
 		"speed":     ui.SpeedCheck.Checked,
 		"ping":      ui.PingCheck.Checked,
+		"tcp":       ui.TCPProbeCheck.Checked,
 	}
 }
 

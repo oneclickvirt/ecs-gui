@@ -145,6 +145,9 @@ func TestStandardPresetSelectsExpectedOptions(t *testing.T) {
 	if !ui.UnlockCheck.Checked || !ui.Nt3Check.Checked || !ui.SpeedCheck.Checked {
 		t.Fatal("standard preset should enable unlock, route, and speed checks")
 	}
+	if !ui.TCPProbeCheck.Checked {
+		t.Fatal("standard preset should enable TCP handshake probes")
+	}
 	if ui.PingCheck.Checked || ui.PingTgdcCheck.Checked || ui.PingWebCheck.Checked {
 		t.Fatal("standard preset should not enable ping extensions")
 	}
@@ -158,7 +161,7 @@ func TestFullPresetMatchesGoECSOptionOneEnhancements(t *testing.T) {
 	ui.onPresetChanged(ui.presetLabelByKey("full"))
 
 	config := ui.collectExecutionConfig()
-	if !config.SelectedOptions["ping"] || !config.DiskMulti || !config.DeepMode || config.DeepBurnDuration != 20*time.Second {
+	if !config.SelectedOptions["ping"] || config.SelectedOptions["tcp"] || !config.DiskMulti || !config.DeepMode || config.DeepBurnDuration != 20*time.Second {
 		t.Fatalf("full preset did not enable Ping/deep hardware defaults: %#v", config)
 	}
 	if !config.PingTgdc || !config.PingWeb || !config.UnlockShowIP {
@@ -172,6 +175,26 @@ func TestFullPresetMatchesGoECSOptionOneEnhancements(t *testing.T) {
 	standard := ui.collectExecutionConfig()
 	if standard.DeepMode || standard.DiskMulti || standard.DeepBurnDuration != 0 {
 		t.Fatalf("standard preset retained full-only enhancements: %#v", standard)
+	}
+}
+
+func TestTCPProbePresetMatrix(t *testing.T) {
+	ui := newTestUIForTest(t)
+	tests := map[string]bool{
+		"full": false, "minimal": false, "standard": true, "network_focus": true,
+		"unlock_focus": false, "network_only": true, "unlock_only": false,
+		"hardware_only": false, "ip_quality": false, "route_only": true,
+	}
+	for preset, want := range tests {
+		ui.onPresetChanged(ui.presetLabelByKey(preset))
+		if got := ui.GetSelectedOptions()["tcp"]; got != want {
+			t.Fatalf("preset %s TCP = %t, want %t", preset, got, want)
+		}
+	}
+	ui.TCPProbeCheck.SetChecked(false)
+	ui.onPresetChanged(ui.presetLabelByKey("custom"))
+	if ui.GetSelectedOptions()["tcp"] {
+		t.Fatal("custom preset should preserve an explicit TCP disable")
 	}
 }
 

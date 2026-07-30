@@ -141,6 +141,7 @@ type TestUI struct {
 	Nt3Check               *widget.Check // 三网回程路由
 	SpeedCheck             *widget.Check // 网络测速
 	PingCheck              *widget.Check // 三网PING值
+	TCPProbeCheck          *widget.Check // TCP握手探针
 	LogCheck               *widget.Check // 启用日志记录
 
 	// 预设模式选择

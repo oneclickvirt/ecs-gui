@@ -72,6 +72,8 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 
 	ui.PingCheck = widget.NewCheck(ui.tr("check.ping"), nil)
 	ui.PingCheck.Checked = false
+	ui.TCPProbeCheck = widget.NewCheck(ui.tr("check.tcp_probe"), nil)
+	ui.TCPProbeCheck.Checked = true
 
 	ui.LogCheck = widget.NewCheck(ui.tr("check.log"), ui.onLogCheckChanged)
 	ui.LogCheck.Checked = false
@@ -88,6 +90,7 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 		ui.Nt3Check,
 		ui.SpeedCheck,
 		ui.PingCheck,
+		ui.TCPProbeCheck,
 	}
 
 	// 全选/取消全选按钮
@@ -116,6 +119,7 @@ func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 		ui.BacktraceCheck,
 		ui.Nt3Check,
 		ui.PingCheck,
+		ui.TCPProbeCheck,
 	))
 
 	unlockTests := ui.newIconCard(ui.tr("tests.unlock.title"), ui.tr("tests.unlock.sub"), theme.InfoIcon(), container.NewVBox(

@@ -205,6 +205,12 @@ func buildProgressSteps(config ExecutionConfig, connected bool) []string {
 	if connected && pingWeb {
 		steps = append(steps, "progress.web")
 	}
+	if connected {
+		steps = append(steps, "progress.nat")
+		if selected["tcp"] {
+			steps = append(steps, "progress.tcp")
+		}
+	}
 	if connected && selected["speed"] {
 		steps = append(steps, "progress.speed")
 	}
@@ -213,9 +219,6 @@ func buildProgressSteps(config ExecutionConfig, connected bool) []string {
 	}
 	if connected && config.EnableUpload {
 		steps = append(steps, "progress.upload")
-	}
-	if connected {
-		steps = append(steps, "progress.nat", "progress.tcp")
 	}
 	steps = append(steps, "progress.finish")
 	return steps

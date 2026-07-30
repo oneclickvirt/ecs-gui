@@ -46,6 +46,22 @@ jobs:
             exit 1
           fi
 
+          FYNE_VERSION="$(awk -F'"' '/^Version = "/ { print $2; exit }' FyneApp.toml)"
+          APP_META_VERSION="$(sed -n 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' internal/appmeta/version.go | head -n 1)"
+          UPSTREAM_META_VERSION="$(sed -n 's/^[[:space:]]*UpstreamECSVersion[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' internal/appmeta/version.go | head -n 1)"
+          if [[ "$FYNE_VERSION" != "$GUI_VERSION" || "$APP_META_VERSION" != "$GUI_VERSION" ]]; then
+            echo "GUI version mismatch: VERSION=$GUI_VERSION FyneApp=$FYNE_VERSION appmeta=$APP_META_VERSION"
+            exit 1
+          fi
+          if [[ "$UPSTREAM_META_VERSION" != "$MODULE_ECS_VERSION" ]]; then
+            echo "Upstream ECS mismatch: go.mod=$MODULE_ECS_VERSION appmeta=$UPSTREAM_META_VERSION"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF#refs/tags/v}" != "$GUI_VERSION" ]]; then
+            echo "Release tag ${GITHUB_REF#refs/tags/} does not match GUI version v$GUI_VERSION"
+            exit 1
+          fi
+
           echo "GUI_VERSION=${GUI_VERSION}" >> "$GITHUB_OUTPUT"
           echo "ECS_VERSION=${ECS_VERSION}" >> "$GITHUB_OUTPUT"
       
