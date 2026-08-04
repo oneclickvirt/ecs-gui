@@ -12,14 +12,14 @@ require (
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.20
-	github.com/oneclickvirt/ecs v0.1.174
+	github.com/oneclickvirt/ecs v0.1.175
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.22
 	github.com/oneclickvirt/pingtest v0.0.25
 	github.com/oneclickvirt/portchecker v0.0.7
 	github.com/oneclickvirt/security v0.0.18
-	github.com/oneclickvirt/speedtest v0.0.18
+	github.com/oneclickvirt/speedtest v0.0.19
 	golang.org/x/sys v0.46.0
 )
 
@@ -121,7 +121,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.17.1 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/shirou/gopsutil/v4 v4.25.6 // indirect
-	github.com/showwin/speedtest-go v1.7.10 // indirect
+	github.com/showwin/speedtest-go v1.7.11 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
