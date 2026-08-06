@@ -396,13 +396,6 @@ func (ui *TestUI) clearResults() {
 		if ui.CurrentItem != nil {
 			ui.CurrentItem.SetText(ui.tr("progress.idle"))
 		}
-		if ui.DataStatusLabel != nil {
-			ui.DataStatusLabel.SetText("")
-			ui.DataStatusLabel.Hide()
-		}
-		if ui.StructuredDetailsView != nil {
-			ui.StructuredDetailsView.SetText(ui.tr("result.structured.empty"))
-		}
 	})
 }
 

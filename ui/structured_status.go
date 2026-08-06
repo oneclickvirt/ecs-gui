@@ -41,21 +41,12 @@ func (ui *TestUI) ApplyStructuredReport(report StructuredRunResult) {
 	copy.Components = append([]StructuredComponent(nil), report.Components...)
 	ui.StructuredResult = &copy
 	ui.Mu.Unlock()
-	ui.updateStructuredDetails(report)
-	dataState, reason := summarizeStructuredRun(report)
-	ui.updateDataStatus(dataState)
+	reason := summarizeStructuredRun(report)
 	ui.updatePartialReason(reason)
 	ui.updateStructuredProgress(report)
 	if key := structuredStatusKey(report.Status); key != "" {
 		ui.setStatus(key)
 	}
-}
-
-func (ui *TestUI) updateStructuredDetails(report StructuredRunResult) {
-	if ui.StructuredDetailsView == nil {
-		return
-	}
-	ui.StructuredDetailsView.SetText(formatStructuredDetails(report, ui.uiLang))
 }
 
 func (ui *TestUI) ApplyStructuredReportJSON(data []byte) error {

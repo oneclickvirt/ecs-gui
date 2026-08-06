@@ -191,14 +191,12 @@ type TestUI struct {
 	StopButton  *widget.Button
 
 	// 结果显示 - 使用终端输出组件
-	Terminal              *TerminalOutput
-	ProgressBar           *widget.ProgressBar
-	CurrentItem           *widget.Label
-	StatusLabel           *widget.Label
-	StatusBadge           *widget.Label
-	DataStatusLabel       *widget.Label
-	PartialReasonLabel    *widget.Label
-	StructuredDetailsView *widget.Entry
+	Terminal           *TerminalOutput
+	ProgressBar        *widget.ProgressBar
+	CurrentItem        *widget.Label
+	StatusLabel        *widget.Label
+	StatusBadge        *widget.Label
+	PartialReasonLabel *widget.Label
 
 	// 日志相关
 	LogViewer  *widget.Entry      // 日志查看器

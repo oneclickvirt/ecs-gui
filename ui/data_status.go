@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 )
 
 const (
@@ -13,29 +12,8 @@ const (
 	maxStructuredJSONBytes = 16 << 20
 )
 
-type dataStatus struct {
-	Schema      string
-	GeneratedAt time.Time
-	Source      string
-	Fallback    bool
-	FallbackTo  string
-	File        string
-	Count       int
-	Error       string
-}
-
-func (ui *TestUI) updateDataStatus(status dataStatus) {
-	_ = status
-	if ui.DataStatusLabel == nil {
-		return
-	}
-	ui.DataStatusLabel.SetText("")
-	ui.DataStatusLabel.Hide()
-}
-
-func summarizeStructuredRun(result StructuredRunResult) (dataStatus, string) {
+func summarizeStructuredRun(result StructuredRunResult) string {
 	sanitizeStructuredRunResult(&result)
-	status := dataStatus{Source: "unavailable"}
 	var reasons []string
 	for _, section := range result.Sections {
 		if section.Status == "ok" || section.Status == "skipped" {
@@ -52,7 +30,7 @@ func summarizeStructuredRun(result StructuredRunResult) (dataStatus, string) {
 	if len(reasons) == 0 && result.Status != "" && result.Status != "ok" {
 		reasons = append(reasons, result.Status)
 	}
-	return status, strings.Join(uniqueStrings(reasons), "; ")
+	return strings.Join(uniqueStrings(reasons), "; ")
 }
 
 func structuredReason(name, status, reason string) string {

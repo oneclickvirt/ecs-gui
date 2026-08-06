@@ -51,7 +51,7 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 	structuredStatus := ""
 	if outcome.Report != nil {
 		structuredStatus = outcome.Report.Status
-		_, reportReason = summarizeStructuredRun(*outcome.Report)
+		reportReason = summarizeStructuredRun(*outcome.Report)
 		report := *outcome.Report
 		ui.runOnUI(func() { ui.ApplyStructuredReport(report) })
 	}

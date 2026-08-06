@@ -12,9 +12,9 @@ func TestSummarizeStructuredRun(t *testing.T) {
 		{Name: "basics", Enabled: true, Status: "ok"},
 	}}
 	result.SchemaVersion = structuredReportSchema
-	status, reason := summarizeStructuredRun(result)
-	if status.Source != "unavailable" || status.Fallback || !strings.Contains(reason, "tcp") {
-		t.Fatalf("status=%+v reason=%q", status, reason)
+	reason := summarizeStructuredRun(result)
+	if !strings.Contains(reason, "tcp") {
+		t.Fatalf("reason=%q", reason)
 	}
 }
 
@@ -46,9 +46,9 @@ func TestDecodeStructuredReportOfflineFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	status, reason := summarizeStructuredRun(report)
-	if report.SchemaVersion != structuredReportSchema || report.PrivacyMode != true || status.Source != "unavailable" || status.Fallback || !strings.Contains(reason, "tcp") || !strings.Contains(reason, "basics") {
-		t.Fatalf("fixture was not consumed correctly: report=%#v status=%#v reason=%q", report, status, reason)
+	reason := summarizeStructuredRun(report)
+	if report.SchemaVersion != structuredReportSchema || report.PrivacyMode != true || !strings.Contains(reason, "tcp") || !strings.Contains(reason, "basics") {
+		t.Fatalf("fixture was not consumed correctly: report=%#v reason=%q", report, reason)
 	}
 }
 
@@ -56,12 +56,9 @@ func TestStructuredRunOmitsDataFileReason(t *testing.T) {
 	result := StructuredRunResult{Status: "partial", DataFiles: []StructuredDataFile{
 		{File: "private.json", Schema: "private/v1", Source: "https://private.example/list", Status: "timeout", Reason: "fetch failed"},
 	}}
-	status, reason := summarizeStructuredRun(result)
+	reason := summarizeStructuredRun(result)
 	if strings.Contains(reason, "private.json") || strings.Contains(reason, "private.example") || strings.Contains(reason, "data ") {
 		t.Fatalf("data file details were exposed: %q", reason)
-	}
-	if status.Source != "unavailable" || status.Fallback {
-		t.Fatalf("data status exposed provenance: %#v", status)
 	}
 }
 
