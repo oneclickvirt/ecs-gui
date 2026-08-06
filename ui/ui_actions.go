@@ -397,7 +397,8 @@ func (ui *TestUI) clearResults() {
 			ui.CurrentItem.SetText(ui.tr("progress.idle"))
 		}
 		if ui.DataStatusLabel != nil {
-			ui.DataStatusLabel.SetText(ui.tr("data.pending"))
+			ui.DataStatusLabel.SetText("")
+			ui.DataStatusLabel.Hide()
 		}
 		if ui.StructuredDetailsView != nil {
 			ui.StructuredDetailsView.SetText(ui.tr("result.structured.empty"))
@@ -409,7 +410,7 @@ func (ui *TestUI) clearResults() {
 func (ui *TestUI) copyResults() {
 	var content string
 	if ui.Terminal != nil {
-		content = ui.Terminal.GetText()
+		content = sanitizeGUIText(ui.Terminal.GetText())
 	}
 
 	if content == "" {
@@ -426,7 +427,7 @@ func (ui *TestUI) copyResults() {
 func (ui *TestUI) exportResults() {
 	var content string
 	if ui.Terminal != nil {
-		content = ui.Terminal.GetText()
+		content = sanitizeGUIText(ui.Terminal.GetText())
 	}
 
 	if content == "" {
@@ -471,6 +472,7 @@ func (ui *TestUI) exportResults() {
 }
 
 func formatResultExport(content string) string {
+	content = sanitizeGUIText(content)
 	clean := strings.TrimRight(content, "\n")
 	if strings.HasPrefix(strings.TrimSpace(clean), "# GOECS Result") {
 		return clean + "\n"
@@ -481,7 +483,7 @@ func formatResultExport(content string) string {
 func (ui *TestUI) shareResults() {
 	var content string
 	if ui.Terminal != nil {
-		content = ui.Terminal.GetText()
+		content = sanitizeGUIText(ui.Terminal.GetText())
 	}
 
 	if content == "" {
@@ -658,7 +660,7 @@ func (ui *TestUI) refreshLogFromFileAsync() {
 			} else {
 				ui.runOnUI(func() {
 					if ui.LogViewer != nil {
-						ui.LogViewer.SetText(ui.tr("log.read_failed") + err.Error())
+						ui.LogViewer.SetText(ui.tr("log.read_failed"))
 					}
 				})
 			}
@@ -666,6 +668,7 @@ func (ui *TestUI) refreshLogFromFileAsync() {
 		}
 
 		ui.Mu.Lock()
+		content = sanitizeGUIText(content)
 		ui.LogContent = content
 		ui.Mu.Unlock()
 
@@ -733,7 +736,7 @@ func (ui *TestUI) exportLogContent() {
 		defer writer.Close()
 
 		// 写入日志内容
-		_, err = writer.Write([]byte(ui.LogViewer.Text))
+		_, err = writer.Write([]byte(sanitizeGUIText(ui.LogViewer.Text)))
 		if err != nil {
 			dialog.ShowError(err, ui.Window)
 			return
@@ -749,6 +752,7 @@ func (ui *TestUI) AppendLog(text string) {
 		return
 	}
 
+	text = sanitizeGUIText(text)
 	ui.Mu.Lock()
 	defer ui.Mu.Unlock()
 

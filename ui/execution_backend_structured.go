@@ -77,7 +77,7 @@ func (runner structuredExecutionRunner) Run(ctx context.Context, config Executio
 			text = report.Text
 		}
 		if text != "" {
-			output(text)
+			output(sanitizeGUIText(text))
 		}
 	}
 	var finalizeErr error

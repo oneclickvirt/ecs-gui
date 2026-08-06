@@ -25,76 +25,23 @@ type dataStatus struct {
 }
 
 func (ui *TestUI) updateDataStatus(status dataStatus) {
+	_ = status
 	if ui.DataStatusLabel == nil {
 		return
 	}
-	if status.Source == "unavailable" {
-		ui.DataStatusLabel.SetText(ui.tr("data.unavailable"))
-		return
-	}
-	if status.GeneratedAt.IsZero() && strings.EqualFold(status.Source, "embedded") {
-		ui.DataStatusLabel.SetText(ui.tr("data.embedded"))
-		return
-	}
-	value := fmt.Sprintf(ui.tr("data.version"), status.GeneratedAt.Local().Format("2006-01-02 15:04"), displayDataSource(status.Source))
-	if status.Fallback {
-		value += " " + ui.tr("data.fallback")
-	}
-	ui.DataStatusLabel.SetText(value)
-}
-
-func displayDataSource(source string) string {
-	switch strings.ToLower(strings.TrimSpace(source)) {
-	case "cdn":
-		return "CDN"
-	case "raw", "github raw":
-		return "GitHub Raw"
-	case "embedded":
-		return "embedded"
-	default:
-		return source
-	}
+	ui.DataStatusLabel.SetText("")
+	ui.DataStatusLabel.Hide()
 }
 
 func summarizeStructuredRun(result StructuredRunResult) (dataStatus, string) {
+	sanitizeStructuredRunResult(&result)
 	status := dataStatus{Source: "unavailable"}
-	if len(result.DataFiles) > 0 {
-		status.Source = "components"
-		status.Schema = "component-registries/v1"
-		for _, file := range result.DataFiles {
-			if file.Status != "ok" {
-				continue
-			}
-			status.Count += file.Count
-			if file.GeneratedAt.After(status.GeneratedAt) {
-				status.GeneratedAt = file.GeneratedAt
-			}
-			if file.Fallback != "" {
-				status.Fallback = true
-				status.FallbackTo = file.Fallback
-			}
-		}
-	} else if result.Data != nil {
-		status.Schema = result.Data.Schema
-		status.GeneratedAt = result.Data.GeneratedAt
-		status.Source = result.Data.Source
-		status.FallbackTo = result.Data.Fallback
-		status.Fallback = result.Data.Fallback != ""
-		status.File = result.Data.File
-		status.Count = result.Data.Count
-	}
 	var reasons []string
 	for _, section := range result.Sections {
 		if section.Status == "ok" || section.Status == "skipped" {
 			continue
 		}
 		reasons = append(reasons, structuredReason(section.Name, section.Status, section.Reason))
-	}
-	for _, file := range result.DataFiles {
-		if file.Status == "ok" || file.Status == "skipped" {
-			continue
-		}
-		reasons = append(reasons, structuredReason("data "+file.File, file.Status, file.Reason))
 	}
 	for _, component := range result.Components {
 		if component.Status == "ok" || component.Status == "skipped" {
@@ -109,8 +56,9 @@ func summarizeStructuredRun(result StructuredRunResult) (dataStatus, string) {
 }
 
 func structuredReason(name, status, reason string) string {
+	reason = safeStructuredReason(status, reason)
 	if reason == "" {
-		reason = status
+		reason = safeStatusReason(status)
 	}
 	if name == "" {
 		return reason
@@ -177,6 +125,7 @@ func decodeStructuredRun(data []byte) (StructuredRunResult, error) {
 			return StructuredRunResult{}, fmt.Errorf("invalid component %q", component.Name)
 		}
 	}
+	sanitizeStructuredRunResult(&result)
 	return result, nil
 }
 

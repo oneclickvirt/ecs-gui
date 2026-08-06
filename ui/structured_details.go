@@ -14,6 +14,7 @@ const (
 )
 
 func formatStructuredDetails(report StructuredRunResult, languages ...string) string {
+	sanitizeStructuredRunResult(&report)
 	language := langZH
 	if len(languages) > 0 && languages[0] == langEN {
 		language = langEN
@@ -37,33 +38,9 @@ func formatStructuredDetails(report StructuredRunResult, languages ...string) st
 		}
 		value := overviewStatus(section.Status, zh)
 		if section.Reason != "" {
-			value += " | " + section.Reason
+			value += " | " + overviewReason(section.Reason, zh)
 		}
 		overviewRow(&builder, overviewComponentName(section.Name, zh), value)
-	}
-
-	if len(report.DataFiles) > 0 {
-		overviewSection(&builder, overviewPick(zh, "数据源状态", "Data Sources"))
-		for _, file := range report.DataFiles {
-			source := overviewDataSource(file.Source)
-			if file.Fallback != "" {
-				fallback := overviewDataSource(file.Fallback)
-				if strings.EqualFold(source, fallback) {
-					source += overviewPick(zh, " (回退)", " (fallback)")
-				} else {
-					source += " -> " + fallback
-				}
-			}
-			updated := "-"
-			if !file.GeneratedAt.IsZero() {
-				updated = file.GeneratedAt.Local().Format("01-02 15:04")
-			}
-			value := fmt.Sprintf("%s | %d | %s", source, file.Count, updated)
-			if file.Status != "ok" {
-				value = fmt.Sprintf("%s | %s", overviewStatus(file.Status, zh), file.Reason)
-			}
-			overviewRow(&builder, strings.TrimSuffix(file.File, ".json"), value)
-		}
 	}
 
 	overviewSection(&builder, overviewPick(zh, "组件结果", "Component Results"))
@@ -96,7 +73,11 @@ func overviewReason(reason string, zh bool) string {
 		}
 		return value[1]
 	}
-	return reason
+	safe := safeStructuredReason("error", reason)
+	if safe == "error" && strings.TrimSpace(reason) != "error" {
+		return overviewStatus("error", zh)
+	}
+	return safe
 }
 
 func overviewSection(builder *strings.Builder, title string) {
@@ -164,19 +145,6 @@ func overviewComponentName(name string, zh bool) string {
 		return value[1]
 	}
 	return strings.ReplaceAll(name, "_", " ")
-}
-
-func overviewDataSource(source string) string {
-	switch strings.ToLower(strings.TrimSpace(source)) {
-	case "cdn":
-		return "CDN"
-	case "raw", "github raw":
-		return "GitHub Raw"
-	case "embedded":
-		return "embedded"
-	default:
-		return source
-	}
 }
 
 func overviewMode(deep, privacy, zh bool) string {

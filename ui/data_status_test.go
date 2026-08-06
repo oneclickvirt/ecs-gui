@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestSummarizeStructuredRun(t *testing.T) {
@@ -12,13 +11,9 @@ func TestSummarizeStructuredRun(t *testing.T) {
 		{Name: "tcp", Enabled: true, Status: "unavailable", Reason: "network unavailable"},
 		{Name: "basics", Enabled: true, Status: "ok"},
 	}}
-	result.Data = &StructuredDataVersion{
-		Schema: "pingtest.tcp-targets/v1", GeneratedAt: time.Date(2026, 7, 19, 0, 0, 0, 0, time.UTC),
-		Source: "raw", Fallback: "raw", File: "tcp-targets.json", Count: 1,
-	}
 	result.SchemaVersion = structuredReportSchema
 	status, reason := summarizeStructuredRun(result)
-	if status.Source != "raw" || !status.Fallback || !strings.Contains(reason, "tcp") {
+	if status.Source != "unavailable" || status.Fallback || !strings.Contains(reason, "tcp") {
 		t.Fatalf("status=%+v reason=%q", status, reason)
 	}
 }
@@ -52,24 +47,60 @@ func TestDecodeStructuredReportOfflineFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 	status, reason := summarizeStructuredRun(report)
-	if report.SchemaVersion != structuredReportSchema || report.PrivacyMode != true || status.Source != "components" || !status.Fallback || !strings.Contains(reason, "tcp") || !strings.Contains(reason, "basics") {
+	if report.SchemaVersion != structuredReportSchema || report.PrivacyMode != true || status.Source != "unavailable" || status.Fallback || !strings.Contains(reason, "tcp") || !strings.Contains(reason, "basics") {
 		t.Fatalf("fixture was not consumed correctly: report=%#v status=%#v reason=%q", report, status, reason)
 	}
 }
 
-func TestStructuredRunIncludesDataFileReason(t *testing.T) {
-	older := time.Date(2026, 7, 20, 0, 0, 0, 0, time.UTC)
-	newer := older.Add(24 * time.Hour)
+func TestStructuredRunOmitsDataFileReason(t *testing.T) {
 	result := StructuredRunResult{Status: "partial", DataFiles: []StructuredDataFile{
-		{File: "tcp-targets.json", Schema: "pingtest.tcp-targets/v1", GeneratedAt: older, Source: "embedded", Count: 64, Status: "ok"},
-		{File: "speedtest-servers.json", Schema: "speedtest.servers/v1", GeneratedAt: newer, Source: "raw", Fallback: "raw", Count: 278, Status: "ok"},
-		{File: "dnsbl-zones.json", Count: 0, Status: "timeout", Reason: "deadline exceeded"},
+		{File: "private.json", Schema: "private/v1", Source: "https://private.example/list", Status: "timeout", Reason: "fetch failed"},
 	}}
 	status, reason := summarizeStructuredRun(result)
-	if !strings.Contains(reason, "data dnsbl-zones.json: deadline exceeded") {
-		t.Fatalf("missing data file reason: %q", reason)
+	if strings.Contains(reason, "private.json") || strings.Contains(reason, "private.example") || strings.Contains(reason, "data ") {
+		t.Fatalf("data file details were exposed: %q", reason)
 	}
-	if status.Source != "components" || !status.GeneratedAt.Equal(newer) || !status.Fallback || status.Count != 342 {
-		t.Fatalf("component data summary used the wrong file metadata: %#v", status)
+	if status.Source != "unavailable" || status.Fallback {
+		t.Fatalf("data status exposed provenance: %#v", status)
+	}
+}
+
+func TestStructuredPublicViewDropsProvenanceAndRedactsPayload(t *testing.T) {
+	report := StructuredRunResult{
+		Data:       &StructuredDataVersion{Source: "https://private.example/list", File: "private.json"},
+		DataFiles:  []StructuredDataFile{{File: "private.json", Source: "git@private.example:owner/repo.git"}},
+		Sections:   []StructuredSection{{Name: "speed", Status: "error", Reason: "fetch https://private.example/list?token=secret failed"}},
+		Components: []StructuredComponent{{Name: "speed.registry", Status: "error", Payload: []byte(`{"private_registry":{"url":"https://private.example/list"},"url":"https://private.example/node","value":1}`)}},
+	}
+	sanitizeStructuredRunResult(&report)
+	encoded, err := structuredReportJSON(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"private.example", "owner/repo.git", "private.json", "private_registry", "data_files"} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("GUI public view exposed %q: %s", forbidden, encoded)
+		}
+	}
+}
+
+func TestGUIPublicSanitizerPreservesBusinessTargets(t *testing.T) {
+	payload := sanitizeGUIPayload([]byte(`{
+		"providers":[{"source":"ipregistry.co","status":"available"}],
+		"selected":[{"host":"speed.example:443","url":"https://speed.example/upload?token=secret&mode=test","availability":"available"}],
+		"registry":{"source":"private-loader","fallback":"embedded"},
+		"private_registry":{"url":"https://private.example/list"},
+		"error":"fetch https://private.example/list?key=secret failed"
+	}`))
+	encoded := string(payload)
+	for _, forbidden := range []string{"private.example", "private-loader", `"fallback"`, `"private_registry"`, "token=secret", "key=secret"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("GUI public payload exposed %q: %s", forbidden, encoded)
+		}
+	}
+	for _, preserved := range []string{"ipregistry.co", "speed.example:443", "https://speed.example/upload", "mode=test"} {
+		if !strings.Contains(encoded, preserved) {
+			t.Fatalf("GUI public payload removed business field %q: %s", preserved, encoded)
+		}
 	}
 }

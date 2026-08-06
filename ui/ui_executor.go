@@ -29,7 +29,7 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 	output := func(text string) {
 		// 这个回调会从 executor 的 goroutine 调用
 		// TerminalOutput 的 AppendText 已经是线程安全的
-		ui.Terminal.AppendText(text)
+		ui.Terminal.AppendText(sanitizeGUIText(text))
 	}
 	progress := func(update ProgressUpdate) {
 		ui.runOnUI(func() {
@@ -59,7 +59,7 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 		ui.runOnUI(func() { ui.updatePartialReason(ui.friendlyErrorMessage(err)) })
 	}
 	if err != nil {
-		ui.Terminal.AppendText(fmt.Sprintf("%s%s\n", ui.tr("log.error_prefix"), ui.friendlyErrorMessage(err)))
+		ui.Terminal.AppendText(sanitizeGUIText(fmt.Sprintf("%s%s\n", ui.tr("log.error_prefix"), ui.friendlyErrorMessage(err))))
 	}
 
 	// A structured status is authoritative. Do not replace a partial report

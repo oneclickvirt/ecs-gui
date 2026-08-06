@@ -33,6 +33,7 @@ var sectionProgressKeys = map[string]string{
 // ApplyStructuredReport consumes the goecs.report/v1 envelope without
 // requiring the GUI to import a newer, unreleased goecs module.
 func (ui *TestUI) ApplyStructuredReport(report StructuredRunResult) {
+	sanitizeStructuredRunResult(&report)
 	ui.Mu.Lock()
 	copy := report
 	copy.Sections = append([]StructuredSection(nil), report.Sections...)
@@ -75,7 +76,7 @@ func (ui *TestUI) updatePartialReason(reason string) {
 		ui.PartialReasonLabel.Hide()
 		return
 	}
-	ui.PartialReasonLabel.SetText(reason)
+	ui.PartialReasonLabel.SetText(sanitizeGUIText(reason))
 	ui.PartialReasonLabel.Show()
 }
 
@@ -126,6 +127,7 @@ func structuredStatusKey(status string) string {
 }
 
 func structuredReportJSON(report StructuredRunResult) ([]byte, error) {
+	sanitizeStructuredRunResult(&report)
 	return json.Marshal(report)
 }
 
