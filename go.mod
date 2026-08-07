@@ -7,12 +7,12 @@ require (
 	github.com/imroc/req/v3 v3.59.0
 	github.com/mattn/go-runewidth v0.0.24
 	github.com/oneclickvirt/UnlockTests v0.0.48
-	github.com/oneclickvirt/backtrace v0.0.19
+	github.com/oneclickvirt/backtrace v0.0.20
 	github.com/oneclickvirt/basics v0.0.28
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.20
-	github.com/oneclickvirt/ecs v0.1.177
+	github.com/oneclickvirt/ecs v0.1.178
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.22
