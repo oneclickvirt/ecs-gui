@@ -209,7 +209,18 @@ jobs:
           echo "ECS_VERSION=${ECS_VERSION}" >> "$GITHUB_ENV"
       
       - name: Download dependencies
-        run: go mod download
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if go mod download; then
+              exit 0
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              exit 1
+            fi
+            sleep "$((attempt * 10))"
+          done
         env:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
@@ -553,7 +564,18 @@ jobs:
           echo "ECS_VERSION=${ECS_VERSION}" >> "$GITHUB_ENV"
       
       - name: Download dependencies
-        run: go mod download
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if go mod download; then
+              exit 0
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              exit 1
+            fi
+            sleep "$((attempt * 10))"
+          done
         env:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
