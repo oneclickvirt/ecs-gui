@@ -5,22 +5,22 @@ go 1.26.4
 require (
 	fyne.io/fyne/v2 v2.7.4
 	github.com/imroc/req/v3 v3.59.0
-	github.com/mattn/go-runewidth v0.0.24
+	github.com/mattn/go-runewidth v0.0.28
 	github.com/oneclickvirt/UnlockTests v0.0.48
 	github.com/oneclickvirt/backtrace v0.0.20
 	github.com/oneclickvirt/basics v0.0.28
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.20
-	github.com/oneclickvirt/ecs v0.1.178
+	github.com/oneclickvirt/ecs v0.1.179
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.22
 	github.com/oneclickvirt/pingtest v0.0.25
 	github.com/oneclickvirt/portchecker v0.0.7
 	github.com/oneclickvirt/security v0.0.19
-	github.com/oneclickvirt/speedtest v0.0.20
-	golang.org/x/sys v0.46.0
+	github.com/oneclickvirt/speedtest v0.0.21
+	golang.org/x/sys v0.47.0
 )
 
 require (
@@ -81,8 +81,8 @@ require (
 	github.com/libp2p/go-netroute v0.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/miekg/dns v1.1.61 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
@@ -121,7 +121,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.17.1 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/shirou/gopsutil/v4 v4.25.6 // indirect
-	github.com/showwin/speedtest-go v1.7.11 // indirect
+	github.com/showwin/speedtest-go v1.8.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -150,7 +150,7 @@ require (
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/term v0.44.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
