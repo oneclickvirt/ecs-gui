@@ -8,15 +8,15 @@ require (
 	github.com/mattn/go-runewidth v0.0.28
 	github.com/oneclickvirt/UnlockTests v0.0.48
 	github.com/oneclickvirt/backtrace v0.0.20
-	github.com/oneclickvirt/basics v0.0.29
+	github.com/oneclickvirt/basics v0.0.30
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.20
-	github.com/oneclickvirt/ecs v0.1.182
+	github.com/oneclickvirt/ecs v0.1.183
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.22
-	github.com/oneclickvirt/pingtest v0.0.26
+	github.com/oneclickvirt/pingtest v0.0.27
 	github.com/oneclickvirt/portchecker v0.0.7
 	github.com/oneclickvirt/security v0.0.19
 	github.com/oneclickvirt/speedtest v0.0.22
