@@ -203,6 +203,8 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 		},
 	)
 	ui.ThemeSelect.SetSelected(ui.themeLabelByMode(ui.themeMode))
+	ui.DNSModeSelect = widget.NewSelect([]string{"auto", "system", "doh", "dot"}, nil)
+	ui.DNSModeSelect.SetSelected("auto")
 
 	// CPU 配置
 	ui.CpuMethodSelect = widget.NewSelect(
@@ -343,6 +345,8 @@ func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 			ui.LanguageSelect,
 			widget.NewLabel(ui.tr("label.theme")),
 			ui.ThemeSelect,
+			widget.NewLabel(ui.tr("label.dns_mode")),
+			ui.DNSModeSelect,
 			widget.NewLabel(ui.tr("label.output_width")),
 			ui.OutputWidthEntry,
 			widget.NewLabel(ui.tr("label.output_file")),

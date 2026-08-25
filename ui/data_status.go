@@ -15,6 +15,9 @@ const (
 func summarizeStructuredRun(result StructuredRunResult) string {
 	sanitizeStructuredRunResult(&result)
 	var reasons []string
+	if summary := structuredDNSResolutionSummary(result.DNS); summary != "" {
+		reasons = append(reasons, summary)
+	}
 	for _, section := range result.Sections {
 		if section.Status == "ok" || section.Status == "skipped" {
 			continue
@@ -31,6 +34,38 @@ func summarizeStructuredRun(result StructuredRunResult) string {
 		reasons = append(reasons, result.Status)
 	}
 	return strings.Join(uniqueStrings(reasons), "; ")
+}
+
+func structuredDNSResolutionSummary(dns *StructuredDNSResolution) string {
+	if dns == nil {
+		return ""
+	}
+	provider := strings.TrimSpace(dns.Provider)
+	suffix := ""
+	if provider != "" {
+		suffix = " (" + provider + ")"
+	}
+	switch strings.ToLower(strings.TrimSpace(dns.Active)) {
+	case "system":
+		if strings.TrimSpace(dns.Reason) != "" {
+			return "DNS: system resolver retained after inconclusive probe"
+		}
+		return "DNS: system resolver"
+	case "doh":
+		if dns.Fallback {
+			return "DNS: built-in DoH fallback" + suffix
+		}
+		return "DNS: built-in DoH" + suffix
+	case "dot":
+		if dns.Fallback {
+			return "DNS: built-in DoT fallback" + suffix
+		}
+		return "DNS: built-in DoT" + suffix
+	case "", "unavailable":
+		return "DNS: unavailable"
+	default:
+		return "DNS: unavailable"
+	}
 }
 
 func structuredReason(name, status, reason string) string {

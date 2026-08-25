@@ -51,6 +51,7 @@ type ExecutionConfig struct {
 	MaxDuration       time.Duration
 	HardwareBudget    time.Duration
 	DataOffline       bool
+	DNSMode           string
 	PrivacyMode       bool
 	PresetKey         string
 	LogEnabled        bool
@@ -79,6 +80,14 @@ type StructuredDataVersion struct {
 	Count       int       `json:"count,omitempty"`
 }
 
+type StructuredDNSResolution struct {
+	Requested string `json:"requested"`
+	Active    string `json:"active"`
+	Fallback  bool   `json:"fallback"`
+	Provider  string `json:"provider,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+}
+
 type StructuredDataFile struct {
 	File        string    `json:"file"`
 	Schema      string    `json:"schema"`
@@ -100,19 +109,20 @@ type StructuredComponent struct {
 }
 
 type StructuredRunResult struct {
-	SchemaVersion string                 `json:"schema_version"`
-	ECSVersion    string                 `json:"ecs_version,omitempty"`
-	Status        string                 `json:"status"`
-	StartedAt     time.Time              `json:"started_at"`
-	FinishedAt    time.Time              `json:"finished_at"`
-	DurationMS    int64                  `json:"duration_ms"`
-	DeepMode      bool                   `json:"deep_mode"`
-	PrivacyMode   bool                   `json:"privacy_mode"`
-	Data          *StructuredDataVersion `json:"data,omitempty"`
-	DataFiles     []StructuredDataFile   `json:"data_files,omitempty"`
-	Sections      []StructuredSection    `json:"sections"`
-	Components    []StructuredComponent  `json:"components,omitempty"`
-	Text          string                 `json:"text,omitempty"`
+	SchemaVersion string                   `json:"schema_version"`
+	ECSVersion    string                   `json:"ecs_version,omitempty"`
+	Status        string                   `json:"status"`
+	StartedAt     time.Time                `json:"started_at"`
+	FinishedAt    time.Time                `json:"finished_at"`
+	DurationMS    int64                    `json:"duration_ms"`
+	DeepMode      bool                     `json:"deep_mode"`
+	PrivacyMode   bool                     `json:"privacy_mode"`
+	DNS           *StructuredDNSResolution `json:"dns,omitempty"`
+	Data          *StructuredDataVersion   `json:"data,omitempty"`
+	DataFiles     []StructuredDataFile     `json:"data_files,omitempty"`
+	Sections      []StructuredSection      `json:"sections"`
+	Components    []StructuredComponent    `json:"components,omitempty"`
+	Text          string                   `json:"text,omitempty"`
 }
 
 // TestUI 测试界面结构体
@@ -171,6 +181,7 @@ type TestUI struct {
 	MaxDurationEntry    *widget.Entry
 	HardwareBudgetEntry *widget.Entry
 	DataOfflineCheck    *widget.Check
+	DNSModeSelect       *widget.Select
 	PrivacyModeCheck    *widget.Check
 	ResultUploadCheck   *widget.Check
 	AnalyzeResultCheck  *widget.Check

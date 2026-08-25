@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/test"
+	dnsresolver "github.com/oneclickvirt/basics/network/resolver"
+	basicutils "github.com/oneclickvirt/basics/utils"
 )
 
 func newTestUIForTest(t *testing.T) *TestUI {
@@ -206,6 +209,132 @@ func TestCollectExecutionConfigKeepsNetworkOrderingSelections(t *testing.T) {
 	config := ui.collectExecutionConfig()
 	if config.PingSortOrder != "name" || config.PingScope != "international" || config.TCPSortOrder != "latency" {
 		t.Fatalf("network ordering selections were not retained: %#v", config)
+	}
+}
+
+func TestCollectExecutionConfigDefaultsDNSModeToAuto(t *testing.T) {
+	ui := newTestUIForTest(t)
+	if got := ui.collectExecutionConfig().DNSMode; got != "auto" {
+		t.Fatalf("default DNS mode = %q, want auto", got)
+	}
+}
+
+func TestLegacyDNSResolverPolicy(t *testing.T) {
+	originalConfigure := legacyDNSConfigureFn
+	originalShutdown := legacyDNSShutdownFn
+	originalBootstrapReachable := legacyDNSBootstrapReachableFn
+	originalStackType := basicutils.StackType
+	t.Cleanup(func() {
+		legacyDNSConfigureFn = originalConfigure
+		legacyDNSShutdownFn = originalShutdown
+		legacyDNSBootstrapReachableFn = originalBootstrapReachable
+		basicutils.StackType = originalStackType
+	})
+	tests := []struct {
+		name               string
+		mode               string
+		connected          bool
+		bootstrapReachable bool
+		configuredStatus   dnsresolver.Status
+		wantConfigure      int
+		wantBootstrap      int
+		wantShutdown       int
+	}{
+		{
+			name:             "connected auto keeps normal resolver path",
+			mode:             "auto",
+			connected:        true,
+			configuredStatus: dnsresolver.Status{Requested: dnsresolver.ModeAuto, Active: dnsresolver.ModeSystem, SystemAvailable: true},
+			wantConfigure:    1,
+		},
+		{
+			name:          "offline auto stops when bootstrap is unreachable",
+			mode:          "auto",
+			wantBootstrap: 1,
+			wantShutdown:  1,
+		},
+		{
+			name:               "offline auto retries after reachable bootstrap",
+			mode:               "auto",
+			bootstrapReachable: true,
+			configuredStatus:   dnsresolver.Status{Requested: dnsresolver.ModeAuto, Active: dnsresolver.ModeDoH, DoHAvailable: true, Fallback: true, Stack: "IPv4"},
+			wantConfigure:      1,
+			wantBootstrap:      1,
+		},
+		{
+			name:             "forced DoH bypasses bootstrap gate",
+			mode:             "doh",
+			configuredStatus: dnsresolver.Status{Requested: dnsresolver.ModeDoH, Active: dnsresolver.ModeDoH, DoHAvailable: true},
+			wantConfigure:    1,
+		},
+		{
+			name:             "forced DoT bypasses bootstrap gate",
+			mode:             "dot",
+			configuredStatus: dnsresolver.Status{Requested: dnsresolver.ModeDoT, Active: dnsresolver.ModeDoT, DoTAvailable: true},
+			wantConfigure:    1,
+		},
+		{
+			name:         "system mode never falls back",
+			mode:         "system",
+			wantShutdown: 1,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configureCalls := 0
+			bootstrapCalls := 0
+			shutdownCalls := 0
+			legacyDNSConfigureFn = func(_ context.Context, config dnsresolver.Config) dnsresolver.Status {
+				configureCalls++
+				if config.Mode != dnsresolver.ParseMode(test.mode) {
+					t.Fatalf("resolver mode = %q, want %q", config.Mode, dnsresolver.ParseMode(test.mode))
+				}
+				return test.configuredStatus
+			}
+			legacyDNSBootstrapReachableFn = func(_ context.Context, config dnsresolver.Config) (string, bool) {
+				bootstrapCalls++
+				if config.Mode != dnsresolver.ModeAuto {
+					t.Fatalf("bootstrap mode = %q, want auto", config.Mode)
+				}
+				return "IPv4", test.bootstrapReachable
+			}
+			legacyDNSShutdownFn = func() { shutdownCalls++ }
+
+			status := configureLegacyDNS(context.Background(), test.mode, test.connected)
+			if configureCalls != test.wantConfigure || bootstrapCalls != test.wantBootstrap || shutdownCalls != test.wantShutdown {
+				t.Fatalf("DNS calls = configure:%d bootstrap:%d shutdown:%d, want configure:%d bootstrap:%d shutdown:%d", configureCalls, bootstrapCalls, shutdownCalls, test.wantConfigure, test.wantBootstrap, test.wantShutdown)
+			}
+			if test.wantConfigure == 0 && status.Active != dnsresolver.ModeUnavailable {
+				t.Fatalf("status = %#v, want unavailable", status)
+			}
+		})
+	}
+
+	if !shouldConfigureLegacyDNS(dnsresolver.ModeDoH, false) {
+		t.Fatal("forced DoH must be attempted when the generic precheck is offline")
+	}
+	if !shouldConfigureLegacyDNS(dnsresolver.ModeDoT, false) {
+		t.Fatal("forced DoT must be attempted when the generic precheck is offline")
+	}
+	if shouldConfigureLegacyDNS(dnsresolver.ModeAuto, false) {
+		t.Fatal("auto mode must wait for its scoped bootstrap probe when the generic precheck is offline")
+	}
+	preCheck := &basicutils.NetCheckResult{StackType: "None"}
+	promoteLegacyDNSConnectivity(preCheck, dnsresolver.Status{Active: dnsresolver.ModeDoT, Stack: "IPv4"})
+	if !preCheck.Connected || !preCheck.HasIPv4 || preCheck.HasIPv6 || preCheck.StackType != "IPv4" || basicutils.StackType != "IPv4" {
+		t.Fatalf("successful encrypted DNS did not promote network state: %#v", preCheck)
+	}
+}
+
+func TestDNSModeSelectionSurvivesUIStateRestore(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.DNSModeSelect.SetSelected("dot")
+	state := ui.snapshotUIState()
+	ui.DNSModeSelect.SetSelected("system")
+	ui.restoreUIState(state)
+
+	if got := ui.collectExecutionConfig().DNSMode; got != "dot" {
+		t.Fatalf("restored DNS mode = %q, want dot", got)
 	}
 }
 

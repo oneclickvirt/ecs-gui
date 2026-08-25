@@ -242,6 +242,7 @@ func (ui *TestUI) snapshotUIState() uiStateSnapshot {
 		selections: map[string]string{
 			"language":     ui.LanguageSelect.Selected,
 			"theme":        ui.themeMode,
+			"dnsMode":      ui.DNSModeSelect.Selected,
 			"cpuMethod":    ui.CpuMethodSelect.Selected,
 			"threadMode":   ui.ThreadModeSelect.Selected,
 			"memMethod":    ui.MemoryMethodSelect.Selected,
@@ -331,6 +332,9 @@ func (ui *TestUI) restoreUIState(state uiStateSnapshot) {
 		}
 		ui.applyThemeMode(mode)
 		ui.ThemeSelect.SetSelected(ui.themeLabelByMode(mode))
+	}
+	if value := state.selections["dnsMode"]; value != "" {
+		ui.DNSModeSelect.SetSelected(value)
 	}
 	ui.CpuMethodSelect.SetSelected(state.selections["cpuMethod"])
 	ui.ThreadModeSelect.SetSelected(state.selections["threadMode"])
@@ -544,6 +548,7 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 	pingSortOrder := selectedOrDefault(ui.PingSortSelect, "latency")
 	pingScope := selectedOrDefault(ui.PingScopeSelect, "auto")
 	tcpSortOrder := selectedOrDefault(ui.TCPSortSelect, "name")
+	dnsMode := selectedOrDefault(ui.DNSModeSelect, "auto")
 
 	unlockRegion := unlockRegionLabelToCode(ui.UnlockRegionSelect.Selected, language)
 	if unlockRegion == "" {
@@ -637,6 +642,7 @@ func (ui *TestUI) collectExecutionConfig() ExecutionConfig {
 		MaxDuration:       maxDuration,
 		HardwareBudget:    hardwareBudget,
 		DataOffline:       ui.DataOfflineCheck.Checked,
+		DNSMode:           dnsMode,
 		PrivacyMode:       privacyMode,
 		PresetKey:         ui.selectedPresetKey,
 		LogEnabled:        logEnabled,

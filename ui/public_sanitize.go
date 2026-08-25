@@ -72,6 +72,12 @@ func sanitizeStructuredRunResult(report *StructuredRunResult) {
 	report.Data = nil
 	report.DataFiles = nil
 	report.Text = sanitizeGUIText(report.Text)
+	if report.DNS != nil {
+		report.DNS.Requested = strings.ToLower(strings.TrimSpace(report.DNS.Requested))
+		report.DNS.Active = strings.ToLower(strings.TrimSpace(report.DNS.Active))
+		report.DNS.Provider = sanitizeGUIText(strings.TrimSpace(report.DNS.Provider))
+		report.DNS.Reason = sanitizeGUIText(strings.TrimSpace(report.DNS.Reason))
+	}
 	for index := range report.Sections {
 		report.Sections[index].Reason = safeStructuredReason(report.Sections[index].Status, report.Sections[index].Reason)
 	}

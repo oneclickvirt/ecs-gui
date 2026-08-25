@@ -15,10 +15,12 @@ import (
 	unlocktestmodel "github.com/oneclickvirt/UnlockTests/model"
 	backtracemodel "github.com/oneclickvirt/backtrace/model"
 	basicmodel "github.com/oneclickvirt/basics/model"
+	dnsresolver "github.com/oneclickvirt/basics/network/resolver"
 	"github.com/oneclickvirt/basics/utils"
 	cputestmodel "github.com/oneclickvirt/cputest/model"
 	disktestmodel "github.com/oneclickvirt/disktest/disk"
 	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
+	ecsutils "github.com/oneclickvirt/ecs/utils"
 	gostunmodel "github.com/oneclickvirt/gostun/model"
 	memorytestmodel "github.com/oneclickvirt/memorytest/memory"
 	nt3model "github.com/oneclickvirt/nt3/model"
@@ -29,8 +31,11 @@ import (
 )
 
 var (
-	ecsVersion        = appmeta.UpstreamECSVersion
-	commandExecutorMu sync.Mutex
+	ecsVersion                    = appmeta.UpstreamECSVersion
+	commandExecutorMu             sync.Mutex
+	legacyDNSConfigureFn          = dnsresolver.Configure
+	legacyDNSShutdownFn           = dnsresolver.Shutdown
+	legacyDNSBootstrapReachableFn = dnsresolver.BootstrapReachable
 )
 
 type CommandExecutor struct {
@@ -47,6 +52,56 @@ func NewCommandExecutor(outputCallback func(string)) *CommandExecutor {
 	return &CommandExecutor{
 		outputCallback: outputCallback,
 		core:           ecsCoreRunner{},
+	}
+}
+
+func configureLegacyDNS(ctx context.Context, mode string, connected bool) dnsresolver.Status {
+	requested := dnsresolver.ParseMode(mode)
+	config := dnsresolver.Config{Mode: requested}
+	// Forced encrypted modes remain useful when the generic preflight has a
+	// false negative because their probes use independent routes and protocols.
+	if shouldConfigureLegacyDNS(requested, connected) {
+		return legacyDNSConfigureFn(ctx, config)
+	}
+	if requested == dnsresolver.ModeAuto {
+		if _, reachable := legacyDNSBootstrapReachableFn(ctx, config); reachable {
+			return legacyDNSConfigureFn(ctx, config)
+		}
+		legacyDNSShutdownFn()
+		return dnsresolver.Status{Requested: requested, Active: dnsresolver.ModeUnavailable, Reason: "encrypted DNS endpoint unreachable"}
+	}
+	legacyDNSShutdownFn()
+	return dnsresolver.Status{Requested: requested, Active: dnsresolver.ModeUnavailable, Reason: "network unavailable"}
+}
+
+func shouldConfigureLegacyDNS(requested dnsresolver.Mode, connected bool) bool {
+	return connected || requested == dnsresolver.ModeDoH || requested == dnsresolver.ModeDoT
+}
+
+func promoteLegacyDNSConnectivity(preCheck *utils.NetCheckResult, status dnsresolver.Status) {
+	if preCheck == nil || preCheck.Connected || (status.Active != dnsresolver.ModeDoH && status.Active != dnsresolver.ModeDoT) {
+		return
+	}
+	preCheck.Connected = true
+	switch status.Stack {
+	case "IPv4":
+		preCheck.HasIPv4 = true
+	case "IPv6":
+		preCheck.HasIPv6 = true
+	}
+	if status.Stack != "" {
+		preCheck.StackType = status.Stack
+		utils.StackType = status.Stack
+	}
+}
+
+func structuredDNSResolutionFromStatus(status dnsresolver.Status) *StructuredDNSResolution {
+	return &StructuredDNSResolution{
+		Requested: string(status.Requested),
+		Active:    string(status.Active),
+		Fallback:  status.Fallback,
+		Provider:  status.Provider,
+		Reason:    status.Reason,
 	}
 }
 
@@ -235,6 +290,9 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 		e.core = ecsCoreRunner{}
 	}
 	e.resetDetectedNetworkState()
+	if e.ctx == nil {
+		e.ctx = context.Background()
+	}
 
 	// 设置测试选项
 	selectedOptions := config.SelectedOptions
@@ -281,7 +339,14 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	}
 
 	// 检查网络连接
+	if strings.EqualFold(config.DNSMode, "system") {
+		ecsutils.CheckAndFixAndroidDNS(language)
+	}
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
+	dnsStatus := configureLegacyDNS(e.ctx, config.DNSMode, preCheck.Connected)
+	defer legacyDNSShutdownFn()
+	promoteLegacyDNSConnectivity(&preCheck, dnsStatus)
+	dnsResolution := structuredDNSResolutionFromStatus(dnsStatus)
 	effectiveNt3Type = effectiveNT3TypeForStack(effectiveNt3Type, preCheck.StackType)
 	tracker := newProgressTracker(e.progressCallback, buildProgressSteps(config, preCheck.Connected))
 	tracker.finish("progress.precheck")
@@ -302,7 +367,9 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 		if ctx == nil {
 			ctx = context.Background()
 		}
-		e.setStructuredResult(buildGUIStructuredReport(config, preCheck.Connected, tracker, runErr, ctx, startTime, time.Now()))
+		report := buildGUIStructuredReport(config, preCheck.Connected, tracker, runErr, ctx, startTime, time.Now())
+		report.DNS = dnsResolution
+		e.setStructuredResult(report)
 	}()
 	captureLimit := resultCaptureLimit()
 	appendCaptured := func(text string) {
@@ -332,11 +399,6 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 			out += "\n[结果过长，GUI 已截断用于上传/分析的历史输出]\n"
 		}
 		return out
-	}
-
-	// 确保有上下文
-	if e.ctx == nil {
-		e.ctx = context.Background()
 	}
 
 	if needsNetworkIdentityProbe(preCheck.Connected, basicStatus, securityTestStatus, utTestStatus, backtraceStatus) {

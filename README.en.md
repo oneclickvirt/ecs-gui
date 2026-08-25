@@ -14,6 +14,7 @@ Upstream project: https://github.com/oneclickvirt/ecs
 - Show real-time stage progress and the current running item
 - Copy results, export a text file, or upload a share link
 - Switch between Chinese/English UI and light/dark themes
+- Choose automatic, system-only, built-in DoH, or built-in DoT DNS resolution; the default falls back only after local DNS is confirmed unavailable, while transient failures preserve system DNS
 - Send completion notifications on Android and request Windows UAC elevation when privileged tests need it
 
 ## Quick Start
@@ -132,5 +133,7 @@ go run -ldflags="-checklinkname=0" .
   No. The current app has no DB initialization, migrations, or connection pool logic.
 - What is the share link limit?
   The GUI uploads the exported Markdown result to the share service, with a 25KB limit per upload.
+- How does the GUI work in an online environment without local DNS?
+  Leave the DNS Resolution selector at `auto`: only after independent probes confirm local DNS is unavailable does the current process validate real TLS DNS queries through fixed endpoint addresses and select the lowest-latency built-in DoH or DoT endpoint. A successful response or NXDOMAIN preserves system DNS; timeouts, SERVFAIL, and transient network errors do not switch it. If the normal connectivity preflight has no result, auto first performs the same bounded encrypted-DNS validation. `system` uses system DNS only, `doh` forces built-in DoH, and `dot` forces built-in DoT. The fallback never rewrites resolver files, and `-ut-dns` remains the streaming-unlock module's separate explicit DNS override.
 - Why are macOS artifacts unsigned?
   GitHub Actions artifacts are unsigned by default. Configure certificates and notarization with [the macOS signing guide](docs/macos-signing.en.md) for production distribution.

@@ -185,6 +185,7 @@ var i18nText = map[string]map[string]string{
 
 	"label.language":           {"zh": "语言", "en": "Language"},
 	"label.theme":              {"zh": "主题", "en": "Theme"},
+	"label.dns_mode":           {"zh": "DNS 解析", "en": "DNS Resolution"},
 	"label.cpu_method":         {"zh": "测试方法", "en": "Method"},
 	"label.memory_method":      {"zh": "内存方法", "en": "Memory Method"},
 	"label.disk_method":        {"zh": "磁盘方法", "en": "Disk Method"},

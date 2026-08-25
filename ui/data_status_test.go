@@ -18,6 +18,21 @@ func TestSummarizeStructuredRun(t *testing.T) {
 	}
 }
 
+func TestSummarizeStructuredRunIncludesDNSFallback(t *testing.T) {
+	reason := summarizeStructuredRun(StructuredRunResult{
+		Status: "ok",
+		DNS: &StructuredDNSResolution{
+			Requested: "auto",
+			Active:    "dot",
+			Fallback:  true,
+			Provider:  "Cloudflare",
+		},
+	})
+	if reason != "DNS: built-in DoT fallback (Cloudflare)" {
+		t.Fatalf("DNS summary = %q", reason)
+	}
+}
+
 func TestDecodeStructuredRunV1AndRejectsTrailingData(t *testing.T) {
 	report := []byte(`{"schema_version":"goecs.report/v1","ecs_version":"v0.1.139","status":"partial","duration_ms":12,"data":{"schema":"ecs-data/v1","generated_at":"2026-07-19T00:00:00Z","source":"raw","fallback":"raw","file":"tcp-targets.json","count":2},"sections":[{"name":"basics","enabled":true,"status":"ok"},{"name":"tcp","enabled":true,"status":"unavailable","reason":"network unavailable"}]}`)
 	decoded, err := decodeStructuredRun(report)

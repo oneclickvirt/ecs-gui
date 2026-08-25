@@ -40,6 +40,7 @@ func (runner structuredExecutionRunner) Run(ctx context.Context, config Executio
 	if runner.api.checkPublicAccess == nil || runner.api.runAllTests == nil {
 		return executionOutcome{Err: errExecutionRunnerUnavailable, Structured: true}
 	}
+	defer ecsapi.ShutdownDNS()
 	tracker := newProgressTracker(progress, nil)
 	tracker.start("progress.precheck")
 	preCheck := runner.api.checkPublicAccess(3 * time.Second)
@@ -181,6 +182,7 @@ func structuredAPIConfig(config ExecutionConfig) *ecsapi.Config {
 	apiConfig.AnalyzeResult = config.AnalyzeResult
 	apiConfig.PrivacyMode = config.PrivacyMode
 	apiConfig.DataOffline = config.DataOffline
+	apiConfig.DNSMode = config.DNSMode
 	apiConfig.DeepMode = config.DeepMode
 	if config.DeepMode {
 		apiConfig.DeepDiskPaths = config.DeepDiskPaths
