@@ -40,6 +40,17 @@ jobs:
             exit 1
           fi
 
+          MODULE_BASICS_VERSION="$(awk '$1 == "github.com/oneclickvirt/basics" { print $2; exit }' go.mod)"
+          MODULE_SPEEDTEST_VERSION="$(awk '$1 == "github.com/oneclickvirt/speedtest" { print $2; exit }' go.mod)"
+          MODULE_SPEEDTEST_GO_VERSION="$(awk '$1 == "github.com/showwin/speedtest-go" { print $2; exit }' go.mod)"
+          if [[ "$MODULE_ECS_VERSION" != "v0.1.185" ||
+                "$MODULE_BASICS_VERSION" != "v0.0.32" ||
+                "$MODULE_SPEEDTEST_VERSION" != "v0.0.24" ||
+                "$MODULE_SPEEDTEST_GO_VERSION" != "v1.8.2" ]]; then
+            echo "Unexpected dependency chain: ecs=${MODULE_ECS_VERSION:-<empty>} basics=${MODULE_BASICS_VERSION:-<empty>} speedtest=${MODULE_SPEEDTEST_VERSION:-<empty>} speedtest-go=${MODULE_SPEEDTEST_GO_VERSION:-<empty>}"
+            exit 1
+          fi
+
           GUI_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
           if [[ ! "$GUI_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid GUI VERSION: ${GUI_VERSION:-<empty>}"
@@ -225,7 +236,13 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
-        run: go mod verify
+        run: |
+          set -euo pipefail
+          go mod verify
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.185'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.32'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.24'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.2'
       
       - name: Update FyneApp.toml version
         run: |
@@ -580,7 +597,13 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
-        run: go mod verify
+        run: |
+          set -euo pipefail
+          go mod verify
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.185'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.32'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.24'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.2'
 
       - name: Verify release GUI path
         if: matrix.name == 'linux-amd64'
