@@ -11,8 +11,8 @@ import (
 )
 
 func TestReleaseDependencyContract(t *testing.T) {
-	if got := appmeta.ReleaseVersion(); got != "v0.1.189" {
-		t.Fatalf("GUI release version = %q, want v0.1.189", got)
+	if got := appmeta.ReleaseVersion(); got != "v0.1.190" {
+		t.Fatalf("GUI release version = %q, want v0.1.190", got)
 	}
 	if got := ecsapi.DefaultVersion; got != appmeta.UpstreamECSVersion {
 		t.Fatalf("ECS version = %q, GUI metadata = %q", got, appmeta.UpstreamECSVersion)

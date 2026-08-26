@@ -236,6 +236,7 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
+        shell: bash
         run: |
           set -euo pipefail
           go mod verify
@@ -597,6 +598,7 @@ jobs:
           GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
       
       - name: Verify dependencies
+        shell: bash
         run: |
           set -euo pipefail
           go mod verify
