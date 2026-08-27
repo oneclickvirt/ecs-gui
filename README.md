@@ -118,8 +118,6 @@ go install fyne.io/tools/cmd/fyne@latest
 |------|------|----------|------|
 | `ANDROID_NDK_HOME` | 本地/CI | 仅 Android 构建 | 指向 Android NDK 25.2.9519653 |
 | `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` | CI | 是 | 提前启用 Node 24 Actions 运行时 |
-| `GOPRIVATE` | CI | 私有模块构建必需 | 允许下载 `github.com/oneclickvirt/security` 等私有模块 |
-| `GHT` | GitHub Secret | CI 必需 | 访问私有 Go 模块和签名仓库 |
 | `KEYSTORE_PASSWORD` | GitHub Secret | Android 签名必需 | APK keystore 密码 |
 | `KEY_PASSWORD` | GitHub Secret | Android 签名必需 | APK key alias 密码 |
 | `GITHUB_TOKEN` | GitHub 自动注入 | CI 必需 | 创建 Release 和上传产物 |

@@ -108,8 +108,6 @@ Version sources:
 |------|----------|----------|---------|
 | `ANDROID_NDK_HOME` | Local/CI | Android builds only | Points to Android NDK 25.2.9519653 |
 | `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` | CI | Yes | Opts into the Node 24 Actions runtime |
-| `GOPRIVATE` | CI | Private module builds | Allows downloading private modules such as `github.com/oneclickvirt/security` |
-| `GHT` | GitHub Secret | CI | Accesses private Go modules and the signing keystore repository |
 | `KEYSTORE_PASSWORD` | GitHub Secret | Android signing | APK keystore password |
 | `KEY_PASSWORD` | GitHub Secret | Android signing | APK key alias password |
 | `GITHUB_TOKEN` | GitHub-provided | CI | Creates releases and uploads artifacts |
