@@ -7,15 +7,18 @@ import (
 )
 
 var (
-	guiURLPattern    = regexp.MustCompile(`(?i)\b(?:https?|ftp|ssh|git)://[^\s)]+`)
-	guiGitPattern    = regexp.MustCompile(`(?i)\bgit@[^\s:]+:[^\s]+`)
-	guiRepoPattern   = regexp.MustCompile(`(?i)\b(?:github\.com|gitlab\.com|bitbucket\.org)/[^\s/]+/[^\s]+`)
-	guiSecretPattern = regexp.MustCompile(`(?i)(authorization|bearer|token|api[_-]?key|secret|password|passwd|auth)\s*[:=]\s*(?:bearer\s+)?["']?[^\s,;"'&#]+`)
-	guiPathPattern   = regexp.MustCompile(`(?:^|\s)(?:/Users/|/Volumes/|/home/|/root/|[A-Za-z]:\\)[^\s]+`)
-	guiQuerySecret   = regexp.MustCompile(`(?i)([?&](?:token|key|secret|password|passwd|auth)[^=]*=)[^&#\s]+`)
+	guiURLPattern           = regexp.MustCompile(`(?i)\b(?:https?|ftp|ssh|git)://[^\s)]+`)
+	guiGitPattern           = regexp.MustCompile(`(?i)\bgit@[^\s:]+:[^\s]+`)
+	guiRepoPattern          = regexp.MustCompile(`(?i)\b(?:github\.com|gitlab\.com|bitbucket\.org)/[^\s/]+/[^\s]+`)
+	guiSecretPattern        = regexp.MustCompile(`(?i)(authorization|bearer|token|api[_-]?key|secret|password|passwd|auth)\s*[:=]\s*(?:bearer\s+)?["']?[^\s,;"'&#]+`)
+	guiPathPattern          = regexp.MustCompile(`(?:^|\s)(?:/Users/|/Volumes/|/home/|/root/|[A-Za-z]:\\)[^\s]+`)
+	guiQuerySecret          = regexp.MustCompile(`(?i)([?&](?:token|key|secret|password|passwd|auth)[^=]*=)[^&#\s]+`)
+	guiTraceBoundary        = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*\))((?:\x1b\[[0-?]*[ -/]*[@-~])*[^\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
+	guiTraceBoundaryNoParen = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*?\bat[ \t]+Hop[ \t]+[0-9]+)((?:\x1b\[[0-?]*[ -/]*[@-~])*[^)\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
 )
 
 func sanitizeGUIText(value string) string {
+	value = normalizeGUITraceBoundaries(value)
 	lines := strings.Split(value, "\n")
 	for index, line := range lines {
 		// Credentials must be removed even from an ordinary successful target
@@ -39,6 +42,23 @@ func sanitizeGUIText(value string) string {
 		lines[index] = line
 	}
 	return strings.Join(lines, "\n")
+}
+
+// normalizeGUITraceBoundaries repairs output produced by older nt3/goecs
+// combinations where a stop-reason line was emitted without a trailing
+// newline and the next carrier header was appended to it. The expressions are
+// deliberately tied to the complete carrier-header suffix so ordinary ICMP
+// diagnostics remain untouched. The pass repeats for multiple sections that
+// were concatenated onto one physical line by an older formatter.
+func normalizeGUITraceBoundaries(value string) string {
+	for {
+		normalized := guiTraceBoundary.ReplaceAllString(value, "$1\n$2")
+		normalized = guiTraceBoundaryNoParen.ReplaceAllString(normalized, "$1\n$2")
+		if normalized == value {
+			return value
+		}
+		value = normalized
+	}
 }
 
 func redactGUICredentials(value string) string {

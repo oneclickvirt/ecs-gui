@@ -241,6 +241,8 @@ github.com/oneclickvirt/disktest v0.0.24 h1:GoOOgaWVgOQR+a5Sdy8Fh1B3GfiC/5J0AUhq
 github.com/oneclickvirt/disktest v0.0.24/go.mod h1:Vp3iMVBD4ccReDJz5n5SlzUdq0kDuVhpRklQk21KT+8=
 github.com/oneclickvirt/ecs v0.1.194 h1:Sxp/G080fAKeZE6X2DBCJ2o8pjmbNbfofWxaDKprEkU=
 github.com/oneclickvirt/ecs v0.1.194/go.mod h1:fFQCI5GCRrviuVBual++Xu9xPSn/vilQzu8KfLMlG4Q=
+github.com/oneclickvirt/ecs v0.1.195 h1:HwvHhk/Pz+WN1+hgE29xKQpouLMb5XqaYO28xo8YQ/g=
+github.com/oneclickvirt/ecs v0.1.195/go.mod h1:jznX6t+9htXRX/DxowKkXKA1yO03pkYGuuAIu8xhMKI=
 github.com/oneclickvirt/fio v0.0.2-20250808045755 h1:eWihCRWcalJjPIdrF8dMe68ZiPnMkSfHC8ENvElp/xE=
 github.com/oneclickvirt/fio v0.0.2-20250808045755/go.mod h1:NIq+XYTey68KNERGIy/oRDlzpwLzBVoHOCiqX8didsE=
 github.com/oneclickvirt/gostun v0.0.10 h1:bMjwng5v6UKEcFrg1BSYijS5DAU5aYiSt5+0LmKXKMI=
@@ -251,6 +253,8 @@ github.com/oneclickvirt/memorytest v0.0.14 h1:NMI3FAsT7PBS5tnpOGB6IYY4s5ryPaSSBp
 github.com/oneclickvirt/memorytest v0.0.14/go.mod h1:4kiHsEWkW9r3/1ZcV5xIweU0smiKP0IRfQj74AUIiVI=
 github.com/oneclickvirt/nt3 v0.0.23 h1:i3MawgZ5Vwn0lZwt0VONxohckjfKAYas4TgwZutFZQw=
 github.com/oneclickvirt/nt3 v0.0.23/go.mod h1:fkX8GQWaqr/G+8/qpeo3qCzXe4nba4uO0FJA441aalg=
+github.com/oneclickvirt/nt3 v0.0.24 h1:Bwr5JEix6IYA1B0s9znZwN/n9NX6temOfQ8DIh+cFe8=
+github.com/oneclickvirt/nt3 v0.0.24/go.mod h1:fkX8GQWaqr/G+8/qpeo3qCzXe4nba4uO0FJA441aalg=
 github.com/oneclickvirt/pingtest v0.0.28 h1:aBOpf9mfOOFFKyh8Nx7IrRQIBm96oduKYXTQ/I9UBq8=
 github.com/oneclickvirt/pingtest v0.0.28/go.mod h1:HdehjtQbr4R0BFC6pm1dqDvwyDj1DbLCRcEFYvFeBdc=
 github.com/oneclickvirt/portchecker v0.0.7 h1:D3Q01FZgjGTrTBJgWqRoeFbBWViJl4gE+v8alIlUeAM=

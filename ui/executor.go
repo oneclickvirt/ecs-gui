@@ -394,7 +394,10 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 	capturedOutput := func() string {
 		captureMutex.Lock()
 		defer captureMutex.Unlock()
-		out := captured.String()
+		// Captured output can be consumed by analysis/upload independently of
+		// the terminal callback. Normalize the complete stream here as well so
+		// a stop/header boundary split across pipe reads cannot leak downstream.
+		out := normalizeGUITraceBoundaries(captured.String())
 		if captureTruncated {
 			out += "\n[结果过长，GUI 已截断用于上传/分析的历史输出]\n"
 		}
