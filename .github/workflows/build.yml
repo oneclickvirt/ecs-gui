@@ -34,6 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           MODULE_ECS_VERSION="$(awk '$1 == "github.com/oneclickvirt/ecs" { print $2; exit }' go.mod)"
+          MODULE_UNLOCKTESTS_VERSION="$(awk '$1 == "github.com/oneclickvirt/UnlockTests" { print $2; exit }' go.mod)"
           ECS_VERSION="${MODULE_ECS_VERSION#v}"
           if [[ ! "$ECS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Unable to detect github.com/oneclickvirt/ecs version from go.mod"
@@ -47,15 +48,16 @@ jobs:
           MODULE_SECURITY_VERSION="$(awk '$1 == "github.com/oneclickvirt/security" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_VERSION="$(awk '$1 == "github.com/oneclickvirt/speedtest" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_GO_VERSION="$(awk '$1 == "github.com/showwin/speedtest-go" { print $2; exit }' go.mod)"
-          if [[ "$MODULE_ECS_VERSION" != "v0.1.186" ||
+          if [[ "$MODULE_ECS_VERSION" != "v0.1.193" ||
+                "$MODULE_UNLOCKTESTS_VERSION" != "v0.0.50" ||
                 "$MODULE_BACKTRACE_VERSION" != "v0.0.21" ||
                 "$MODULE_BASICS_VERSION" != "v0.0.34" ||
                 "$MODULE_DISKTEST_VERSION" != "v0.0.24" ||
-                "$MODULE_PRIVATE_SPEEDTEST_VERSION" != "v0.0.11" ||
+                "$MODULE_PRIVATE_SPEEDTEST_VERSION" != "v0.0.13" ||
                 "$MODULE_SECURITY_VERSION" != "v0.0.20" ||
                 "$MODULE_SPEEDTEST_VERSION" != "v0.0.25" ||
                 "$MODULE_SPEEDTEST_GO_VERSION" != "v1.8.2" ]]; then
-            echo "Unexpected dependency chain: ecs=${MODULE_ECS_VERSION:-<empty>} backtrace=${MODULE_BACKTRACE_VERSION:-<empty>} basics=${MODULE_BASICS_VERSION:-<empty>} disktest=${MODULE_DISKTEST_VERSION:-<empty>} privatespeedtest=${MODULE_PRIVATE_SPEEDTEST_VERSION:-<empty>} security=${MODULE_SECURITY_VERSION:-<empty>} speedtest=${MODULE_SPEEDTEST_VERSION:-<empty>} speedtest-go=${MODULE_SPEEDTEST_GO_VERSION:-<empty>}"
+            echo "Unexpected dependency chain: ecs=${MODULE_ECS_VERSION:-<empty>} unlocktests=${MODULE_UNLOCKTESTS_VERSION:-<empty>} backtrace=${MODULE_BACKTRACE_VERSION:-<empty>} basics=${MODULE_BASICS_VERSION:-<empty>} disktest=${MODULE_DISKTEST_VERSION:-<empty>} privatespeedtest=${MODULE_PRIVATE_SPEEDTEST_VERSION:-<empty>} security=${MODULE_SECURITY_VERSION:-<empty>} speedtest=${MODULE_SPEEDTEST_VERSION:-<empty>} speedtest-go=${MODULE_SPEEDTEST_GO_VERSION:-<empty>}"
             exit 1
           fi
 
@@ -248,11 +250,12 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.186'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.193'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.50'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.34'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/disktest)" = 'v0.0.24'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.11'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.13'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/security)" = 'v0.0.20'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.25'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.2'
@@ -614,11 +617,12 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.186'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.193'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.50'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.34'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/disktest)" = 'v0.0.24'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.11'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.13'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/security)" = 'v0.0.20'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.25'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.2'
