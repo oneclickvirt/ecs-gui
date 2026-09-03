@@ -617,12 +617,12 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.195'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.1.197'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.51'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.34'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/disktest)" = 'v0.0.24'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.14'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.16'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/security)" = 'v0.0.20'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.25'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.2'
