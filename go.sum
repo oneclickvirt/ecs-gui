@@ -273,6 +273,8 @@ github.com/oneclickvirt/security v0.0.20 h1:C4zVbqFX+dSSwZ6faWfKp6VRuk5VFmmHyfZ/
 github.com/oneclickvirt/security v0.0.20/go.mod h1:U96qZYkmkZkVg/TcbxrHKyWrlIJQJ719p797UEaXsEA=
 github.com/oneclickvirt/speedtest v0.0.25 h1:D8fQzY/F4JzvYcsjRkOxpBd2Xr7TE3ma0yxaIe1lIeY=
 github.com/oneclickvirt/speedtest v0.0.25/go.mod h1:lx+Rb/fhirSf41ZRQ+2AG8zKNhVrPH2WeGbiaHl0uqA=
+github.com/oneclickvirt/speedtest v0.0.26 h1:gYnacs0qvotnG3PjCLemYe/TX22kSayZEKcwNpgUDq8=
+github.com/oneclickvirt/speedtest v0.0.26/go.mod h1:sW/aShYQuLJcSCNF99P2sTf40W+fEYaxLCm8ehw7UV0=
 github.com/oneclickvirt/stream v0.0.2-20250924154001 h1:GuJWdiPkoK84+y/+oHKr2Ghl3c/MzS9Z5m1nM+lMmy4=
 github.com/oneclickvirt/stream v0.0.2-20250924154001/go.mod h1:oWaizaHTC2VQciBC9RfaLbAOf8qeR6n20/gY7QxriDE=
 github.com/onsi/ginkgo/v2 v2.19.0/go.mod h1:rlwLi9PilAFJ8jCg9UE1QP6VBpd6/xj3SRC0d6TU0To=
@@ -329,6 +331,8 @@ github.com/shirou/gopsutil/v4 v4.25.6 h1:kLysI2JsKorfaFPcYmcJqbzROzsBWEOAtw6A7dI
 github.com/shirou/gopsutil/v4 v4.25.6/go.mod h1:PfybzyydfZcN+JMMjkF6Zb8Mq1A/VcogFFg7hj50W9c=
 github.com/showwin/speedtest-go v1.8.2 h1:vvNQBnk2BFqv96fmjEI+q0bNZ1WIaBkYXYrF6bDsm9A=
 github.com/showwin/speedtest-go v1.8.2/go.mod h1:N4bn2lgNNWmfJyC1AIHD4T5wYhU+9D21OfacVhJsxiU=
+github.com/showwin/speedtest-go v1.8.3 h1:x988hyZFsa5V1EEwox84niAji632uxBTk8Clsc1itF8=
+github.com/showwin/speedtest-go v1.8.3/go.mod h1:N4bn2lgNNWmfJyC1AIHD4T5wYhU+9D21OfacVhJsxiU=
 github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8/go.mod h1:3n1Cwaq1E1/1lhQhtRK2ts/ZwZEhjcQeJQ1RuC6Q/8U=
 github.com/spf13/afero v1.15.0 h1:b/YBCLWAJdFWJTN9cLhiXXcD7mzKn9Dm86dNnfyQw1I=
 github.com/spf13/afero v1.15.0/go.mod h1:NC2ByUVxtQs4b3sIUphxK0NioZnmxgyCrfzeuq8lxMg=
