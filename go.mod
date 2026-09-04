@@ -25,9 +25,6 @@ require (
 	golang.org/x/sys v0.47.0
 )
 
-// Keep local development and release verification on the just-updated GoECS
-// checkout until its v0.1.198 tag is published upstream.
-replace github.com/oneclickvirt/ecs => ../goecs
 
 require (
 	fyne.io/systray v1.12.1 // indirect

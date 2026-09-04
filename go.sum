@@ -247,6 +247,8 @@ github.com/oneclickvirt/ecs v0.1.196 h1:GpVxN80k3ujAaN87TP909cy1vXsccWp7tpbcgtDU
 github.com/oneclickvirt/ecs v0.1.196/go.mod h1:OUOCOc6L4677N39ImeD5s4Mmt2fA/n3JrrqENCJ4Nt0=
 github.com/oneclickvirt/ecs v0.1.197 h1:NtjA/ediI3R2/vHL1i8gzgm6R7crGuQ013UFx0m8kLY=
 github.com/oneclickvirt/ecs v0.1.197/go.mod h1:b3MYi5BfDpYb6y4GfPhCkaO5Zvp1i9EPxxXRlWDiNAQ=
+github.com/oneclickvirt/ecs v0.1.198 h1:zlAz95v49A3Hqu3XGJE+8by/Hhc3+gJ8qZonL6DXsu4=
+github.com/oneclickvirt/ecs v0.1.198/go.mod h1:0CoHSPtFwWsYYukVN/KhRmx5J0StQkbYCNIlNGrC5Wc=
 github.com/oneclickvirt/fio v0.0.2-20250808045755 h1:eWihCRWcalJjPIdrF8dMe68ZiPnMkSfHC8ENvElp/xE=
 github.com/oneclickvirt/fio v0.0.2-20250808045755/go.mod h1:NIq+XYTey68KNERGIy/oRDlzpwLzBVoHOCiqX8didsE=
 github.com/oneclickvirt/gostun v0.0.10 h1:bMjwng5v6UKEcFrg1BSYijS5DAU5aYiSt5+0LmKXKMI=
