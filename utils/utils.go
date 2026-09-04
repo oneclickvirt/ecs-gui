@@ -253,8 +253,9 @@ func PrintAndCapture(f func(), tempOutput, output string) string {
 
 // UploadText 上传文本内容到指定URL
 func UploadText(absPath string) (string, string, error) {
-	primaryURL := "http://hpaste.spiritlhl.net/api/UL/upload"
-	backupURL := "https://paste.spiritlhl.net/api/UL/upload"
+	// Upload directly to the canonical TLS endpoint.  The legacy HTTP entry
+	// point redirects and must not be used for requests carrying credentials.
+	primaryURL := "https://paste.spiritlhl.net/api/UL/upload"
 	token := network.SecurityUploadToken
 	client := req.C().SetTimeout(6 * time.Second)
 	client.R().
@@ -298,21 +299,15 @@ func UploadText(absPath string) (string, string, error) {
 			if strings.Contains(fileID, "show") {
 				fileID = fileID[strings.LastIndex(fileID, "/")+1:]
 			}
-			httpURL := fmt.Sprintf("http://hpaste.spiritlhl.net/#/show/%s", fileID)
 			httpsURL := fmt.Sprintf("https://paste.spiritlhl.net/#/show/%s", fileID)
-			return httpURL, httpsURL, nil
+			return httpsURL, httpsURL, nil
 		}
 		return "", "", fmt.Errorf("upload failed for %s with status code: %d", url, resp.StatusCode)
 	}
 	// 尝试上传到主URL
 	httpURL, httpsURL, err := upload(primaryURL)
-	if err == nil {
-		return httpURL, httpsURL, nil
-	}
-	// 尝试上传到备份URL
-	httpURL, httpsURL, err = upload(backupURL)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to upload to both primary and backup URLs: %w", err)
+		return "", "", fmt.Errorf("failed to upload to canonical HTTPS endpoint: %w", err)
 	}
 	return httpURL, httpsURL, nil
 }

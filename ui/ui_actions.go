@@ -514,7 +514,7 @@ func (ui *TestUI) shareResults() {
 			return
 		}
 
-		httpURL, httpsURL, err := apputils.UploadText(tmp.Name())
+		_, httpsURL, err := apputils.UploadText(tmp.Name())
 		if err != nil {
 			ui.runOnUI(func() {
 				dialog.ShowInformation(ui.tr("dialog.hint"), ui.tr("dialog.share_failed"), ui.Window)
@@ -523,9 +523,6 @@ func (ui *TestUI) shareResults() {
 		}
 
 		shareURL := httpsURL
-		if shareURL == "" {
-			shareURL = httpURL
-		}
 		ui.runOnUI(func() {
 			ui.App.Clipboard().SetContent(shareURL)
 			dialog.ShowInformation(ui.tr("dialog.success"), ui.tr("dialog.share_ok")+shareURL, ui.Window)

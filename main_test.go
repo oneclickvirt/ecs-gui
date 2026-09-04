@@ -12,20 +12,20 @@ import (
 )
 
 func TestReleaseDependencyContract(t *testing.T) {
-	if got := appmeta.ReleaseVersion(); got != "v0.1.197" {
-		t.Fatalf("GUI release version = %q, want v0.1.197", got)
+	if got := appmeta.ReleaseVersion(); got != "v0.1.198" {
+		t.Fatalf("GUI release version = %q, want v0.1.198", got)
 	}
 	if got := ecsapi.DefaultVersion; got != appmeta.UpstreamECSVersion {
 		t.Fatalf("ECS version = %q, GUI metadata = %q", got, appmeta.UpstreamECSVersion)
 	}
-	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.25" {
-		t.Fatalf("speedtest component version = %q, want v0.0.25", got)
+	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.26" {
+		t.Fatalf("speedtest component version = %q, want v0.0.26", got)
 	}
 	if got := privatepst.PrivateSpeedTestVersion; got != "v0.0.16" {
 		t.Fatalf("private speedtest component version = %q, want v0.0.16", got)
 	}
-	if got := showwinspeedtest.Version(); got != "1.8.2" {
-		t.Fatalf("speedtest-go version = %q, want 1.8.2", got)
+	if got := showwinspeedtest.Version(); got != "1.8.3" {
+		t.Fatalf("speedtest-go version = %q, want 1.8.3", got)
 	}
 	for _, endpoint := range resolver.DefaultEndpoints() {
 		if endpoint.Name == "360 Public DNS" && endpoint.URL == "tls://dot.360.cn:853" {

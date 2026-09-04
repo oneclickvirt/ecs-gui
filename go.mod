@@ -12,7 +12,7 @@ require (
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.24
-	github.com/oneclickvirt/ecs v0.1.197
+	github.com/oneclickvirt/ecs v0.1.198
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.24
@@ -20,10 +20,14 @@ require (
 	github.com/oneclickvirt/portchecker v0.0.7
 	github.com/oneclickvirt/privatespeedtest v0.0.16
 	github.com/oneclickvirt/security v0.0.20
-	github.com/oneclickvirt/speedtest v0.0.25
-	github.com/showwin/speedtest-go v1.8.2
+	github.com/oneclickvirt/speedtest v0.0.26
+	github.com/showwin/speedtest-go v1.8.3
 	golang.org/x/sys v0.47.0
 )
+
+// Keep local development and release verification on the just-updated GoECS
+// checkout until its v0.1.198 tag is published upstream.
+replace github.com/oneclickvirt/ecs => ../goecs
 
 require (
 	fyne.io/systray v1.12.1 // indirect

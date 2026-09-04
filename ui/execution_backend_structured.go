@@ -85,8 +85,8 @@ func (runner structuredExecutionRunner) Run(ctx context.Context, config Executio
 	if runner.api.finalize != nil {
 		finalized, err := runner.api.finalize(finalizeCtx, preCheck, apiConfig, result)
 		finalizeErr = err
-		if output != nil && (finalized.HTTPURL != "" || finalized.HTTPSURL != "") {
-			output(fmt.Sprintf("Http URL:  %s\nHttps URL: %s\n", finalized.HTTPURL, finalized.HTTPSURL))
+		if output != nil && finalized.HTTPSURL != "" {
+			output(fmt.Sprintf("Share URL: %s\n", finalized.HTTPSURL))
 		}
 	}
 	if progress != nil {
