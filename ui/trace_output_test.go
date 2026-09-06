@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestNormalizeGUITraceBoundariesSeparatesStopReasonAndNextHeader(t *testing.T) {
+func TestSanitizeGUITextFiltersTerminalTraceDestinationAndKeepsNextHeader(t *testing.T) {
 	input := "Trace Stopped: Destination Reached at Hop 19 (ICMP Echo Reply)\x1b[33m\x1b[01m广州移动 - ICMP v4 -\x1b[0mtraceroute to 120.196.165.24, 30 hops max"
 	got := sanitizeGUIText(input)
-	if !strings.Contains(got, "ICMP Echo Reply)\n\x1b[33m\x1b[01m广州移动 - ICMP v4 -") {
-		t.Fatalf("trace boundary was not repaired: %q", got)
+	if strings.Contains(got, "Trace Stopped: Destination Reached") {
+		t.Fatalf("terminal trace status was not filtered: %q", got)
 	}
-	if strings.Contains(got, "ICMP Echo Reply)广州移动") {
-		t.Fatalf("next carrier header was concatenated: %q", got)
+	if !strings.Contains(got, "广州移动 - ICMP v4 -") || !strings.Contains(got, "traceroute to 120.196.165.24") {
+		t.Fatalf("next carrier trace was lost: %q", got)
 	}
 }
 
@@ -31,11 +31,14 @@ func TestNormalizeGUITraceBoundariesHandlesHeaderWithoutANSI(t *testing.T) {
 	}
 }
 
-func TestNormalizeGUITraceBoundariesRepairsMultipleBoundariesOnOneLine(t *testing.T) {
+func TestSanitizeGUITextFiltersMultipleTerminalTraceDestinations(t *testing.T) {
 	input := "Trace Stopped: Destination Reached at Hop 1 (ICMP Echo Reply)广州移动 - ICMP v4 - traceroute to 120.196.165.24 Trace Stopped: Destination Reached at Hop 2 (ICMP Echo Reply)广州联通 - ICMP v4 - traceroute to 210.21.196.6"
-	want := "Trace Stopped: Destination Reached at Hop 1 (ICMP Echo Reply)\n广州移动 - ICMP v4 - traceroute to 120.196.165.24 Trace Stopped: Destination Reached at Hop 2 (ICMP Echo Reply)\n广州联通 - ICMP v4 - traceroute to 210.21.196.6"
-	if got := sanitizeGUIText(input); got != want {
-		t.Fatalf("multiple trace boundaries = %q, want %q", got, want)
+	got := sanitizeGUIText(input)
+	if strings.Contains(got, "Trace Stopped: Destination Reached") {
+		t.Fatalf("terminal trace status was not filtered: %q", got)
+	}
+	if !strings.Contains(got, "广州移动 - ICMP v4 -") || !strings.Contains(got, "广州联通 - ICMP v4 -") {
+		t.Fatalf("carrier headers were lost: %q", got)
 	}
 }
 
@@ -47,10 +50,11 @@ func TestNormalizeGUITraceBoundariesHandlesStopReasonWithoutResponseParentheses(
 	}
 }
 
-func TestNormalizeGUITraceBoundariesPreservesAlreadySeparatedTraceLines(t *testing.T) {
+func TestSanitizeGUITextFiltersAlreadySeparatedTerminalTraceLine(t *testing.T) {
 	input := "Trace Stopped: Destination Reached at Hop 19 (ICMP Echo Reply)\n广州移动 - ICMP v4 - traceroute to 120.196.165.24"
-	if got := sanitizeGUIText(input); got != input {
-		t.Fatalf("already separated trace lines changed: %q", got)
+	want := "广州移动 - ICMP v4 - traceroute to 120.196.165.24"
+	if got := sanitizeGUIText(input); got != want {
+		t.Fatalf("already separated terminal trace = %q, want %q", got, want)
 	}
 }
 
@@ -74,5 +78,28 @@ func TestTerminalOutputRepairsBoundarySplitAcrossPendingChunks(t *testing.T) {
 	want := "Trace Stopped: No Continuing Route Observed at Hop 4 (ICMP Host Unreachable (!H))\n广州移动 - ICMP v4 - traceroute to 120.196.165.24"
 	if got := terminal.GetText(); got != want {
 		t.Fatalf("pending trace boundary = %q, want %q", got, want)
+	}
+}
+
+func TestTerminalOutputFiltersTerminalTraceDestination(t *testing.T) {
+	terminal := &TerminalOutput{
+		maxBytes:   1024 * 1024,
+		maxLines:   5000,
+		maxPending: 1024,
+		updateChan: make(chan string, 2),
+		stopChan:   make(chan struct{}),
+	}
+	terminal.AppendText("Trace Stopped: Destination Reached at Hop 19 (ICMP Echo Reply)")
+	terminal.AppendText("广州移动 - ICMP v4 - traceroute to 120.196.165.24")
+
+	terminal.mu.Lock()
+	for len(terminal.updateChan) > 0 {
+		terminal.appendPendingLocked(<-terminal.updateChan)
+	}
+	terminal.mu.Unlock()
+
+	got := terminal.GetText()
+	if strings.Contains(got, "Trace Stopped: Destination Reached") || !strings.Contains(got, "广州移动 - ICMP v4 -") {
+		t.Fatalf("terminal destination filtering = %q", got)
 	}
 }

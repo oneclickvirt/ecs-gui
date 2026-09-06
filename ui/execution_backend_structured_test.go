@@ -92,6 +92,17 @@ func TestStructuredAPIConfigUsesGlobalDeadlineByDefault(t *testing.T) {
 	}
 }
 
+func TestStructuredAPIConfigMapsFullPresetChoices(t *testing.T) {
+	for preset, wantChoice := range map[string]string{
+		"full": "1", "full_concurrent": "2", "minimal": "3", "route_only": "11",
+	} {
+		config := structuredAPIConfig(ExecutionConfig{PresetKey: preset})
+		if config.Choice != wantChoice {
+			t.Fatalf("preset %q choice = %q, want %q", preset, config.Choice, wantChoice)
+		}
+	}
+}
+
 func TestStructuredAPIConfigPreservesEnglishDDSelection(t *testing.T) {
 	config := structuredAPIConfig(ExecutionConfig{
 		Language: "en", SelectedOptions: map[string]bool{"disk": true},

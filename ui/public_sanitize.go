@@ -15,12 +15,19 @@ var (
 	guiQuerySecret          = regexp.MustCompile(`(?i)([?&](?:token|key|secret|password|passwd|auth)[^=]*=)[^&#\s]+`)
 	guiTraceBoundary        = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*\))((?:\x1b\[[0-?]*[ -/]*[@-~])*[^\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
 	guiTraceBoundaryNoParen = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*?\bat[ \t]+Hop[ \t]+[0-9]+)((?:\x1b\[[0-?]*[ -/]*[@-~])*[^)\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
+	guiTerminalTrace        = regexp.MustCompile(`(?i)Trace Stopped:[ \t]*Destination Reached\b[^\r\n]*?(?:\)|$)`)
 )
 
 func sanitizeGUIText(value string) string {
 	value = normalizeGUITraceBoundaries(value)
 	lines := strings.Split(value, "\n")
-	for index, line := range lines {
+	filtered := lines[:0]
+	for _, line := range lines {
+		hadTerminalTrace := guiTerminalTrace.MatchString(line)
+		line = guiTerminalTrace.ReplaceAllString(line, "")
+		if hadTerminalTrace && strings.TrimSpace(line) == "" {
+			continue
+		}
 		// Credentials must be removed even from an ordinary successful target
 		// line. The target URL itself remains visible unless this is a loader or
 		// error diagnostic.
@@ -29,7 +36,7 @@ func sanitizeGUIText(value string) string {
 		if !guiURLPattern.MatchString(line) && !guiGitPattern.MatchString(line) &&
 			!guiRepoPattern.MatchString(line) &&
 			!guiPathPattern.MatchString(line) {
-			lines[index] = line
+			filtered = append(filtered, line)
 			continue
 		}
 		if containsGUIKeyword(lower,
@@ -39,9 +46,9 @@ func sanitizeGUIText(value string) string {
 		) {
 			line = redactGUISecrets(line)
 		}
-		lines[index] = line
+		filtered = append(filtered, line)
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(filtered, "\n")
 }
 
 // normalizeGUITraceBoundaries repairs output produced by older nt3/goecs

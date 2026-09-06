@@ -8,23 +8,22 @@ require (
 	github.com/mattn/go-runewidth v0.0.28
 	github.com/oneclickvirt/UnlockTests v0.0.51
 	github.com/oneclickvirt/backtrace v0.0.21
-	github.com/oneclickvirt/basics v0.0.34
+	github.com/oneclickvirt/basics v0.0.36
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
 	github.com/oneclickvirt/disktest v0.0.24
-	github.com/oneclickvirt/ecs v0.1.198
+	github.com/oneclickvirt/ecs v0.1.201
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
-	github.com/oneclickvirt/nt3 v0.0.24
+	github.com/oneclickvirt/nt3 v0.0.25-20260905215719
 	github.com/oneclickvirt/pingtest v0.0.28
 	github.com/oneclickvirt/portchecker v0.0.7
-	github.com/oneclickvirt/privatespeedtest v0.0.16
+	github.com/oneclickvirt/privatespeedtest v0.0.18
 	github.com/oneclickvirt/security v0.0.20
-	github.com/oneclickvirt/speedtest v0.0.26
+	github.com/oneclickvirt/speedtest v0.0.27
 	github.com/showwin/speedtest-go v1.8.3
 	golang.org/x/sys v0.47.0
 )
-
 
 require (
 	fyne.io/systray v1.12.1 // indirect

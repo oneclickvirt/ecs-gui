@@ -43,8 +43,8 @@ func (ui *TestUI) onPresetChanged(preset string) {
 	}
 
 	switch key {
-	case "full":
-		// 对应原goecs.go的选项1: SetFullTestStatus
+	case "full", "full_concurrent":
+		// 对应 GoECS 菜单选项 1/2：同一完整覆盖，调度方式由上游 Choice 决定。
 		ui.setAllChecks(true)
 		ui.PingCheck.Checked = true
 		ui.TCPProbeCheck.Checked = false
@@ -61,9 +61,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingScopeSelect.SetSelected("auto")
 		ui.TCPSortSelect.SetSelected("name")
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("2")
+		ui.SpNumEntry.SetText("1")
 	case "minimal":
-		// 对应原goecs.go的选项2: SetMinimalTestStatus
+		// 对应 GoECS 菜单选项 3: SetMinimalTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -73,9 +73,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("5")
+		ui.SpNumEntry.SetText("1")
 	case "standard":
-		// 对应原goecs.go的选项3: SetStandardTestStatus
+		// 对应 GoECS 菜单选项 4: SetStandardTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -88,9 +88,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("5")
+		ui.SpNumEntry.SetText("1")
 	case "network_focus":
-		// 对应原goecs.go的选项4: SetNetworkFocusedTestStatus
+		// 对应 GoECS 菜单选项 5: SetNetworkFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -103,9 +103,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("5")
+		ui.SpNumEntry.SetText("1")
 	case "unlock_focus":
-		// 对应原goecs.go的选项5: SetUnlockFocusedTestStatus
+		// 对应 GoECS 菜单选项 6: SetUnlockFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -117,11 +117,11 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = false
 		ui.PingWebCheck.Checked = false
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("5")
+		ui.SpNumEntry.SetText("1")
 	case "network_only":
-		// 对应原goecs.go的选项6: SetNetworkOnlyTestStatus
+		// 对应 GoECS 菜单选项 7: SetNetworkOnlyTestStatus
 		ui.setAllChecks(false)
-		ui.BasicCheck.Checked = false // 6号选项不包括基础信息
+		ui.BasicCheck.Checked = false // 7号选项不包括基础信息
 		ui.SecurityCheck.Checked = true
 		ui.SpeedCheck.Checked = true
 		ui.BacktraceCheck.Checked = true
@@ -131,9 +131,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
 		ui.ChinaModeCheck.Checked = false
-		ui.SpNumEntry.SetText("11")
+		ui.SpNumEntry.SetText("1")
 	case "unlock_only":
-		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
+		// 对应 GoECS 菜单选项 8: SetUnlockOnlyTestStatus
 		ui.setAllChecks(false)
 
 		ui.UnlockCheck.Checked = true
@@ -142,7 +142,7 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.ChinaModeCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "hardware_only":
-		// 对应原goecs.go的选项8: SetHardwareOnlyTestStatus
+		// 对应 GoECS 菜单选项 9: SetHardwareOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -155,9 +155,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.ChinaModeCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "ip_quality":
-		// 对应原goecs.go的选项9: SetIPQualityTestStatus
+		// 对应 GoECS 菜单选项 10: SetIPQualityTestStatus
 		ui.setAllChecks(false)
-		ui.BasicCheck.Checked = false // 9号选项不包括基础信息
+		ui.BasicCheck.Checked = false // 10号选项不包括基础信息
 		ui.SecurityCheck.Checked = true
 		ui.EmailCheck.Checked = true
 		ui.PingTgdcCheck.Checked = false
@@ -165,9 +165,9 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.ChinaModeCheck.Checked = false
 		ui.SpNumEntry.SetText("2")
 	case "route_only":
-		// 对应原goecs.go的选项10: SetRouteTestStatus + nt3Location = "ALL"
+		// 对应 GoECS 菜单选项 11: SetRouteTestStatus + nt3Location = "ALL"
 		ui.setAllChecks(false)
-		ui.BasicCheck.Checked = false // 10号选项不包括基础信息
+		ui.BasicCheck.Checked = false // 11号选项不包括基础信息
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.PingCheck.Checked = true

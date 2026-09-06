@@ -397,7 +397,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 		// Captured output can be consumed by analysis/upload independently of
 		// the terminal callback. Normalize the complete stream here as well so
 		// a stop/header boundary split across pipe reads cannot leak downstream.
-		out := normalizeGUITraceBoundaries(captured.String())
+		out := sanitizeGUIText(captured.String())
 		if captureTruncated {
 			out += "\n[结果过长，GUI 已截断用于上传/分析的历史输出]\n"
 		}
@@ -830,7 +830,7 @@ func (e *CommandExecutor) Execute(config ExecutionConfig) (runErr error) {
 			PrintCenteredTitle("Speed-Test", width)
 		}
 		e.core.SpeedTestShowHead(language)
-		runSpeedProfile(e.core, config, language)
+		runSpeedProfile(e.core, config, language, speedNetworkForStack(preCheck.StackType))
 		outputMutex.Unlock()
 		tracker.finish("progress.speed")
 	}
@@ -1049,44 +1049,46 @@ func setComponentLogging(enabled bool) {
 	speedtestmodel.EnableLoger = enabled
 }
 
-func runSpeedProfile(core CoreRunner, config ExecutionConfig, language string) {
+type speedProfileRunner interface {
+	SpeedTestNearbyWithNetwork(network string)
+	SpeedTestCustomWithNetwork(platform, operator string, num int, language, network string)
+}
+
+func speedNetworkForStack(stack string) string {
+	switch strings.ToLower(strings.TrimSpace(stack)) {
+	case "dualstack", "ipv4":
+		return "tcp4"
+	case "ipv6":
+		return "tcp6"
+	default:
+		return ""
+	}
+}
+
+func runSpeedProfile(core speedProfileRunner, config ExecutionConfig, language, network string) {
 	spNum := config.SpNum
 	if spNum <= 0 {
 		spNum = 2
 	}
-	switch config.PresetKey {
-	case "full":
-		if language == "zh" {
-			core.SpeedTestNearby()
-			core.SpeedTestCustom("net", "global", 2, language)
-			core.SpeedTestCustom("net", "cu", spNum, language)
-			core.SpeedTestCustom("net", "ct", spNum, language)
-			core.SpeedTestCustom("net", "cmcc", spNum, language)
-		} else {
-			core.SpeedTestCustom("net", "global", 4, language)
+	if strings.EqualFold(language, "zh") {
+		core.SpeedTestNearbyWithNetwork(network)
+		perCarrier := spNum
+		if upstreamChoiceForPreset(config.PresetKey) != "" {
+			// Built-in Chinese bundles use the fixed, comparable four-node profile:
+			// one nearby speedtest.net result and one result per mainland carrier.
+			perCarrier = 1
 		}
-	case "minimal", "standard", "network_focus", "unlock_focus":
-		if language == "zh" {
-			core.SpeedTestNearby()
-			core.SpeedTestCustom("net", "other", 1, language)
-			core.SpeedTestCustom("net", "cu", 1, language)
-			core.SpeedTestCustom("net", "ct", 1, language)
-			core.SpeedTestCustom("net", "cmcc", 1, language)
-		} else {
-			core.SpeedTestCustom("net", "global", 4, language)
+		for _, operator := range []string{"ct", "cu", "cmcc"} {
+			core.SpeedTestCustomWithNetwork("net", operator, perCarrier, language, network)
 		}
-	case "network_only":
-		core.SpeedTestCustom("net", "global", 11, language)
-	default:
-		if language == "zh" {
-			core.SpeedTestNearby()
-			core.SpeedTestCustom("net", "cu", spNum, language)
-			core.SpeedTestCustom("net", "ct", spNum, language)
-			core.SpeedTestCustom("net", "cmcc", spNum, language)
-		} else {
-			core.SpeedTestCustom("net", "global", 4, language)
-		}
+		return
 	}
+
+	if config.PresetKey == "network_only" {
+		core.SpeedTestCustomWithNetwork("net", "global", 11, language, network)
+		return
+	}
+	core.SpeedTestCustomWithNetwork("net", "global", 4, language, network)
 }
 
 func runPingProfile(config ExecutionConfig, language string) string {

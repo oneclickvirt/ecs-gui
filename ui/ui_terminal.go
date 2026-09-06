@@ -80,7 +80,7 @@ func (t *TerminalOutput) batchUpdateLoop() {
 				// Re-evaluate the committed tail together with the pending chunk so
 				// a route boundary split across reads is repaired as soon as both
 				// halves are available.
-				t.content = normalizeGUITraceBoundaries(t.content + t.pendingText)
+				t.content = sanitizeGUIText(t.content + t.pendingText)
 				t.pendingText = ""
 				t.trimToMaxContentLocked()
 
@@ -100,7 +100,7 @@ func (t *TerminalOutput) batchUpdateLoop() {
 
 // AppendText 追加文本到终端（线程安全）
 func (t *TerminalOutput) AppendText(text string) {
-	cleanText := normalizeGUITraceBoundaries(t.stripANSI(text))
+	cleanText := sanitizeGUIText(t.stripANSI(text))
 
 	// 发送到更新通道，非阻塞
 	select {
@@ -130,7 +130,7 @@ func (t *TerminalOutput) Clear() {
 func (t *TerminalOutput) SetFullText(text string) {
 	t.mu.Lock()
 
-	cleanText := normalizeGUITraceBoundaries(t.stripANSI(text))
+	cleanText := sanitizeGUIText(t.stripANSI(text))
 	t.content = cleanText
 	t.pendingText = ""
 	t.trimToMaxContentLocked()
@@ -208,7 +208,7 @@ func (t *TerminalOutput) GetText() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.pendingText != "" {
-		t.content = normalizeGUITraceBoundaries(t.content + t.pendingText)
+		t.content = sanitizeGUIText(t.content + t.pendingText)
 		t.pendingText = ""
 		t.trimToMaxContentLocked()
 	}

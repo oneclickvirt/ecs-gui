@@ -24,8 +24,9 @@ func (ui *TestUI) runTestsWithExecutor(config ExecutionConfig) {
 		ui.resetUIState()
 	}()
 
-	// The build-specific runner owns the single execution. Legacy builds wrap
-	// CommandExecutor; ecs_structured builds call ecs/api directly.
+	// The build-specific runner owns the single execution. Legacy builds use
+	// CommandExecutor except the fully concurrent suite, which delegates to the
+	// upstream buffered scheduler; ecs_structured builds call ecs/api directly.
 	output := func(text string) {
 		// 这个回调会从 executor 的 goroutine 调用
 		// TerminalOutput 的 AppendText 已经是线程安全的

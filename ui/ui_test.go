@@ -154,8 +154,8 @@ func TestStandardPresetSelectsExpectedOptions(t *testing.T) {
 	if ui.PingCheck.Checked || ui.PingTgdcCheck.Checked || ui.PingWebCheck.Checked {
 		t.Fatal("standard preset should not enable ping extensions")
 	}
-	if ui.SpNumEntry.Text != "5" {
-		t.Fatalf("standard preset should set speed node count to 5, got %q", ui.SpNumEntry.Text)
+	if ui.SpNumEntry.Text != "1" {
+		t.Fatalf("standard preset should set one node per carrier, got %q", ui.SpNumEntry.Text)
 	}
 }
 
@@ -181,10 +181,30 @@ func TestFullPresetMatchesGoECSOptionOneEnhancements(t *testing.T) {
 	}
 }
 
+func TestFullConcurrentPresetMatchesFullCoverageAndUsesOptionTwo(t *testing.T) {
+	ui := newTestUIForTest(t)
+	ui.onPresetChanged(ui.presetLabelByKey("full"))
+	full := ui.collectExecutionConfig()
+	ui.onPresetChanged(ui.presetLabelByKey("full_concurrent"))
+	concurrent := ui.collectExecutionConfig()
+
+	if concurrent.PresetKey != "full_concurrent" || upstreamChoiceForPreset(concurrent.PresetKey) != "2" {
+		t.Fatalf("full concurrent preset mapping = %#v", concurrent)
+	}
+	for _, key := range []string{"basic", "cpu", "memory", "disk", "unlock", "security", "email", "backtrace", "nt3", "speed", "ping"} {
+		if concurrent.SelectedOptions[key] != full.SelectedOptions[key] {
+			t.Fatalf("full concurrent selection %q = %t, want %t", key, concurrent.SelectedOptions[key], full.SelectedOptions[key])
+		}
+	}
+	if concurrent.DiskMulti != full.DiskMulti || concurrent.DeepMode != full.DeepMode || concurrent.DeepBurnDuration != full.DeepBurnDuration || concurrent.PingTgdc != full.PingTgdc || concurrent.PingWeb != full.PingWeb {
+		t.Fatalf("full concurrent defaults diverged: concurrent=%#v full=%#v", concurrent, full)
+	}
+}
+
 func TestTCPProbePresetMatrix(t *testing.T) {
 	ui := newTestUIForTest(t)
 	tests := map[string]bool{
-		"full": false, "minimal": false, "standard": true, "network_focus": true,
+		"full": false, "full_concurrent": false, "minimal": false, "standard": true, "network_focus": true,
 		"unlock_focus": false, "network_only": true, "unlock_only": false,
 		"hardware_only": false, "ip_quality": false, "route_only": true,
 	}

@@ -11,7 +11,9 @@ type CoreRunner interface {
 	NextTrace3Check(language, location, checkType string)
 	SpeedTestShowHead(language string)
 	SpeedTestNearby()
+	SpeedTestNearbyWithNetwork(network string)
 	SpeedTestCustom(platform, operator string, num int, language string)
+	SpeedTestCustomWithNetwork(platform, operator string, num int, language, network string)
 	NewConfig(version string) *ecsapi.Config
 	HandleUploadResults(config *ecsapi.Config, output string)
 	SetIPv4Address(ipv4 string)
@@ -52,8 +54,16 @@ func (ecsCoreRunner) SpeedTestNearby() {
 	ecsapi.SpeedTestNearby()
 }
 
+func (ecsCoreRunner) SpeedTestNearbyWithNetwork(network string) {
+	ecsapi.SpeedTestNearbyWithNetwork(network)
+}
+
 func (ecsCoreRunner) SpeedTestCustom(platform, operator string, num int, language string) {
 	ecsapi.SpeedTestCustom(platform, operator, num, language)
+}
+
+func (ecsCoreRunner) SpeedTestCustomWithNetwork(platform, operator string, num int, language, network string) {
+	ecsapi.SpeedTestCustomWithNetwork(platform, operator, num, language, network)
 }
 
 func (ecsCoreRunner) NewConfig(version string) *ecsapi.Config {
