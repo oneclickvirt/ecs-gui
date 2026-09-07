@@ -23,9 +23,9 @@ func TestNormalizeGUITraceBoundariesLeavesOrdinaryICMPTextUntouched(t *testing.T
 	}
 }
 
-func TestNormalizeGUITraceBoundariesHandlesHeaderWithoutANSI(t *testing.T) {
+func TestSanitizeGUITextFiltersMaximumHopsAndKeepsHeaderWithoutANSI(t *testing.T) {
 	input := "Trace Stopped: Maximum Hops Reached at Hop 30 (No Destination Response)广州电信 - ICMP v6 - traceroute to 2001:db8::1"
-	want := "Trace Stopped: Maximum Hops Reached at Hop 30 (No Destination Response)\n广州电信 - ICMP v6 - traceroute to 2001:db8::1"
+	want := "广州电信 - ICMP v6 - traceroute to 2001:db8::1"
 	if got := sanitizeGUIText(input); got != want {
 		t.Fatalf("plain trace boundary = %q, want %q", got, want)
 	}

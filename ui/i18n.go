@@ -95,7 +95,7 @@ var i18nText = map[string]map[string]string{
 	"preset.card.subtitle":   {"zh": "快速选择测试组合", "en": "Quickly apply test bundles"},
 	"preset.custom":          {"zh": "自定义", "en": "Custom"},
 	"preset.full":            {"zh": "1. 融合怪完全体(能测全测，性能检测顺序检测，其余项目并发，适合精确测试需求)", "en": "1. Full Suite (ordered benchmarks)"},
-	"preset.full_concurrent": {"zh": "2. 融合怪并发完全态(能测全测，但仅限性能强劲时使用，最短耗时但性能测试不精确)", "en": "2. Full Suite (fully concurrent)"},
+	"preset.full_concurrent": {"zh": "2. 融合怪并发完全体(能测全测，但仅限性能强劲时使用，最短耗时但性能测试不精确)", "en": "2. Full Suite (fully concurrent)"},
 	"preset.minimal":         {"zh": "3. 极简版(系统信息+CPU+内存+磁盘+测速节点4个)", "en": "3. Minimal"},
 	"preset.standard":        {"zh": "4. 精简版(系统信息+CPU+内存+磁盘+常用流媒体+路由+TCP握手+测速节点4个)", "en": "4. Standard"},
 	"preset.network_focus":   {"zh": "5. 精简网络版(系统信息+CPU+内存+磁盘+回程+路由+TCP握手+测速节点4个)", "en": "5. Network Focus"},

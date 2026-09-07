@@ -907,6 +907,8 @@ func resultCaptureLimit() int {
 
 func normalizeNT3Type(checkType string) string {
 	switch strings.ToLower(strings.TrimSpace(checkType)) {
+	case "ipv4":
+		return "ipv4"
 	case "ipv6":
 		return "ipv6"
 	case "both":
@@ -1072,8 +1074,18 @@ func runSpeedProfile(core speedProfileRunner, config ExecutionConfig, language, 
 	}
 	if strings.EqualFold(language, "zh") {
 		core.SpeedTestNearbyWithNetwork(network)
+		if isChineseFullSpeedPreset(config.PresetKey) {
+			// The two complete presets retain the historical coverage: one
+			// nearby Speedtest.net run, two global public nodes, then the
+			// caller-selected count for each mainland carrier.
+			core.SpeedTestCustomWithNetwork("net", "global", 2, language, network)
+			for _, operator := range []string{"cu", "ct", "cmcc"} {
+				core.SpeedTestCustomWithNetwork("net", operator, spNum, language, network)
+			}
+			return
+		}
 		perCarrier := spNum
-		if upstreamChoiceForPreset(config.PresetKey) != "" {
+		if isChineseFixedNearbySpeedPreset(config.PresetKey) {
 			// Built-in Chinese bundles use the fixed, comparable four-node profile:
 			// one nearby speedtest.net result and one result per mainland carrier.
 			perCarrier = 1
@@ -1089,6 +1101,19 @@ func runSpeedProfile(core speedProfileRunner, config ExecutionConfig, language, 
 		return
 	}
 	core.SpeedTestCustomWithNetwork("net", "global", 4, language, network)
+}
+
+func isChineseFullSpeedPreset(preset string) bool {
+	return preset == "full" || preset == "full_concurrent"
+}
+
+func isChineseFixedNearbySpeedPreset(preset string) bool {
+	switch preset {
+	case "minimal", "standard", "network_focus", "unlock_focus", "network_only":
+		return true
+	default:
+		return false
+	}
 }
 
 func runPingProfile(config ExecutionConfig, language string) string {

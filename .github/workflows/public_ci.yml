@@ -1,0 +1,52 @@
+name: Verify Public Branch
+
+on:
+  push:
+    branches: [public]
+  pull_request:
+    branches: [public]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install Linux desktop build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev
+
+      - name: Verify dependency boundary and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download
+          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)' --glob '*.go' --glob 'go.mod' --glob 'go.sum' .; then
+            echo "Public source retained a private repository reference" >&2
+            exit 1
+          fi
+          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)' .github/workflows; then
+            echo "Public workflow still loads a private repository" >&2
+            exit 1
+          fi
+          if go list -deps ./... | grep -E '^github\.com/oneclickvirt/(security|privatespeedtest)(/|$)'; then
+            echo "Public dependency graph still loads a private repository" >&2
+            exit 1
+          fi
+          go test ./...
+          go test -tags=ecs_structured ./...
+          go build -o ecs-gui-public .

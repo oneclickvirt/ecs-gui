@@ -400,6 +400,7 @@ func TestEffectiveNT3TypeForStack(t *testing.T) {
 		{"both", "IPv6", "ipv6"},
 		{"ipv6", "IPv4", "ipv4"},
 		{"ipv4", "IPv6", "ipv6"},
+		{"ipv4", "DualStack", "ipv4"},
 		{"both", "DualStack", "both"},
 		{"unexpected", "DualStack", "both"},
 	}

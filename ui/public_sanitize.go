@@ -15,7 +15,7 @@ var (
 	guiQuerySecret          = regexp.MustCompile(`(?i)([?&](?:token|key|secret|password|passwd|auth)[^=]*=)[^&#\s]+`)
 	guiTraceBoundary        = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*\))((?:\x1b\[[0-?]*[ -/]*[@-~])*[^\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
 	guiTraceBoundaryNoParen = regexp.MustCompile(`(?i)(Trace Stopped:[^\r\n]*?\bat[ \t]+Hop[ \t]+[0-9]+)((?:\x1b\[[0-?]*[ -/]*[@-~])*[^)\r\n]*?[ \t]+-[ \t]+ICMP[ \t]+v[46][ \t]+-[ \t]*)`)
-	guiTerminalTrace        = regexp.MustCompile(`(?i)Trace Stopped:[ \t]*Destination Reached\b[^\r\n]*?(?:\)|$)`)
+	guiTerminalTrace        = regexp.MustCompile(`(?i)Trace Stopped:[ \t]*(?:Destination Reached|Maximum Hops Reached)\b[^\r\n]*?(?:\)|$)`)
 )
 
 func sanitizeGUIText(value string) string {

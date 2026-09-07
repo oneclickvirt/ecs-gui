@@ -36,8 +36,22 @@ func TestSpeedNetworkForStackPinsDualStackToIPv4(t *testing.T) {
 	}
 }
 
-func TestChineseBuiltInSpeedProfilesUseFourFixedDomesticMeasurements(t *testing.T) {
-	presets := []string{"full", "full_concurrent", "minimal", "standard", "network_focus", "unlock_focus", "network_only"}
+func TestChineseFullSpeedProfilesKeepHistoricalCoverage(t *testing.T) {
+	for _, preset := range []string{"full", "full_concurrent"} {
+		t.Run(preset, func(t *testing.T) {
+			runner := &recordedSpeedProfileRunner{}
+			runSpeedProfile(runner, ExecutionConfig{PresetKey: preset, SpNum: 3}, "zh", "tcp4")
+			got := formatSpeedCalls(runner.calls)
+			want := "nearby/tcp4,global/2/zh/tcp4,cu/3/zh/tcp4,ct/3/zh/tcp4,cmcc/3/zh/tcp4"
+			if got != want {
+				t.Fatalf("Chinese %s profile = %s, want %s", preset, got, want)
+			}
+		})
+	}
+}
+
+func TestChineseFixedSpeedProfilesUseFourDomesticMeasurements(t *testing.T) {
+	presets := []string{"minimal", "standard", "network_focus", "unlock_focus", "network_only"}
 	for _, preset := range presets {
 		t.Run(preset, func(t *testing.T) {
 			runner := &recordedSpeedProfileRunner{}
