@@ -66,11 +66,11 @@ jobs:
           git checkout -B public "${{ steps.release.outputs.sha }}"
           python3 .back/create_public_branch.py
           go mod tidy
-          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)' --glob '*.go' --glob 'go.mod' --glob 'go.sum' .; then
+          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)(/|[[:space:]]|"|\x60|$)' --glob '*.go' --glob 'go.mod' --glob 'go.sum' .; then
             echo "Public source retained a private repository reference" >&2
             exit 1
           fi
-          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)' .github/workflows; then
+          if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)(/|[[:space:]]|"|\x60|$)' .github/workflows; then
             echo "Public workflow still loads a private repository" >&2
             exit 1
           fi

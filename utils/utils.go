@@ -394,6 +394,15 @@ func makeResolver(proto, dnsAddr string) *net.Resolver {
 	}
 }
 
+// precheckFamilyDialContext keeps the destination TCP family aligned with a
+// precheck's resolver family. http.Transport otherwise supplies generic tcp,
+// which can follow a preferred AAAA answer on a dual-stack host.
+func precheckFamilyDialContext(dial func(context.Context, string, string) (net.Conn, error), family string) func(context.Context, string, string) (net.Conn, error) {
+	return func(ctx context.Context, _ string, address string) (net.Conn, error) {
+		return dial(ctx, family, address)
+	}
+}
+
 // 前置联网能力检测
 func CheckPublicAccess(timeout time.Duration) NetCheckResult {
 	if timeout < 2*time.Second {
@@ -443,17 +452,22 @@ func CheckPublicAccess(timeout time.Duration) NetCheckResult {
 				}
 			case "http4", "http6":
 				var resolver *net.Resolver
+				family := "tcp4"
 				if kind == "http4" {
 					resolver = makeResolver("udp4", "223.5.5.5:53")
 				} else {
 					resolver = makeResolver("udp6", "[2400:3200::1]:53")
+					family = "tcp6"
 				}
 				dialer := &net.Dialer{
 					Timeout:  timeout / 4,
 					Resolver: resolver,
 				}
 				transport := &http.Transport{
-					DialContext:           dialer.DialContext,
+					// http.Transport requests generic tcp. Keep the destination
+					// family fixed so an AAAA-first DNS response cannot make the
+					// IPv4 precheck succeed over IPv6 (or the reverse).
+					DialContext:           precheckFamilyDialContext(dialer.DialContext, family),
 					MaxIdleConns:          1,
 					MaxIdleConnsPerHost:   1,
 					IdleConnTimeout:       time.Second,
