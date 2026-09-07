@@ -49,10 +49,10 @@ jobs:
           MODULE_SECURITY_VERSION="$(awk '$1 == "github.com/oneclickvirt/security" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_VERSION="$(awk '$1 == "github.com/oneclickvirt/speedtest" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_GO_VERSION="$(awk '$1 == "github.com/showwin/speedtest-go" { print $2; exit }' go.mod)"
-          if [[ "$MODULE_ECS_VERSION" != "v0.2.0" ||
+          if [[ "$MODULE_ECS_VERSION" != "v0.2.1" ||
                 "$MODULE_UNLOCKTESTS_VERSION" != "v0.0.52" ||
                 "$MODULE_BACKTRACE_VERSION" != "v0.0.21" ||
-                "$MODULE_BASICS_VERSION" != "v0.0.36" ||
+                "$MODULE_BASICS_VERSION" != "v0.0.37" ||
                 "$MODULE_DISKTEST_VERSION" != "v0.0.24" ||
                 "$MODULE_NT3_VERSION" != "v0.0.26" ||
                 "$MODULE_PRIVATE_SPEEDTEST_VERSION" != "v0.0.19" ||
@@ -252,10 +252,10 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.0'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.1'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.36'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.37'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/disktest)" = 'v0.0.24'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/nt3)" = 'v0.0.26'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.19'
@@ -620,10 +620,10 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.0'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.1'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.36'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.37'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/disktest)" = 'v0.0.24'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/nt3)" = 'v0.0.26'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.19'
