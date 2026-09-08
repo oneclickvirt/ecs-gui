@@ -12,14 +12,14 @@ import (
 )
 
 func TestReleaseDependencyContract(t *testing.T) {
-	if got := appmeta.ReleaseVersion(); got != "v0.2.7" {
-		t.Fatalf("GUI release version = %q, want v0.2.7", got)
+	if got := appmeta.ReleaseVersion(); got != "v0.2.8" {
+		t.Fatalf("GUI release version = %q, want v0.2.8", got)
 	}
 	if got := ecsapi.DefaultVersion; got != appmeta.UpstreamECSVersion {
 		t.Fatalf("ECS version = %q, GUI metadata = %q", got, appmeta.UpstreamECSVersion)
 	}
-	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.31" {
-		t.Fatalf("speedtest component version = %q, want v0.0.31", got)
+	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.32" {
+		t.Fatalf("speedtest component version = %q, want v0.0.32", got)
 	}
 	if got := privatepst.PrivateSpeedTestVersion; got != "v0.0.22" {
 		t.Fatalf("private speedtest component version = %q, want v0.0.22", got)

@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # ecs@public is an organization-hosted source branch and has no sumdb entry.
+  GONOSUMDB: github.com/oneclickvirt/ecs
+
 jobs:
   publish:
     if: >-

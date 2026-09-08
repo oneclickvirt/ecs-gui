@@ -8,6 +8,10 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  # The organization-hosted GoECS tag is intentionally not published to the
+  # public checksum database. This only changes checksum routing, not the
+  # public-branch dependency boundary.
+  GONOSUMDB: github.com/oneclickvirt/ecs
 
 permissions:
   contents: write
@@ -49,7 +53,7 @@ jobs:
           MODULE_SECURITY_VERSION="$(awk '$1 == "github.com/oneclickvirt/security" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_VERSION="$(awk '$1 == "github.com/oneclickvirt/speedtest" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_GO_VERSION="$(awk '$1 == "github.com/showwin/speedtest-go" { print $2; exit }' go.mod)"
-          if [[ "$MODULE_ECS_VERSION" != "v0.2.5" ||
+          if [[ "$MODULE_ECS_VERSION" != "v0.2.6" ||
                 "$MODULE_UNLOCKTESTS_VERSION" != "v0.0.52" ||
                 "$MODULE_BACKTRACE_VERSION" != "v0.0.21" ||
                 "$MODULE_BASICS_VERSION" != "v0.0.39" ||
@@ -57,7 +61,7 @@ jobs:
                 "$MODULE_NT3_VERSION" != "v0.0.26" ||
                 "$MODULE_PRIVATE_SPEEDTEST_VERSION" != "v0.0.22" ||
                 "$MODULE_SECURITY_VERSION" != "v0.0.20" ||
-                "$MODULE_SPEEDTEST_VERSION" != "v0.0.31" ||
+                "$MODULE_SPEEDTEST_VERSION" != "v0.0.32" ||
                 "$MODULE_SPEEDTEST_GO_VERSION" != "v1.8.3" ]]; then
             echo "Unexpected dependency chain: ecs=${MODULE_ECS_VERSION:-<empty>} unlocktests=${MODULE_UNLOCKTESTS_VERSION:-<empty>} backtrace=${MODULE_BACKTRACE_VERSION:-<empty>} basics=${MODULE_BASICS_VERSION:-<empty>} disktest=${MODULE_DISKTEST_VERSION:-<empty>} nt3=${MODULE_NT3_VERSION:-<empty>} privatespeedtest=${MODULE_PRIVATE_SPEEDTEST_VERSION:-<empty>} security=${MODULE_SECURITY_VERSION:-<empty>} speedtest=${MODULE_SPEEDTEST_VERSION:-<empty>} speedtest-go=${MODULE_SPEEDTEST_GO_VERSION:-<empty>}"
             exit 1
@@ -252,7 +256,7 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.5'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.6'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.39'
@@ -260,7 +264,7 @@ jobs:
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/nt3)" = 'v0.0.26'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.22'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/security)" = 'v0.0.20'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.31'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.32'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.3'
       
       - name: Update FyneApp.toml version
@@ -620,7 +624,7 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.5'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.6'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.39'
@@ -628,7 +632,7 @@ jobs:
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/nt3)" = 'v0.0.26'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/privatespeedtest)" = 'v0.0.22'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/security)" = 'v0.0.20'
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.31'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/speedtest)" = 'v0.0.32'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/showwin/speedtest-go)" = 'v1.8.3'
 
       - name: Verify release GUI path

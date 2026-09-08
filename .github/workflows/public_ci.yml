@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Keep public-branch builds independent from the public checksum database.
+  GONOSUMDB: github.com/oneclickvirt/ecs
+
 jobs:
   verify:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
