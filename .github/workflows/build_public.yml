@@ -16,7 +16,7 @@ permissions:
 
 env:
   # ecs@public is an organization-hosted source branch and has no sumdb entry.
-  GONOSUMDB: github.com/oneclickvirt/ecs
+  GONOSUMDB: github.com/oneclickvirt/ecs,github.com/oneclickvirt/speedtest
 
 jobs:
   publish:

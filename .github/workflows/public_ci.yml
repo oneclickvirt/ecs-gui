@@ -17,7 +17,7 @@ permissions:
 
 env:
   # Keep public-branch builds independent from the public checksum database.
-  GONOSUMDB: github.com/oneclickvirt/ecs
+  GONOSUMDB: github.com/oneclickvirt/ecs,github.com/oneclickvirt/speedtest
 
 jobs:
   verify:
