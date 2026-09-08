@@ -99,9 +99,11 @@ def remove_private_release_contract() -> None:
     write_file(path, content)
 
 
-def run_go(*args: str) -> None:
+def run_go(*args: str, extra_environment: dict[str, str] | None = None) -> None:
     environment = os.environ.copy()
     environment["GOWORK"] = "off"
+    if extra_environment:
+        environment.update(extra_environment)
     for attempt in range(1, 4):
         completed = subprocess.run(
             ["go", *args],
@@ -122,8 +124,26 @@ def use_public_goecs() -> None:
     # Resolve the independently published public branch after local private
     # imports have been removed. A ref rather than a release tag is required:
     # normal release tags intentionally retain the private dependency chain.
-    run_go("get", "github.com/oneclickvirt/ecs@public")
-    run_go("mod", "tidy")
+    module = "github.com/oneclickvirt/ecs"
+    checksum_patterns = [
+        pattern
+        for pattern in os.environ.get("GONOSUMDB", "").split(",")
+        if pattern
+    ]
+    if module not in checksum_patterns:
+        checksum_patterns.append(module)
+    public_environment = {"GONOSUMDB": ",".join(checksum_patterns)}
+    try:
+        run_go("get", f"{module}@public", extra_environment=public_environment)
+    except RuntimeError:
+        # The proxy can intermittently fail while serving a newly forced public
+        # branch update. Resolve only this source module directly as a fallback.
+        run_go(
+            "get",
+            f"{module}@public",
+            extra_environment={**public_environment, "GOPROXY": "direct"},
+        )
+    run_go("mod", "tidy", extra_environment=public_environment)
 
 
 def remove_private_delivery_artifacts() -> None:
