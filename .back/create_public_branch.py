@@ -167,7 +167,7 @@ def validate_public_tree() -> None:
     matches: list[str] = []
     # Keep documentation and normal application text unchanged. Only Go build
     # inputs and workflows can make a public checkout load a private module.
-    for path in (Path("go.mod"),):
+    for path in (Path("go.mod"), Path("go.sum")):
         if PRIVATE_REFERENCE.search(read_file(str(path))):
             matches.append(str(path))
     for directory, subdirectories, filenames in os.walk("."):
@@ -211,6 +211,10 @@ def main() -> None:
     remove_private_release_contract()
     use_public_goecs()
     remove_private_delivery_artifacts()
+    # A final tidy runs after private build inputs have gone. Besides keeping
+    # module metadata minimal, this removes stale restricted-module checksums
+    # that may survive the earlier public-branch switch on newer Go releases.
+    run_go("mod", "tidy")
     validate_public_tree()
     print("Public GUI source tree generated successfully")
 
