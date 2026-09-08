@@ -49,7 +49,7 @@ jobs:
           MODULE_SECURITY_VERSION="$(awk '$1 == "github.com/oneclickvirt/security" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_VERSION="$(awk '$1 == "github.com/oneclickvirt/speedtest" { print $2; exit }' go.mod)"
           MODULE_SPEEDTEST_GO_VERSION="$(awk '$1 == "github.com/showwin/speedtest-go" { print $2; exit }' go.mod)"
-          if [[ "$MODULE_ECS_VERSION" != "v0.2.4" ||
+          if [[ "$MODULE_ECS_VERSION" != "v0.2.5" ||
                 "$MODULE_UNLOCKTESTS_VERSION" != "v0.0.52" ||
                 "$MODULE_BACKTRACE_VERSION" != "v0.0.21" ||
                 "$MODULE_BASICS_VERSION" != "v0.0.39" ||
@@ -252,7 +252,7 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.4'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.5'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.39'
@@ -620,7 +620,7 @@ jobs:
         run: |
           set -euo pipefail
           go mod verify
-          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.4'
+          test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/ecs)" = 'v0.2.5'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/UnlockTests)" = 'v0.0.52'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/backtrace)" = 'v0.0.21'
           test "$(GOWORK=off go list -m -f '{{.Version}}' github.com/oneclickvirt/basics)" = 'v0.0.39'
