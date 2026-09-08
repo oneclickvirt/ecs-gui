@@ -132,17 +132,14 @@ def use_public_goecs() -> None:
     ]
     if module not in checksum_patterns:
         checksum_patterns.append(module)
-    public_environment = {"GONOSUMDB": ",".join(checksum_patterns)}
-    try:
-        run_go("get", f"{module}@public", extra_environment=public_environment)
-    except RuntimeError:
-        # The proxy can intermittently fail while serving a newly forced public
-        # branch update. Resolve only this source module directly as a fallback.
-        run_go(
-            "get",
-            f"{module}@public",
-            extra_environment={**public_environment, "GOPROXY": "direct"},
-        )
+    # The public branch is force-updated after every release. A module proxy
+    # can serve an older branch tip successfully, so always resolve this
+    # mutable source ref directly instead of treating a cached result as valid.
+    public_environment = {
+        "GONOSUMDB": ",".join(checksum_patterns),
+        "GOPROXY": "direct",
+    }
+    run_go("get", f"{module}@public", extra_environment=public_environment)
     run_go("mod", "tidy", extra_environment=public_environment)
 
 
