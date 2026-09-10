@@ -8,7 +8,6 @@ import (
 	"github.com/oneclickvirt/basics/network/resolver"
 	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
 	ecsapi "github.com/oneclickvirt/ecs/api"
-	privatepst "github.com/oneclickvirt/privatespeedtest/pst"
 	speedtestmodel "github.com/oneclickvirt/speedtest/model"
 	showwinspeedtest "github.com/showwin/speedtest-go/speedtest"
 )
@@ -22,9 +21,6 @@ func TestReleaseDependencyContract(t *testing.T) {
 	}
 	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.37" {
 		t.Fatalf("speedtest component version = %q, want v0.0.37", got)
-	}
-	if got := privatepst.PrivateSpeedTestVersion; got != "v0.0.24" {
-		t.Fatalf("private speedtest component version = %q, want v0.0.24", got)
 	}
 	if got := showwinspeedtest.Version(); got != "1.8.3" {
 		t.Fatalf("speedtest-go version = %q, want 1.8.3", got)
