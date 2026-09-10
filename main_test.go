@@ -1,7 +1,9 @@
 package main
 
 import (
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/oneclickvirt/basics/network/resolver"
 	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
@@ -12,20 +14,25 @@ import (
 )
 
 func TestReleaseDependencyContract(t *testing.T) {
-	if got := appmeta.ReleaseVersion(); got != "v0.2.10" {
-		t.Fatalf("GUI release version = %q, want v0.2.10", got)
+	if got := appmeta.ReleaseVersion(); got != "v0.2.11" {
+		t.Fatalf("GUI release version = %q, want v0.2.11", got)
 	}
 	if got := ecsapi.DefaultVersion; got != appmeta.UpstreamECSVersion {
 		t.Fatalf("ECS version = %q, GUI metadata = %q", got, appmeta.UpstreamECSVersion)
 	}
-	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.33" {
-		t.Fatalf("speedtest component version = %q, want v0.0.33", got)
+	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.34" {
+		t.Fatalf("speedtest component version = %q, want v0.0.34", got)
 	}
 	if got := privatepst.PrivateSpeedTestVersion; got != "v0.0.22" {
 		t.Fatalf("private speedtest component version = %q, want v0.0.22", got)
 	}
 	if got := showwinspeedtest.Version(); got != "1.8.3" {
 		t.Fatalf("speedtest-go version = %q, want 1.8.3", got)
+	}
+	client := speedtestmodel.NewThroughputHTTPClient(speedtestmodel.NetworkIPv4, time.Second)
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok || !transport.DisableKeepAlives {
+		t.Fatalf("speedtest throughput transport = %#v, want isolated HTTP connections", client.Transport)
 	}
 	for _, endpoint := range resolver.DefaultEndpoints() {
 		if endpoint.Name == "360 Public DNS" && endpoint.URL == "tls://dot.360.cn:853" {
