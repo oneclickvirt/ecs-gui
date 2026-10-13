@@ -1,0 +1,32 @@
+{
+  "components": {
+    "github.com/oneclickvirt/UnlockTests": "v0.0.52",
+    "github.com/oneclickvirt/backtrace": "v0.0.21",
+    "github.com/oneclickvirt/basics": "v0.0.39",
+    "github.com/oneclickvirt/cputest": "v0.0.18",
+    "github.com/oneclickvirt/dd": "v0.0.2-20250808062818",
+    "github.com/oneclickvirt/defaultset": "v0.0.2-20240624082446",
+    "github.com/oneclickvirt/disktest": "v0.0.24",
+    "github.com/oneclickvirt/ecs": "v0.2.13",
+    "github.com/oneclickvirt/fio": "v0.0.2-20250808045755",
+    "github.com/oneclickvirt/gostun": "v0.0.10",
+    "github.com/oneclickvirt/mbw": "v0.0.1-20250808061222",
+    "github.com/oneclickvirt/memorytest": "v0.0.14",
+    "github.com/oneclickvirt/nt3": "v0.0.26",
+    "github.com/oneclickvirt/pingtest": "v0.0.28",
+    "github.com/oneclickvirt/portchecker": "v0.0.7",
+    "github.com/oneclickvirt/privatespeedtest": "v0.0.25",
+    "github.com/oneclickvirt/security": "v0.0.21",
+    "github.com/oneclickvirt/speedtest": "v0.0.37",
+    "github.com/oneclickvirt/stream": "v0.0.2-20250924154001"
+  },
+  "fingerprints": {
+    "FyneApp.toml": "574872653689f6267f168a58717f1261984e48f33a50a290624981342a86157f",
+    "VERSION": "26e6ebd4b069ddb03df79ec9a299ee4a39c60bf8d34a2b6a3ff059d4f2e21b88",
+    "go.mod": "8012c614e530a5773882767d4ebc704e513192bb7a3714056906a3d3021b930d",
+    "go.sum": "c7dd42c662dd5201716b2977c52f32a7645f3348e1e132f01acb5999c8489d8b",
+    "internal/appmeta/version.go": "cbe6486259037eb63533f2d5e6b703d9886085f9ca378ce862b19f559b536c6e"
+  },
+  "format": 1,
+  "version": "v0.2.14"
+}
