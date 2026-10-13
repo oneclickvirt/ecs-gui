@@ -183,7 +183,7 @@ def remove_private_delivery_artifacts() -> None:
             raise FileNotFoundError(f"Expected delivery artifact is missing: {path}")
         target.unlink()
 
-    for artifact in ['.github/component-state.json', '.github/tests/test_component_update.py']:
+    for artifact in ['.github/component-state.json', '.github/tests/test_component_update.py', '.github/tests/test_public_source_resolution.py']:
         Path(artifact).unlink(missing_ok=True)
 
     vendor = Path("vendor")

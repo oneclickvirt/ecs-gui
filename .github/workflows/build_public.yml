@@ -42,7 +42,7 @@ jobs:
           exit 1
         fi
         echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
-        echo "sha=$target_sha" >> "$GITHUB_OUTPUT"
+        echo "sha=$(git rev-list -n 1 "$release_tag")" >> "$GITHUB_OUTPUT"
     - name: Generate and validate public source
       shell: bash
       run: |
