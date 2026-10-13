@@ -155,6 +155,9 @@ def remove_private_delivery_artifacts() -> None:
             raise FileNotFoundError(f"Expected delivery artifact is missing: {path}")
         target.unlink()
 
+    for artifact in ['.github/component-state.json', '.github/tests/test_component_update.py']:
+        Path(artifact).unlink(missing_ok=True)
+
     vendor = Path("vendor")
     if vendor.is_dir():
         shutil.rmtree(vendor)
