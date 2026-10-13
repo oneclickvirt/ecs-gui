@@ -44,6 +44,8 @@ jobs:
         go test ./...
         go test -tags=ecs_structured ./...
         go build -o ecs-gui-public .
+    env:
+      GOPROXY: https://proxy.golang.org|direct
 'on':
   push:
     branches:

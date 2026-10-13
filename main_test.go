@@ -2,6 +2,9 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,20 +17,20 @@ import (
 )
 
 func TestReleaseDependencyContract(t *testing.T) {
-	if got := appmeta.ReleaseVersion(); got != "v0.2.13" {
-		t.Fatalf("GUI release version = %q, want v0.2.13", got)
+	if got := appmeta.ReleaseVersion(); got != pinnedGUIVersion(t) {
+		t.Fatalf("GUI release version = %q, want %q", got, pinnedGUIVersion(t))
 	}
 	if got := ecsapi.DefaultVersion; got != appmeta.UpstreamECSVersion {
 		t.Fatalf("ECS version = %q, GUI metadata = %q", got, appmeta.UpstreamECSVersion)
 	}
-	if got := speedtestmodel.SpeedTestVersion; got != "v0.0.37" {
-		t.Fatalf("speedtest component version = %q, want v0.0.37", got)
+	if got := speedtestmodel.SpeedTestVersion; got != pinnedModuleVersion(t, "github.com/oneclickvirt/speedtest") {
+		t.Fatalf("speedtest component version = %q, want source-pinned version", got)
 	}
-	if got := privatepst.PrivateSpeedTestVersion; got != "v0.0.24" {
-		t.Fatalf("private speedtest component version = %q, want v0.0.24", got)
+	if got := privatepst.PrivateSpeedTestVersion; got != pinnedModuleVersion(t, "github.com/oneclickvirt/privatespeedtest") {
+		t.Fatalf("private speedtest component version = %q, want source-pinned version", got)
 	}
-	if got := showwinspeedtest.Version(); got != "1.8.3" {
-		t.Fatalf("speedtest-go version = %q, want 1.8.3", got)
+	if got := showwinspeedtest.Version(); got != strings.TrimPrefix(pinnedModuleVersion(t, "github.com/showwin/speedtest-go"), "v") {
+		t.Fatalf("speedtest-go version = %q, want source-pinned version", got)
 	}
 	client := speedtestmodel.NewThroughputHTTPClient(speedtestmodel.NetworkIPv4, time.Second)
 	transport, ok := client.Transport.(*http.Transport)
@@ -58,4 +61,25 @@ func TestParseGUIFlagsRejectsUnknownOption(t *testing.T) {
 	if _, _, err := parseGUIFlags([]string{"-unknown"}); err == nil {
 		t.Fatal("unknown option was accepted")
 	}
+}
+
+func pinnedModuleVersion(t *testing.T, module string) string {
+	t.Helper()
+	contents, err := os.ReadFile("go.mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(module) + `\s+(\S+)`).FindSubmatch(contents)
+	if len(match) != 2 {
+		t.Fatalf("module %s is not pinned", module)
+	}
+	return string(match[1])
+}
+func pinnedGUIVersion(t *testing.T) string {
+	t.Helper()
+	contents, err := os.ReadFile("VERSION")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return "v" + strings.TrimSpace(string(contents))
 }

@@ -78,6 +78,8 @@ jobs:
         fi
         git commit -m "Auto update public version from ${{ steps.release.outputs.tag }}"
         git push --force origin public
+    env:
+      GOPROXY: https://proxy.golang.org|direct
 'on':
   workflow_dispatch:
     inputs:

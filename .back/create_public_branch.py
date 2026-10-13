@@ -88,9 +88,7 @@ def remove_private_release_contract() -> None:
         raise ValueError(f"Expected one private speedtest test import in {path}, found {replacements}")
 
     content, replacements = re.subn(
-        r'\n\tif got := privatepst\.PrivateSpeedTestVersion; got != "[^"]+" \{'
-        r'\n\t\tt\.Fatalf\("private speedtest component version = %q, want [^"]+", got\)'
-        r'\n\t\}\n',
+        r'\n\tif got := privatepst\.PrivateSpeedTestVersion;[^\n]*\n\t\tt\.Fatalf\([^\n]*\n\t\}',
         "\n",
         content,
     )
@@ -148,6 +146,8 @@ def remove_private_delivery_artifacts() -> None:
     for path in (
         ".back/create_public_branch.py",
         ".github/workflows/build.yml",
+        '.github/workflows/component-updates.yml',
+        '.github/scripts/component_update.py',
         ".github/workflows/build_public.yml",
     ):
         target = Path(path)
