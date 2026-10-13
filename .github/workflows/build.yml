@@ -18,7 +18,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.RELEASE_TAG }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Validate GUI and upstream versions
       id: sync_version
       shell: bash
@@ -101,24 +101,12 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -euo pipefail
         RELEASE_TAG="${{ steps.version.outputs.RELEASE_TAG }}"
-
-        # 检查release是否已存在
-        if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-          echo "Release $RELEASE_TAG already exists, deleting it..."
-          gh release delete "$RELEASE_TAG" -y || true
-          git push --delete origin "$RELEASE_TAG" || true
+        if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" \
+            --title "Release $RELEASE_TAG" --notes "Automated build for $RELEASE_TAG" --draft
         fi
-
-        # 创建新的release
-        echo "Creating release $RELEASE_TAG..."
-        gh release create "$RELEASE_TAG" \
-          --title "Release $RELEASE_TAG" \
-          --notes "Automated build for $RELEASE_TAG" \
-          --draft=false \
-          --prerelease=false
-
-        echo "Release $RELEASE_TAG created successfully"
   build-android:
     name: Build Android APK
     needs: prepare
@@ -128,7 +116,7 @@ jobs:
       group: ${{ github.workflow }}-android-${{ github.ref }}
       cancel-in-progress: false
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
         ref: main
@@ -138,30 +126,30 @@ jobs:
         mkdir -p "$RUNNER_TEMP/private-ci-control"
         cp .github/scripts/private_guard.py "$RUNNER_TEMP/private-ci-control/private_guard.py"
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
         go-version-file: go.mod
         cache: false
     - name: Install Fyne CLI
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
-        go install fyne.io/tools/cmd/fyne@latest
+        go install fyne.io/tools/cmd/fyne@v1.7.3
         PRIVATE_STEP
       shell: bash
       env:
         CI_ALLOWED_ENV: ''
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Set up JDK 17
-      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
       with:
         distribution: temurin
         java-version: '17'
     - name: Install Android SDK
-      uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
       with:
         packages: platform-tools
     - name: Install Android NDK
@@ -349,12 +337,13 @@ jobs:
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Compress APK with UPX
       run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\nfor apk in ecs-gui-android-*.apk;\
-        \ do\n  if [ -f \"$apk\" ]; then\n    echo \"压缩前大小: $(du -h \"$apk\")\"\n    # 解压 APK\n    unzip -q \"$apk\" -d \"\
-        ${apk%.apk}_extracted\"\n    \n    # 对 lib 目录下的 .so 文件使用 UPX 压缩\n    find \"${apk%.apk}_extracted/lib\" -name \"*.so\"\
-        \ -type f | while IFS= read -r so_file; do\n      echo \"正在压缩: $so_file\"\n      upx --best --lzma \"$so_file\" ||\
-        \ echo \"警告: $so_file 压缩失败，继续处理\"\n    done\n    \n    # 重新打包 APK\n    cd \"${apk%.apk}_extracted\"\n    zip -r -q\
-        \ -9 \"../${apk%.apk}_compressed.apk\" .\n    cd ..\n    \n    # 替换原 APK\n    mv \"${apk%.apk}_compressed.apk\" \"\
-        $apk\"\n    rm -rf \"${apk%.apk}_extracted\"\n    \n    echo \"压缩后大小: $(du -h \"$apk\")\"\n  fi\ndone\nPRIVATE_STEP\n"
+        \ do\n  if [ -f \"$apk\" ]; then\n    echo \"压缩前大小: $(du -h \"$apk\")\"\n    # 解压 APK\n    unzip -q \"$apk\"\
+        \ -d \"${apk%.apk}_extracted\"\n    \n    # 对 lib 目录下的 .so 文件使用 UPX 压缩\n    find \"${apk%.apk}_extracted/lib\"\
+        \ -name \"*.so\" -type f | while IFS= read -r so_file; do\n      echo \"正在压缩: $so_file\"\n      upx --best\
+        \ --lzma \"$so_file\" || echo \"警告: $so_file 压缩失败，继续处理\"\n    done\n    \n    # 重新打包 APK\n    cd \"${apk%.apk}_extracted\"\
+        \n    zip -r -q -9 \"../${apk%.apk}_compressed.apk\" .\n    cd ..\n    \n    # 替换原 APK\n    mv \"${apk%.apk}_compressed.apk\"\
+        \ \"$apk\"\n    rm -rf \"${apk%.apk}_extracted\"\n    \n    echo \"压缩后大小: $(du -h \"$apk\")\"\n  fi\ndone\n\
+        PRIVATE_STEP\n"
       shell: bash
       env:
         CI_ALLOWED_ENV: IFS
@@ -363,7 +352,7 @@ jobs:
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
         # 使用 GitHub Token 下载私有仓库的 JKS 文件
-        curl -L \
+        curl -fsSL --retry 3 --connect-timeout 10 --max-time 120 \
           -H "Authorization: token ${{ secrets.PRIVATE_CI_TOKEN }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o oneclickvirt.jks \
@@ -383,16 +372,16 @@ jobs:
         CI_ALLOWED_ENV: ''
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Sign APK files
-      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# 安装 apksigner (包含在 Android\
-        \ build-tools 中)\nBUILD_TOOLS_VERSION=\"34.0.0\"\nAPKSIGNER=\"$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner\"\
+      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# 安装 apksigner (包含在\
+        \ Android build-tools 中)\nBUILD_TOOLS_VERSION=\"34.0.0\"\nAPKSIGNER=\"$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner\"\
         \n\nif [ ! -f \"$APKSIGNER\" ]; then\n  echo \"✗ apksigner 未找到\"\n  exit 1\nfi\n\necho \"使用 apksigner: $APKSIGNER\"\
-        \n\n# 对所有 APK 文件进行签名\nfor apk in ecs-gui-android-*.apk; do\n  if [ -f \"$apk\" ]; then\n    echo \"正在签名: $apk\"\n\
-        \    SIGNED_APK=\"${apk%.apk}_signed.apk\"\n    \n    # 签名 APK\n    $APKSIGNER sign \\\n      --ks oneclickvirt.jks\
-        \ \\\n      --ks-key-alias gui \\\n      --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \\\n      --key-pass pass:${{\
-        \ secrets.KEY_PASSWORD }} \\\n      --out \"$SIGNED_APK\" \\\n      \"$apk\"\n    \n    # 验证签名\n    if \"$APKSIGNER\"\
-        \ verify \"$SIGNED_APK\"; then\n      echo \"✓ $apk 签名成功\"\n      # 替换原始 APK\n      mv \"$SIGNED_APK\" \"$apk\"\n\
-        \    else\n      echo \"✗ $apk 签名验证失败\"\n      exit 1\n    fi\n  fi\ndone\n\n# 清理 JKS 文件\nrm -f oneclickvirt.jks\n\
-        PRIVATE_STEP\n"
+        \n\n# 对所有 APK 文件进行签名\nfor apk in ecs-gui-android-*.apk; do\n  if [ -f \"$apk\" ]; then\n    echo \"正在签名:\
+        \ $apk\"\n    SIGNED_APK=\"${apk%.apk}_signed.apk\"\n    \n    # 签名 APK\n    $APKSIGNER sign \\\n      --ks\
+        \ oneclickvirt.jks \\\n      --ks-key-alias gui \\\n      --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }}\
+        \ \\\n      --key-pass pass:${{ secrets.KEY_PASSWORD }} \\\n      --out \"$SIGNED_APK\" \\\n      \"$apk\"\
+        \n    \n    # 验证签名\n    if \"$APKSIGNER\" verify \"$SIGNED_APK\"; then\n      echo \"✓ $apk 签名成功\"\n   \
+        \   # 替换原始 APK\n      mv \"$SIGNED_APK\" \"$apk\"\n    else\n      echo \"✗ $apk 签名验证失败\"\n      exit 1\n\
+        \    fi\n  fi\ndone\n\n# 清理 JKS 文件\nrm -f oneclickvirt.jks\nPRIVATE_STEP\n"
       shell: bash
       env:
         CI_ALLOWED_ENV: APKSIGNER,BUILD_TOOLS_VERSION,SIGNED_APK
@@ -425,13 +414,13 @@ jobs:
         CI_ALLOWED_ENV: RELEASE_TAG
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Upload ARM64 APK
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
         path: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
         retention-days: 90
     - name: Upload x86_64 APK
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
         path: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
@@ -492,7 +481,7 @@ jobs:
           arch: amd64
           name: linux-amd64
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
         ref: main
@@ -502,18 +491,18 @@ jobs:
         mkdir -p "$RUNNER_TEMP/private-ci-control"
         cp .github/scripts/private_guard.py "$RUNNER_TEMP/private-ci-control/private_guard.py"
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
         go-version-file: go.mod
         cache: false
     - name: Install Fyne CLI
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
-        go install fyne.io/tools/cmd/fyne@latest
+        go install fyne.io/tools/cmd/fyne@v1.7.3
         PRIVATE_STEP
       shell: bash
       env:
@@ -740,47 +729,52 @@ jobs:
         CI_ALLOWED_ENV: BUILD_DIR,CC,CGO_ENABLED,GOARCH,GOOS,GZIP,TARFILE,buildid,buildvcs,checklinkname
         CI_ALLOWED_OUTPUT: APP_VERSION,BUILD_DIR,CC,CGO_ENABLED,ECS_VERSION,GOARCH,GOOS,GUI_VERSION,GZIP,RELEASE_TAG,TARFILE,VERSION,backtrace,basics,buildid,buildvcs,checklinkname,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
       shell: bash
-      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# macOS 需要特殊处理：先编译再打包\nif [\
-        \ \"${{ matrix.platform }}\" == \"darwin\" ]; then\n  # 使用独立目录避免冲突\n  BUILD_DIR=\"build-${{ matrix.name }}\"\n  mkdir\
-        \ -p \"$BUILD_DIR\"\n  \n  echo \"Building macOS binary with ldflags...\"\n  go build -trimpath -buildvcs=false -ldflags\
-        \ \"-checklinkname=0 -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui-bin\" .\n  \n  echo \"Packaging macOS app with fyne...\"\
-        \n  # 在根目录运行 fyne package，指定编译好的二进制文件路径\n  fyne package -os darwin -name ecs-gui --app-id com.oneclickvirt.goecs --exe\
-        \ \"$BUILD_DIR/ecs-gui-bin\" --app-version \"${APP_VERSION}\" --release\n  \n  if [ -d \"ecs-gui.app\" ]; then\n \
-        \   TARFILE=\"ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz\"\n    echo \"Creating tar file:\
-        \ $TARFILE\"\n    GZIP=-9 tar -czf \"$TARFILE\" ecs-gui.app\n    echo \"✓ macOS app 构建成功\"\n    # 清理构建目录和生成的 app\n\
-        \    rm -rf \"$BUILD_DIR\" ecs-gui.app\n  else\n    echo \"✗ macOS app 构建失败\"\n    exit 1\n  fi\nelif [ \"${{ matrix.platform\
-        \ }}\" == \"linux\" ]; then\n  # Linux 构建 - 使用独立目录避免冲突\n  BUILD_DIR=\"build-${{ matrix.name }}\"\n  mkdir -p \"$BUILD_DIR\"\
-        \n  \n  echo \"Building Linux binary for ${{ matrix.arch }}...\"\n  if [ \"${{ matrix.arch }}\" == \"arm64\" ]; then\n\
-        \    # ARM64 交叉编译\n    CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \\\n      go build -trimpath\
-        \ -buildvcs=false -ldflags \"-checklinkname=0 -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui\" .\n  else\n    # AMD64 本地编译\n\
-        \    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \\\n      go build -trimpath -buildvcs=false -ldflags \"-checklinkname=0\
-        \ -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui\" .\n  fi\n  \n  echo \"Packaging Linux app with fyne...\"\n  # 在根目录运行\
-        \ fyne package，指定编译好的二进制文件路径\n  fyne package -os linux -name ecs-gui --app-id com.oneclickvirt.goecs --exe \"$BUILD_DIR/ecs-gui\"\
-        \ --app-version \"${APP_VERSION}\" --release\n  \n  # 查找生成的 tar.xz 文件\n  if [ -f \"ecs-gui.tar.xz\" ]; then\n    mv\
-        \ \"ecs-gui.tar.xz\" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.xz\n    echo \"✓ Linux tar.xz\
-        \ 构建成功\"\n    # 清理构建目录\n    rm -rf \"$BUILD_DIR\"\n  else\n    echo \"✗ Linux tar.xz 构建失败\"\n    ls -la .\n    exit\
-        \ 1\n  fi\nelse\n  # Windows 构建\n  echo \"Building ${{ matrix.platform }} with fyne package...\"\n  # 在根目录运行 fyne\
-        \ package\n  fyne package -os ${{ matrix.platform }} -name ecs-gui --app-id com.oneclickvirt.goecs --app-version \"\
-        ${APP_VERSION}\" --release\n  \n  if [ \"${{ matrix.platform }}\" == \"windows\" ]; then\n    if [ -f \"ecs-gui.exe\"\
-        \ ]; then\n      mv \"ecs-gui.exe\" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe\n      echo\
-        \ \"✓ Windows exe 构建成功\"\n    else\n      echo \"✗ Windows exe 构建失败\"\n      exit 1\n    fi\n  fi\nfi\nPRIVATE_STEP\n"
+      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# macOS 需要特殊处理：先编译再打包\n\
+        if [ \"${{ matrix.platform }}\" == \"darwin\" ]; then\n  # 使用独立目录避免冲突\n  BUILD_DIR=\"build-${{ matrix.name\
+        \ }}\"\n  mkdir -p \"$BUILD_DIR\"\n  \n  echo \"Building macOS binary with ldflags...\"\n  go build -trimpath\
+        \ -buildvcs=false -ldflags \"-checklinkname=0 -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui-bin\" .\n  \n  echo\
+        \ \"Packaging macOS app with fyne...\"\n  # 在根目录运行 fyne package，指定编译好的二进制文件路径\n  fyne package -os darwin\
+        \ -name ecs-gui --app-id com.oneclickvirt.goecs --exe \"$BUILD_DIR/ecs-gui-bin\" --app-version \"${APP_VERSION}\"\
+        \ --release\n  \n  if [ -d \"ecs-gui.app\" ]; then\n    TARFILE=\"ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version\
+        \ }}.tar.gz\"\n    echo \"Creating tar file: $TARFILE\"\n    GZIP=-9 tar -czf \"$TARFILE\" ecs-gui.app\n\
+        \    echo \"✓ macOS app 构建成功\"\n    # 清理构建目录和生成的 app\n    rm -rf \"$BUILD_DIR\" ecs-gui.app\n  else\n  \
+        \  echo \"✗ macOS app 构建失败\"\n    exit 1\n  fi\nelif [ \"${{ matrix.platform }}\" == \"linux\" ]; then\n\
+        \  # Linux 构建 - 使用独立目录避免冲突\n  BUILD_DIR=\"build-${{ matrix.name }}\"\n  mkdir -p \"$BUILD_DIR\"\n  \n  echo\
+        \ \"Building Linux binary for ${{ matrix.arch }}...\"\n  if [ \"${{ matrix.arch }}\" == \"arm64\" ]; then\n\
+        \    # ARM64 交叉编译\n    CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \\\n      go build\
+        \ -trimpath -buildvcs=false -ldflags \"-checklinkname=0 -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui\" .\n\
+        \  else\n    # AMD64 本地编译\n    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \\\n      go build -trimpath -buildvcs=false\
+        \ -ldflags \"-checklinkname=0 -s -w -buildid=\" -o \"$BUILD_DIR/ecs-gui\" .\n  fi\n  \n  echo \"Packaging\
+        \ Linux app with fyne...\"\n  # 在根目录运行 fyne package，指定编译好的二进制文件路径\n  fyne package -os linux -name ecs-gui\
+        \ --app-id com.oneclickvirt.goecs --exe \"$BUILD_DIR/ecs-gui\" --app-version \"${APP_VERSION}\" --release\n\
+        \  \n  # 查找生成的 tar.xz 文件\n  if [ -f \"ecs-gui.tar.xz\" ]; then\n    mv \"ecs-gui.tar.xz\" ecs-gui-${{ matrix.name\
+        \ }}-${{ needs.prepare.outputs.version }}.tar.xz\n    echo \"✓ Linux tar.xz 构建成功\"\n    # 清理构建目录\n    rm\
+        \ -rf \"$BUILD_DIR\"\n  else\n    echo \"✗ Linux tar.xz 构建失败\"\n    ls -la .\n    exit 1\n  fi\nelse\n \
+        \ # Windows 构建\n  echo \"Building ${{ matrix.platform }} with fyne package...\"\n  # 在根目录运行 fyne package\n\
+        \  fyne package -os ${{ matrix.platform }} -name ecs-gui --app-id com.oneclickvirt.goecs --app-version \"\
+        ${APP_VERSION}\" --release\n  \n  if [ \"${{ matrix.platform }}\" == \"windows\" ]; then\n    if [ -f \"\
+        ecs-gui.exe\" ]; then\n      mv \"ecs-gui.exe\" ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version\
+        \ }}.exe\n      echo \"✓ Windows exe 构建成功\"\n    else\n      echo \"✗ Windows exe 构建失败\"\n      exit 1\n\
+        \    fi\n  fi\nfi\nPRIVATE_STEP\n"
     - name: Compress with UPX
       shell: bash
-      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# Windows 跳过 UPX 压缩\nif [ \"\
-        ${{ runner.os }}\" == \"Windows\" ]; then\n  echo \"跳过 Windows exe 的 UPX 压缩（不支持）\"\n  exit 0\nfi\n\nfor file in ecs-gui-${{\
-        \ matrix.name }}-*; do\n  if [ -f \"$file\" ]; then\n    echo \"压缩前大小: $(du -h \"$file\")\"\n    \n    if [[ \"$file\"\
-        \ == *.tar.gz ]]; then\n      # macOS app 需要解压后压缩二进制\n      echo \"正在处理 macOS app: $file\"\n      tar -xzf \"$file\"\
-        \n      \n      # 查找并压缩 macOS 可执行文件\n      if [ -d ecs-gui.app/Contents/MacOS ]; then\n        for binary in ecs-gui.app/Contents/MacOS/*;\
-        \ do\n          if [ -f \"$binary\" ] && [ -x \"$binary\" ]; then\n            echo \"正在压缩 macOS 二进制: $binary\"\n\
-        \            upx --best --lzma \"$binary\" || echo \"警告: $binary 压缩失败\"\n          fi\n        done\n      fi\n  \
-        \    \n      # 重新打包\n      rm \"$file\"\n      GZIP=-9 tar -czf \"$file\" ecs-gui.app\n      rm -rf ecs-gui.app\n\
-        \      echo \"压缩后大小: $(du -h \"$file\")\"\n    elif [[ \"$file\" == *.tar.xz ]]; then\n      # Linux app 需要解压后压缩二进制\n\
-        \      echo \"正在处理 Linux app: $file\"\n      mkdir -p ecs-gui-extracted\n      tar -xJf \"$file\" -C ecs-gui-extracted\n\
-        \      \n      # 查找并压缩 Linux 可执行文件\n      find ecs-gui-extracted -type f -executable | while IFS= read -r binary;\
-        \ do\n        if file \"$binary\" | grep -q \"ELF\"; then\n          echo \"正在压缩 Linux 二进制: $binary\"\n          upx\
-        \ --best --lzma \"$binary\" || echo \"警告: $binary 压缩失败\"\n        fi\n      done\n      \n      # 重新打包\n      rm \"\
-        $file\"\n      XZ_OPT=-9e tar -cJf \"$file\" -C ecs-gui-extracted .\n      rm -rf ecs-gui-extracted\n      echo \"\
-        压缩后大小: $(du -h \"$file\")\"\n    fi\n  fi\ndone\nPRIVATE_STEP\n"
+      run: "python3 \"$RUNNER_TEMP/private-ci-control/private_guard.py\" run <<'PRIVATE_STEP'\n# Windows 跳过 UPX\
+        \ 压缩\nif [ \"${{ runner.os }}\" == \"Windows\" ]; then\n  echo \"跳过 Windows exe 的 UPX 压缩（不支持）\"\n  exit\
+        \ 0\nfi\n\nfor file in ecs-gui-${{ matrix.name }}-*; do\n  if [ -f \"$file\" ]; then\n    echo \"压缩前大小:\
+        \ $(du -h \"$file\")\"\n    \n    if [[ \"$file\" == *.tar.gz ]]; then\n      # macOS app 需要解压后压缩二进制\n \
+        \     echo \"正在处理 macOS app: $file\"\n      tar -xzf \"$file\"\n      \n      # 查找并压缩 macOS 可执行文件\n    \
+        \  if [ -d ecs-gui.app/Contents/MacOS ]; then\n        for binary in ecs-gui.app/Contents/MacOS/*; do\n\
+        \          if [ -f \"$binary\" ] && [ -x \"$binary\" ]; then\n            echo \"正在压缩 macOS 二进制: $binary\"\
+        \n            upx --best --lzma \"$binary\" || echo \"警告: $binary 压缩失败\"\n          fi\n        done\n \
+        \     fi\n      \n      # 重新打包\n      rm \"$file\"\n      GZIP=-9 tar -czf \"$file\" ecs-gui.app\n     \
+        \ rm -rf ecs-gui.app\n      echo \"压缩后大小: $(du -h \"$file\")\"\n    elif [[ \"$file\" == *.tar.xz ]]; then\n\
+        \      # Linux app 需要解压后压缩二进制\n      echo \"正在处理 Linux app: $file\"\n      mkdir -p ecs-gui-extracted\n\
+        \      tar -xJf \"$file\" -C ecs-gui-extracted\n      \n      # 查找并压缩 Linux 可执行文件\n      find ecs-gui-extracted\
+        \ -type f -executable | while IFS= read -r binary; do\n        if file \"$binary\" | grep -q \"ELF\"; then\n\
+        \          echo \"正在压缩 Linux 二进制: $binary\"\n          upx --best --lzma \"$binary\" || echo \"警告: $binary\
+        \ 压缩失败\"\n        fi\n      done\n      \n      # 重新打包\n      rm \"$file\"\n      XZ_OPT=-9e tar -cJf \"\
+        $file\" -C ecs-gui-extracted .\n      rm -rf ecs-gui-extracted\n      echo \"压缩后大小: $(du -h \"$file\")\"\
+        \n    fi\n  fi\ndone\nPRIVATE_STEP\n"
       env:
         CI_ALLOWED_ENV: GZIP,IFS,XZ_OPT
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,GZIP,IFS,RELEASE_TAG,VERSION,XZ_OPT,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
@@ -798,7 +792,7 @@ jobs:
       shell: bash
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
-        python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" verify-assets --assets "ecs-gui-*.zip" "ecs-gui-*.tar.gz" "ecs-gui-*.exe"
+        python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" verify-assets --assets "ecs-gui-*.zip" "ecs-gui-*.tar.gz" "ecs-gui-*.tar.xz" "ecs-gui-*.exe"
         RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
         for file in ecs-gui-${{ matrix.name }}-*; do
           if [ -f "$file" ]; then
@@ -812,7 +806,7 @@ jobs:
         CI_ALLOWED_ENV: RELEASE_TAG
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Upload build artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}
         path: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.*
@@ -836,6 +830,22 @@ jobs:
       CI_JOB_KEY: ${{ github.job }}-${{ strategy.job-index }}
     if: github.repository_owner == 'oneclickvirt' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main'
       || startsWith(github.ref, 'refs/tags/v'))
+  publish:
+    name: Publish successful build
+    needs:
+    - prepare
+    - build-android
+    - build-desktop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - name: Publish completed release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        gh release edit "$RELEASE_TAG" --draft=false
 'on':
   workflow_dispatch: null
   push:
