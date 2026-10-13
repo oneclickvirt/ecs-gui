@@ -1,3 +1,4 @@
+param([switch]$FixedRelease)
 $ErrorActionPreference = "Stop"
 $fallback = @{
     name = "llvm-mingw-20261006-ucrt-x86_64.zip"
@@ -7,6 +8,7 @@ $fallback = @{
 }
 $candidates = @()
 try {
+    if ($FixedRelease) { throw "Fixed release selected for recovery verification" }
     $headers = @{ Accept = "application/vnd.github+json" }
     if ($env:GH_TOKEN) { $headers.Authorization = "Bearer $env:GH_TOKEN" }
     $release = Invoke-RestMethod -TimeoutSec 60 -MaximumRetryCount 2 -RetryIntervalSec 2 `

@@ -1,0 +1,37 @@
+name: Verify Windows ARM64 toolchain recovery
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  toolchain:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        fixed: [false, true]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install and verify the toolchain
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIXED_RELEASE: ${{ matrix.fixed }}
+        run: |
+          $fixed = $env:FIXED_RELEASE -eq 'true'
+          & .github/scripts/install_windows_arm64_toolchain.ps1 -FixedRelease:$fixed
+      - name: Cross compile and inspect a real ARM64 executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          'int main(void) { return 0; }' | Set-Content -Path "$env:RUNNER_TEMP/toolchain-smoke.c"
+          & aarch64-w64-mingw32-clang "$env:RUNNER_TEMP/toolchain-smoke.c" -o "$env:RUNNER_TEMP/toolchain-smoke.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'ARM64 C compilation failed' }
+          $headers = & llvm-readobj --file-headers "$env:RUNNER_TEMP/toolchain-smoke.exe"
+          if ($LASTEXITCODE -ne 0 -or $headers -notmatch 'IMAGE_FILE_MACHINE_ARM64') {
+              throw 'The compiled executable is not a valid ARM64 PE image'
+          }
+          Remove-Item "$env:RUNNER_TEMP/toolchain-smoke.c", "$env:RUNNER_TEMP/toolchain-smoke.exe"
