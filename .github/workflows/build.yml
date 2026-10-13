@@ -2,6 +2,7 @@ name: Build All UI APP
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   GONOSUMDB: github.com/oneclickvirt/ecs,github.com/oneclickvirt/speedtest
+  PYTHONUTF8: '1'
 permissions:
   contents: write
 jobs:
@@ -18,7 +19,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.RELEASE_TAG }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Validate GUI and upstream versions
       id: sync_version
       shell: bash
@@ -116,7 +117,7 @@ jobs:
       group: ${{ github.workflow }}-android-${{ github.ref }}
       cancel-in-progress: false
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
         ref: main
@@ -126,11 +127,11 @@ jobs:
         mkdir -p "$RUNNER_TEMP/private-ci-control"
         cp .github/scripts/private_guard.py "$RUNNER_TEMP/private-ci-control/private_guard.py"
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: go.mod
         cache: false
@@ -144,12 +145,12 @@ jobs:
         CI_ALLOWED_ENV: ''
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Set up JDK 17
-      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
       with:
         distribution: temurin
         java-version: '17'
     - name: Install Android SDK
-      uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+      uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
       with:
         packages: platform-tools
     - name: Install Android NDK
@@ -414,13 +415,13 @@ jobs:
         CI_ALLOWED_ENV: RELEASE_TAG
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Upload ARM64 APK
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
         path: ecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
         retention-days: 90
     - name: Upload x86_64 APK
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
         path: ecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
@@ -481,7 +482,7 @@ jobs:
           arch: amd64
           name: linux-amd64
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
         ref: main
@@ -491,11 +492,11 @@ jobs:
         mkdir -p "$RUNNER_TEMP/private-ci-control"
         cp .github/scripts/private_guard.py "$RUNNER_TEMP/private-ci-control/private_guard.py"
     - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: go.mod
         cache: false
@@ -512,7 +513,7 @@ jobs:
       if: matrix.name == 'windows-arm64'
       shell: bash
       run: |
-        python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
+        python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run --shell pwsh <<'PRIVATE_STEP'
         $release = Invoke-RestMethod `
           -Headers @{ Accept = "application/vnd.github+json" } `
           -Uri "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest"
@@ -806,7 +807,7 @@ jobs:
         CI_ALLOWED_ENV: RELEASE_TAG
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
     - name: Upload build artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}
         path: ecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.*
