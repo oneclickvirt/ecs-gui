@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import os
+import json
 import re
 import shutil
 import subprocess
 import time
+import tempfile
 from pathlib import Path
 
 
@@ -97,32 +99,41 @@ def remove_private_release_contract() -> None:
     write_file(path, content)
 
 
-def run_go(*args: str, extra_environment: dict[str, str] | None = None) -> None:
+def run_go(*args: str, extra_environment: dict[str, str] | None = None, cwd: str | None = None) -> str:
     environment = os.environ.copy()
     environment["GOWORK"] = "off"
     if extra_environment:
         environment.update(extra_environment)
     for attempt in range(1, 4):
-        completed = subprocess.run(
-            ["go", *args],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            env=environment,
-        )
-        if completed.returncode == 0:
-            return
+        try:
+            completed = subprocess.run(
+                ["go", *args],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=environment,
+                cwd=cwd,
+                timeout=180,
+            )
+            if completed.returncode == 0:
+                return completed.stdout
+        except subprocess.TimeoutExpired:
+            pass
         if attempt < 3:
             time.sleep(attempt * 3)
     raise RuntimeError(f"go {' '.join(args)} failed after 3 attempts")
 
 
 def use_public_goecs() -> None:
-    # Resolve the independently published public branch after local private
-    # imports have been removed. A ref rather than a release tag is required:
-    # normal release tags intentionally retain the private dependency chain.
+    # Public source is versioned independently from tags containing private dependencies.
     module = "github.com/oneclickvirt/ecs"
+    upstream = re.search(
+        r'\bUpstreamECSVersion\s*=\s*"(v\d+\.\d+\.\d+)"',
+        read_file("internal/appmeta/version.go"),
+    )
+    if not upstream:
+        raise ValueError("Missing pinned ECS version")
     checksum_patterns = [
         pattern
         for pattern in os.environ.get("GONOSUMDB", "").split(",")
@@ -130,14 +141,31 @@ def use_public_goecs() -> None:
     ]
     if module not in checksum_patterns:
         checksum_patterns.append(module)
-    # The public branch is force-updated after every release. A module proxy
-    # can serve an older branch tip successfully, so always resolve this
-    # mutable source ref directly instead of treating a cached result as valid.
     public_environment = {
         "GONOSUMDB": ",".join(checksum_patterns),
-        "GOPROXY": "direct",
+        "GOPROXY": "https://proxy.golang.org|direct",
     }
-    run_go("get", f"{module}@public", extra_environment=public_environment)
+    # Resolve outside the consumer's existing module graph, then replace its
+    # requirement before tidy. Never substitute the mutable latest public branch.
+    with tempfile.TemporaryDirectory(prefix="ecs-public-resolution-", dir=os.environ.get("RUNNER_TEMP", ".")) as temporary:
+        resolved = json.loads(run_go(
+            "list", "-m", "-json", f"{module}@public-{upstream[1]}",
+            extra_environment=public_environment, cwd=temporary,
+        ))
+        if resolved.get("Path") != module or not resolved.get("Version"):
+            raise ValueError("Invalid public ECS module resolution")
+        downloaded = json.loads(run_go(
+            "mod", "download", "-json", f"{module}@{resolved['Version']}",
+            extra_environment=public_environment, cwd=temporary,
+        ))
+        source = Path(downloaded["Dir"])
+        metadata = (source / "api/api.go").read_text()
+        actual = re.search(r'\bDefaultVersion\s*=\s*"(v\d+\.\d+\.\d+)"', metadata)
+        if not actual or actual[1] != upstream[1]:
+            raise ValueError("Public ECS source version differs from the GUI release")
+        if any(private in (source / "go.mod").read_text() for private in PRIVATE_MODULES):
+            raise ValueError("Published ECS source retained private module requirements")
+    run_go("mod", "edit", f"-require={module}@{resolved['Version']}", extra_environment=public_environment)
     run_go("mod", "tidy", extra_environment=public_environment)
 
 

@@ -48,7 +48,9 @@ jobs:
       run: |
         set -euo pipefail
         git checkout -B public "${{ steps.release.outputs.sha }}"
-        python3 .back/create_public_branch.py
+        git fetch --no-tags --depth=1 origin main
+        git show FETCH_HEAD:.back/create_public_branch.py > "$RUNNER_TEMP/public-source-generator.py"
+        python3 "$RUNNER_TEMP/public-source-generator.py"
         go mod tidy
         if rg -n 'github\.com/oneclickvirt/(security|privatespeedtest)(/|[[:space:]]|"|\x60|$)' --glob '*.go' --glob 'go.mod' --glob 'go.sum' .; then
           echo "Public source retained a private repository reference" >&2
@@ -65,10 +67,13 @@ jobs:
         go test ./...
         go test -tags=ecs_structured ./...
         go build -o ecs-gui-public .
+        rm -f ecs-gui-public
     - name: Commit and push public branch
       shell: bash
       run: |
         set -euo pipefail
+        source .github/scripts/ci_network.sh
+        previous_public="$(git ls-remote origin refs/heads/public | cut -f1)"
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add -A
@@ -77,7 +82,7 @@ jobs:
           exit 1
         fi
         git commit -m "Auto update public version from ${{ steps.release.outputs.tag }}"
-        git push --force origin public
+        git push "--force-with-lease=refs/heads/public:$previous_public" origin HEAD:refs/heads/public
     env:
       GOPROXY: https://proxy.golang.org|direct
 'on':
@@ -92,3 +97,6 @@ jobs:
     - Build All UI APP
     types:
     - completed
+concurrency:
+  group: public-source-publication
+  cancel-in-progress: false
