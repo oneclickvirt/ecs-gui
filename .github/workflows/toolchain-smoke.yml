@@ -31,7 +31,7 @@ jobs:
           & aarch64-w64-mingw32-clang "$env:RUNNER_TEMP/toolchain-smoke.c" -o "$env:RUNNER_TEMP/toolchain-smoke.exe"
           if ($LASTEXITCODE -ne 0) { throw 'ARM64 C compilation failed' }
           $headers = & llvm-readobj --file-headers "$env:RUNNER_TEMP/toolchain-smoke.exe"
-          if ($LASTEXITCODE -ne 0 -or $headers -notmatch 'IMAGE_FILE_MACHINE_ARM64') {
+          if ($LASTEXITCODE -ne 0 -or ($headers -join "`n") -notmatch 'IMAGE_FILE_MACHINE_ARM64') {
               throw 'The compiled executable is not a valid ARM64 PE image'
           }
           Remove-Item "$env:RUNNER_TEMP/toolchain-smoke.c", "$env:RUNNER_TEMP/toolchain-smoke.exe"
