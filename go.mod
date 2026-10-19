@@ -12,14 +12,12 @@ require (
 	github.com/oneclickvirt/cputest v0.0.18
 	github.com/oneclickvirt/defaultset v0.0.2-20261019011310
 	github.com/oneclickvirt/disktest v0.0.24
-	github.com/oneclickvirt/ecs v0.2.16
+	github.com/oneclickvirt/ecs v0.2.17-0.20261019053850-5973ad4c3061
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.26
 	github.com/oneclickvirt/pingtest v0.0.28
 	github.com/oneclickvirt/portchecker v0.0.7
-	github.com/oneclickvirt/privatespeedtest v0.0.25
-	github.com/oneclickvirt/security v0.0.21
 	github.com/oneclickvirt/speedtest v0.0.37
 	github.com/showwin/speedtest-go v1.8.3
 	golang.org/x/sys v0.47.0

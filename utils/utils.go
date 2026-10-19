@@ -23,7 +23,6 @@ import (
 	"github.com/oneclickvirt/basics/system"
 	butils "github.com/oneclickvirt/basics/utils"
 	. "github.com/oneclickvirt/defaultset"
-	"github.com/oneclickvirt/security/network"
 )
 
 // 获取本程序本日及总执行的统计信息
@@ -146,7 +145,7 @@ func BasicsAndSecurityCheck(language, nt3CheckType string, securityCheckStatus b
 	wgt.Add(1)
 	go func() {
 		defer wgt.Done()
-		ipv4, ipv6, ipInfo, securityInfo, _ = network.NetworkCheck("both", securityCheckStatus, language)
+		ipv4, ipv6, ipInfo, securityInfo, _ = bnetwork.NetworkCheck("both", securityCheckStatus, language)
 		// if err != nil {
 		// 	fmt.Println(err.Error())
 		// }
@@ -256,7 +255,7 @@ func UploadText(absPath string) (string, string, error) {
 	// Upload directly to the canonical TLS endpoint.  The legacy HTTP entry
 	// point redirects and must not be used for requests carrying credentials.
 	primaryURL := "https://paste.spiritlhl.net/api/UL/upload"
-	token := network.SecurityUploadToken
+	token := "OvwKx5qgJtf7PZgCKbtyojSU.MTcwMTUxNzY1MTgwMw"
 	client := req.C().SetTimeout(6 * time.Second)
 	client.R().
 		SetRetryCount(2).
