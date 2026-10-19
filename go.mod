@@ -10,9 +10,9 @@ require (
 	github.com/oneclickvirt/backtrace v0.0.21
 	github.com/oneclickvirt/basics v0.0.39
 	github.com/oneclickvirt/cputest v0.0.18
-	github.com/oneclickvirt/defaultset v0.0.2-20240624082446
+	github.com/oneclickvirt/defaultset v0.0.2-20261019011310
 	github.com/oneclickvirt/disktest v0.0.24
-	github.com/oneclickvirt/ecs v0.2.15
+	github.com/oneclickvirt/ecs v0.2.16
 	github.com/oneclickvirt/gostun v0.0.10
 	github.com/oneclickvirt/memorytest v0.0.14
 	github.com/oneclickvirt/nt3 v0.0.26
@@ -95,8 +95,8 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/nxtrace/NTrace-core v1.7.3 // indirect
-	github.com/oneclickvirt/dd v0.0.3 // indirect
-	github.com/oneclickvirt/fio v0.0.3 // indirect
+	github.com/oneclickvirt/dd v0.0.4 // indirect
+	github.com/oneclickvirt/fio v0.0.4 // indirect
 	github.com/oneclickvirt/mbw v0.0.3 // indirect
 	github.com/oneclickvirt/stream v0.0.3 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.1 // indirect
