@@ -1,0 +1,20 @@
+{
+  "repository": "oneclickvirt/ecs-gui",
+  "branch": "main",
+  "skill_name": "oneclickvirt-ecs-gui",
+  "purpose": "Build, install and troubleshoot the Fyne ECS desktop/mobile application.",
+  "notes": [
+    "Use the exact platform release assets; Android APK, macOS app, Windows EXE and Linux archive are different products. Keep VERSION and FyneApp.toml aligned when modifying builds. For headless MCP, use the ecs integration."
+  ],
+  "guide": "https://www.spiritlhl.net/guide/agent_integrations.html",
+  "releases": false,
+  "mcp": false,
+  "source_files": [
+    "build.sh",
+    "go.mod"
+  ],
+  "purpose_zh": "构建、安装和排查基于 Fyne 的融合怪桌面或移动应用。",
+  "notes_zh": [
+    "区分 Android APK、macOS app、Windows EXE 和 Linux 压缩包。修改构建时同步 VERSION 与 FyneApp.toml；无图形界面 MCP 使用 ecs 集成。"
+  ]
+}

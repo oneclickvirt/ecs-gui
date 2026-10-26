@@ -1,0 +1,10 @@
+{
+  "repository": "oneclickvirt/ecs-gui",
+  "skill_name": "oneclickvirt-ecs-gui",
+  "mcp": false,
+  "files": {
+    "agent/profile.json": "4e7e3cb71384891a31c35db2230ea71ee128d6e7d470576553c4ee18df0ba06a",
+    "skills/oneclickvirt-ecs-gui/SKILL.md": "ea0900f1493d67331ea5c19fcdeb4329232589975c203f76bead3ccdbb4ff95d",
+    "skills/oneclickvirt-ecs-gui/SKILL_ZH.md": "fa6c112196eb02a3e13fa7a9a2ae25cc4c067004688808ac75b96ecf17702cf9"
+  }
+}
