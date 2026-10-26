@@ -1,0 +1,17 @@
+main:
+  push:
+  - &id001
+    name: index-public-documentation
+    stages:
+    - name: Index public documentation
+      type: knowledge:update
+      options:
+        include:
+        - README*.md
+        - skills/oneclickvirt-ecs-gui/SKILL.md
+        - skills/oneclickvirt-ecs-gui/SKILL_ZH.md
+        - docs/**/*.md
+        issueSyncEnabled: false
+        ignoreProcessFailures: false
+  api_trigger_knowledge:
+  - *id001
