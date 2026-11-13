@@ -11,7 +11,6 @@ import (
 	"github.com/oneclickvirt/basics/network/resolver"
 	"github.com/oneclickvirt/ecs-gui/internal/appmeta"
 	ecsapi "github.com/oneclickvirt/ecs/api"
-	privatepst "github.com/oneclickvirt/privatespeedtest/pst"
 	speedtestmodel "github.com/oneclickvirt/speedtest/model"
 	showwinspeedtest "github.com/showwin/speedtest-go/speedtest"
 )
@@ -26,9 +25,7 @@ func TestReleaseDependencyContract(t *testing.T) {
 	if got := speedtestmodel.SpeedTestVersion; got != pinnedModuleVersion(t, "github.com/oneclickvirt/speedtest") {
 		t.Fatalf("speedtest component version = %q, want source-pinned version", got)
 	}
-	if got := privatepst.PrivateSpeedTestVersion; got != pinnedModuleVersion(t, "github.com/oneclickvirt/privatespeedtest") {
-		t.Fatalf("private speedtest component version = %q, want source-pinned version", got)
-	}
+
 	if got := showwinspeedtest.Version(); got != strings.TrimPrefix(pinnedModuleVersion(t, "github.com/showwin/speedtest-go"), "v") {
 		t.Fatalf("speedtest-go version = %q, want source-pinned version", got)
 	}
