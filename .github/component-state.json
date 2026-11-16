@@ -7,7 +7,7 @@
     "github.com/oneclickvirt/dd": "v0.0.4",
     "github.com/oneclickvirt/defaultset": "v0.0.2-20261019011310",
     "github.com/oneclickvirt/disktest": "v0.0.25",
-    "github.com/oneclickvirt/ecs": "v0.2.20",
+    "github.com/oneclickvirt/ecs": "v0.2.24",
     "github.com/oneclickvirt/fio": "v0.0.4",
     "github.com/oneclickvirt/gostun": "v0.0.10",
     "github.com/oneclickvirt/mbw": "v0.0.3",
@@ -21,12 +21,12 @@
     "github.com/oneclickvirt/stream": "v0.0.3"
   },
   "fingerprints": {
-    "FyneApp.toml": "d3c48daec7b67189961cac161763c264d49130b96d98232a31d40a9007b78daa",
-    "VERSION": "d8f3e6b0f7817c4ad634608dc673833c04c255c7ad2ef87ece9a443579553d25",
-    "go.mod": "5f3ba2b28ef0de0261cab6348f4fdd58880812a5f08439106c2cac7abca3e7f5",
-    "go.sum": "1c6596c51049c5dd268aed89a87c3cb118bd683cdf2075b56de5cd714423e663",
-    "internal/appmeta/version.go": "a8430f32b7ee72db021dbc8640396afa21dbef65e64c6a952df2e1d27a8576f0"
+    "FyneApp.toml": "eab7d19b22e9d18b00b3d9656b6f71c40664019dc3fffb1f5da5e223421c77ca",
+    "VERSION": "f2b441d0c9b7b81e8d9385e7e89ede33d7521583579dcb7b42fa366fd49758ab",
+    "go.mod": "981b55d4d19578a9558c636aee3fb3fb91a9997409e7e2d5289f55ed44e397e2",
+    "go.sum": "5f8cb58923aa6e46125052c4f4d65bfd8471969a94dd60b7263b1f758e2ad43f",
+    "internal/appmeta/version.go": "a2f8568071faed57ef3e783d471b80d40345aa2c1af630203a12f1a55af91266"
   },
   "format": 1,
-  "version": "v0.2.19"
+  "version": "v0.2.20"
 }
