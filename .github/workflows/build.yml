@@ -362,6 +362,7 @@ jobs:
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
         source "$RUNNER_TEMP/ci-network.sh"
+        python3 deps/security/.github/audit_credentials.py ecs-gui-*.apk
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" verify-assets --assets "ecs-gui-*.apk"
         RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
         for file in ecs-gui-android-*.apk; do
@@ -733,6 +734,7 @@ jobs:
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
         source "$RUNNER_TEMP/ci-network.sh"
+        python3 deps/security/.github/audit_credentials.py ecs-gui-${{ matrix.name }}-*
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" verify-assets --assets "ecs-gui-*.zip" "ecs-gui-*.tar.gz" "ecs-gui-*.tar.xz" "ecs-gui-*.exe"
         RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
         for file in ecs-gui-${{ matrix.name }}-*; do
