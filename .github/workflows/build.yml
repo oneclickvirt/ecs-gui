@@ -104,7 +104,23 @@ jobs:
     - name: Install Fyne CLI
       run: |
         python3 "$RUNNER_TEMP/private-ci-control/private_guard.py" run <<'PRIVATE_STEP'
-        go install fyne.io/tools/cmd/fyne@v1.7.3
+        # Fyne's mobile packager replaces GOFLAGS linker flags with -w.
+        # Keep the same linkname compatibility flag as the desktop builds.
+        fyne_source="$(go mod download -json fyne.io/tools@v1.7.3 | python3 -c 'import json, sys; print(json.load(sys.stdin)["Dir"])')"
+        fyne_build="$(mktemp -d)"
+        cp -R "$fyne_source/." "$fyne_build/"
+        chmod -R u+w "$fyne_build"
+        python3 - "$fyne_build/cmd/fyne/internal/mobile/build.go" <<'PY'
+        import pathlib, sys
+        path = pathlib.Path(sys.argv[1])
+        source = path.read_text()
+        original = 'buildLdflags = "-w"'
+        if source.count(original) != 1:
+            raise SystemExit('Unexpected Fyne mobile linker configuration')
+        path.write_text(source.replace(original, 'buildLdflags = "-w -checklinkname=0"', 1))
+        PY
+        (cd "$fyne_build" && GOWORK=off go install ./cmd/fyne)
+        rm -rf "$fyne_build"
         PRIVATE_STEP
       shell: bash
       env:
@@ -242,7 +258,6 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
-        FYNE_BUILD_FLAGS: -trimpath -buildvcs=false -ldflags '-s -w -buildid='
         CI_ALLOWED_ENV: apks
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,RELEASE_TAG,VERSION,apks,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
       run: |
@@ -264,7 +279,6 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         GOPRIVATE: github.com/oneclickvirt/security,github.com/oneclickvirt/privatespeedtest
-        FYNE_BUILD_FLAGS: -trimpath -buildvcs=false -ldflags '-s -w -buildid='
         CI_ALLOWED_ENV: NEW_APK
         CI_ALLOWED_OUTPUT: APP_VERSION,ECS_VERSION,GUI_VERSION,NEW_APK,RELEASE_TAG,VERSION,backtrace,basics,cputest,defaultset,disktest,gostun,memorytest,nt3,pingtest,portchecker,privatespeedtest,release_tag,security,speedtest,tag,unlocktests,version
       run: |
