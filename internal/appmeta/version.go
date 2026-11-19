@@ -3,8 +3,8 @@ package appmeta
 var (
 	AppID              = "com.oneclickvirt.goecs"
 	AppName            = "goecs"
-	Version            = "0.2.22"
-	UpstreamECSVersion = "v0.2.28"
+	Version            = "0.2.23"
+	UpstreamECSVersion = "v0.2.29"
 )
 
 func ReleaseVersion() string {
